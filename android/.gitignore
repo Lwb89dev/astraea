@@ -7,11 +7,24 @@
 GeneratedPluginRegistrant.java
 .cxx/
 
-# Remember to never publicly share your keystore.
+# Never publish signing configuration, keystores, or private keys.
 # See https://flutter.dev/to/reference-keystore
 key.properties
+keystore.properties
+signing.properties
+signing-config.properties
 **/*.keystore
 **/*.jks
+**/*.jceks
+**/*.bcfks
 **/*.p12
 **/*.pfx
 **/*.pem
+**/*.key
+**/*.p8
+**/*.pk8
+**/*.der
+**/*.private-key
+**/upload-keystore*
+**/release-keystore*
+**/distribution-keystore*
