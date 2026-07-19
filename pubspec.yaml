@@ -55,7 +55,7 @@ dependencies:
   flutter_secure_storage: ^10.3.1
 
   # Stable per-event ids (also used as the NIP-78 `d` tag suffix).
-  uuid: ^4.5.3
+  uuid: ^4.6.0
 
   # Login via Amber (NIP-55 external signer, Android only): the app never sees
   # the private key — signing and NIP-44 encrypt/decrypt are delegated to
