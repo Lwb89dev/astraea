@@ -185,6 +185,10 @@ impl Event {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EventDraft {
+    /// Optional client-generated id (UUID). Offline-first clients create the
+    /// id locally so unpublished events already have a stable identity.
+    #[serde(default)]
+    pub id: Option<String>,
     pub title: String,
     #[serde(default)]
     pub description: String,

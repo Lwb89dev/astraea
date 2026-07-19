@@ -246,7 +246,7 @@ async fn cli_doctor() -> anyhow::Result<()> {
             if !activatable {
                 suggestions.push(
                     "D-Bus activation file missing: install the package, or copy \
-                     packaging/common/com.lwb89dev.Astraea.service to \
+                     packaging/common/com.lwb89dev.Astraea.Service.service to \
                      ~/.local/share/dbus-1/services/ (scripts/install-dev.sh does this)"
                         .into(),
                 );

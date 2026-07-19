@@ -1,6 +1,8 @@
 # Astraea D-Bus API
 
-Bus: **session**. Well-known name: `com.lwb89dev.Astraea`.
+Bus: **session**. Well-known name: `com.lwb89dev.Astraea.Service`
+(the plain `com.lwb89dev.Astraea` name is the GApplication id of the desktop
+app, which registers it for single-instance behaviour).
 Object path: `/com/lwb89dev/Astraea`.
 Interfaces: `com.lwb89dev.Astraea.Calendar1`, `com.lwb89dev.NostrAccount1`.
 
@@ -38,6 +40,7 @@ and
 | `GetDay` | `(s date, as calendarIds) → (s json)` | convenience over `GetAgenda` |
 | `GetWeek` | `(s startDate, as calendarIds) → (s json)` | 7 days from `startDate` |
 | `GetMonth` | `(u year, u month, as calendarIds) → (s json)` | |
+| `ListEvents` | `(x start, x end, as calendarIds) → (s json)` | **master events** (with recurrence rules) intersecting the window; for full clients that edit events. Thin frontends should use the occurrence queries. |
 | `GetEvent` | `(s eventId) → (s json)` | master event, not an occurrence |
 | `CreateEvent` | `(s draftJson) → (s eventId)` | commits locally, queues publish |
 | `UpdateEvent` | `(s eventId, s patchJson) → (s json)` | RFC 7396-style merge patch |
@@ -117,18 +120,18 @@ service for Astraea/Echoes/Kairos).
 ## Examples
 
 ```bash
-busctl --user call com.lwb89dev.Astraea /com/lwb89dev/Astraea \
+busctl --user call com.lwb89dev.Astraea.Service /com/lwb89dev/Astraea \
   com.lwb89dev.Astraea.Calendar1 GetVersion
 
-busctl --user call com.lwb89dev.Astraea /com/lwb89dev/Astraea \
+busctl --user call com.lwb89dev.Astraea.Service /com/lwb89dev/Astraea \
   com.lwb89dev.Astraea.Calendar1 CreateEvent s \
   '{"schemaVersion":1,"title":"Demo","start":"2026-07-20T09:00:00Z","end":"2026-07-20T10:00:00Z","timezone":"Europe/Rome"}'
 
 # GetDay('2026-07-20', []) — "sas" + array length 0
-busctl --user call com.lwb89dev.Astraea /com/lwb89dev/Astraea \
+busctl --user call com.lwb89dev.Astraea.Service /com/lwb89dev/Astraea \
   com.lwb89dev.Astraea.Calendar1 GetDay sas '2026-07-20' 0
 
-gdbus monitor --session --dest com.lwb89dev.Astraea
+gdbus monitor --session --dest com.lwb89dev.Astraea.Service
 ```
 
 ## Compatibility rules

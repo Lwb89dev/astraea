@@ -49,21 +49,37 @@ Risks identified:
 - [x] docs/dbus-api.md + introspection XML (native/dbus/)
 - [x] Model boundaries + shared-identity extraction strategy (ADR-004)
 
-## Phase 3 — Minimal service (Rust)
+## Phase 3 — Minimal service (Rust) ✅
 
-- [ ] native/service crate: D-Bus name, Calendar1 + NostrAccount1 ifaces
-- [ ] SQLite (XDG paths, WAL, versioned migrations, backup-before-migrate)
-- [ ] CRUD events/calendars via D-Bus + EventsChanged signal
-- [ ] systemd user unit + D-Bus activation file
-- [ ] CLI: status / diagnostics / doctor / db migrate
-- [ ] cargo test (models, db migrations, occurrence expansion)
+- [x] native/service crate: `com.lwb89dev.Astraea.Service`, Calendar1 +
+      NostrAccount1 interfaces (account iface stubbed until phase 6)
+- [x] SQLite (XDG paths, WAL, versioned migrations, backup-before-migrate,
+      corruption quarantine)
+- [x] CRUD events/calendars via D-Bus + EventsChanged/CalendarsChanged
+- [x] systemd user unit (hardened) + D-Bus activation file (+ documented
+      non-systemd fallback: dbus-daemon spawns Exec directly)
+- [x] CLI: status / sync / diagnostics / doctor / db migrate / auth
+- [x] 20 unit tests (model, recurrence parity with Dart, store, migrations)
+- Verified live: busctl create→GetDay→signals, activation via systemd user
+  manager, SIGTERM graceful shutdown, idle-exit policy.
 
-## Phase 4 — Flutter Linux
+## Phase 4 — Flutter Linux ✅
 
-- [ ] `flutter create --platforms=linux .` runner, Android untouched
-- [ ] lib/desktop: D-Bus client + provider overrides
-- [ ] Desktop layout (sidebar, toolbar, views), deep links astraea://
-- [ ] Clear error + mock backend when the service is absent
+- [x] `flutter create --platforms=linux` runner; app id
+      `com.lwb89dev.Astraea`; single-instance GTK runner forwarding
+      astraea:// deep links over a method channel
+- [x] lib/desktop: DbusCalendarClient (+ListEvents on the service),
+      ServiceEventCodec, DesktopEventsNotifier override, status/calendar
+      providers — web/Android untouched via conditional import
+- [x] Desktop shell: calendars sidebar (wide windows), service/sync/auth
+      status tile, Sync-now action; full-screen recovery UI when the
+      service is unreachable
+- [x] Deep links: astraea://calendar/{day,week,month,agenda}/DATE,
+      astraea://event/ID, astraea://new-event?date=…
+- Verified: flutter analyze clean, 78 tests green, Linux release build,
+  Android debug APK still builds, single-instance forwarding tested.
+- Note: the mobile onboarding is skipped on desktop (service owns
+  relays/identity from phase 6 on).
 
 ## Phase 5 — GNOME Shell extension
 

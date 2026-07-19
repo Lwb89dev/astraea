@@ -103,6 +103,7 @@ dependencies:
   # Android home-screen widgets (daily/weekly/monthly agenda): shares data
   # with the native AppWidgetProviders and triggers their redraw.
   home_widget: ^0.7.0
+  dbus: ^0.7.14
 
 dev_dependencies:
   flutter_test:

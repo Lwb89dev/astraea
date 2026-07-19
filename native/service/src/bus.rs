@@ -13,7 +13,10 @@ use crate::model::{self, CalendarDraft, CalendarPatch, EventDraft, EventPatch, S
 use crate::recurrence;
 use crate::store::{Store, StoreError};
 
-pub const BUS_NAME: &str = "com.lwb89dev.Astraea";
+// Note: NOT plain "com.lwb89dev.Astraea" — that is the GApplication id of the
+// desktop app, which registers itself on the session bus for single-instance
+// behaviour. The service owns a subname, GNOME-style (org.gnome.Shell.* etc.).
+pub const BUS_NAME: &str = "com.lwb89dev.Astraea.Service";
 pub const OBJECT_PATH: &str = "/com/lwb89dev/Astraea";
 
 /// State shared by both interfaces and the daemon loop.
@@ -193,6 +196,33 @@ impl Calendar1 {
             .map(|d| Utc.from_utc_datetime(&d))
             .ok_or_else(|| Error::InvalidArgument("invalid year/month".into()))?;
         self.agenda_json(start, end, calendar_ids).await
+    }
+
+    /// Master events (not expanded occurrences) intersecting `[start, end)`.
+    /// This is what full clients (the Flutter desktop app) use so they can
+    /// edit recurrence rules; thin frontends should prefer GetAgenda/GetDay.
+    async fn list_events(
+        &self,
+        start_timestamp: i64,
+        end_timestamp: i64,
+        calendar_ids: Vec<String>,
+    ) -> Result<String, Error> {
+        self.state.touch();
+        let start = Utc
+            .timestamp_opt(start_timestamp, 0)
+            .single()
+            .ok_or_else(|| Error::InvalidArgument("invalid start timestamp".into()))?;
+        let end = Utc
+            .timestamp_opt(end_timestamp, 0)
+            .single()
+            .ok_or_else(|| Error::InvalidArgument("invalid end timestamp".into()))?;
+        if end <= start {
+            return Err(Error::InvalidArgument("end must be after start".into()));
+        }
+        let store = self.state.store.clone();
+        let events = blocking(move || store.events_in_range(start, end, &calendar_ids)).await?;
+        let values = events.iter().map(with_schema_version).collect::<Result<Vec<_>, _>>()?;
+        to_json(&values)
     }
 
     async fn get_event(&self, event_id: String) -> Result<String, Error> {

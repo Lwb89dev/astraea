@@ -17,7 +17,7 @@ Audience: contributors working on the Linux desktop integration.
                        ▼
         ┌──────────────────────────────────────┐
         │ Astraea Service (Rust daemon)        │
-        │  bus name  com.lwb89dev.Astraea      │
+        │  bus name  …Astraea.Service          │
         │  path      /com/lwb89dev/Astraea     │
         │  ifaces    …Astraea.Calendar1        │
         │            com.lwb89dev.NostrAccount1│
@@ -193,8 +193,8 @@ systemctl --user restart astraea.service
 journalctl --user -u astraea.service -f
 
 # poke the API
-busctl --user introspect com.lwb89dev.Astraea /com/lwb89dev/Astraea
-busctl --user call com.lwb89dev.Astraea /com/lwb89dev/Astraea \
+busctl --user introspect com.lwb89dev.Astraea.Service /com/lwb89dev/Astraea
+busctl --user call com.lwb89dev.Astraea.Service /com/lwb89dev/Astraea \
   com.lwb89dev.Astraea.Calendar1 GetVersion
 
 # desktop app

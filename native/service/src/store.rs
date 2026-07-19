@@ -73,9 +73,17 @@ impl Store {
             None => (Recurrence::None, None),
             Some(r) => (Recurrence::from_wire(Some(r.kind.as_str())), r.until),
         };
+        let id = match draft.id {
+            Some(ref requested) => {
+                let parsed = Uuid::parse_str(requested)
+                    .map_err(|_| StoreError::Invalid("id must be a UUID".into()))?;
+                parsed.to_string()
+            }
+            None => Uuid::new_v4().to_string(),
+        };
         let now = Utc::now();
         let event = Event {
-            id: Uuid::new_v4().to_string(),
+            id,
             calendar_id: draft.calendar_id.clone().unwrap_or_else(|| "default".to_owned()),
             nostr_event_id: None,
             owner_pubkey: None,
@@ -111,6 +119,13 @@ impl Store {
             )?;
             if calendar_exists == 0 {
                 return Err(StoreError::NotFound(format!("calendar {}", event.calendar_id)));
+            }
+            let duplicate: i64 =
+                conn.query_row("SELECT COUNT(*) FROM events WHERE id = ?1", [&event.id], |r| {
+                    r.get(0)
+                })?;
+            if duplicate > 0 {
+                return Err(StoreError::Invalid(format!("event id {} already exists", event.id)));
             }
             insert_event_row(conn, &event)?;
             enqueue(conn, &event.id, "publish")?;
