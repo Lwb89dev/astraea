@@ -1,0 +1,73 @@
+# Astraea GNOME Shell extension — translation template.
+# Regenerate with:
+#   xgettext --from-code=UTF-8 --output=po/astraea-gnome.pot *.js
+msgid ""
+msgstr ""
+"Project-Id-Version: astraea-gnome 0.1.1\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "Previous day"
+msgstr ""
+
+msgid "Next day"
+msgstr ""
+
+msgid "Today"
+msgstr ""
+
+msgid "New event…"
+msgstr ""
+
+msgid "Open Astraea"
+msgstr ""
+
+msgid "Title"
+msgstr ""
+
+msgid "Start"
+msgstr ""
+
+msgid "End"
+msgstr ""
+
+msgid "All day"
+msgstr ""
+
+msgid "Save"
+msgstr ""
+
+msgid "Open full editor…"
+msgstr ""
+
+msgid "The event needs a title."
+msgstr ""
+
+msgid "Times must be HH:MM."
+msgstr ""
+
+msgid "The end time is before the start."
+msgstr ""
+
+msgid "No events"
+msgstr ""
+
+msgid "%d more — open Astraea"
+msgstr ""
+
+msgid "Astraea service unavailable — install astraea-service, then reopen this menu."
+msgstr ""
+
+msgid "signed in"
+msgstr ""
+
+msgid "local-only"
+msgstr ""
+
+msgid "%d change(s) waiting to sync"
+msgstr ""
+
+msgid "up to date"
+msgstr ""
+
+msgid "Operation failed: %s"
+msgstr ""
