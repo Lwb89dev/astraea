@@ -7,6 +7,9 @@ import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
+import 'desktop/desktop_bootstrap_stub.dart'
+    if (dart.library.io) 'desktop/desktop_bootstrap.dart'
+    as desktop;
 import 'providers/app_entry_provider.dart';
 import 'providers/events_provider.dart';
 import 'providers/service_providers.dart';
@@ -16,7 +19,7 @@ import 'screens/onboarding_screen.dart';
 import 'screens/widgets/widget_launch_handler.dart';
 import 'utils/constants.dart';
 
-Future<void> main() async {
+Future<void> main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize the IANA timezone database and set the device's local zone,
@@ -33,17 +36,29 @@ Future<void> main() async {
   final container = ProviderContainer(
     overrides: [
       themeModeProvider.overrideWith(() => ThemeModeNotifier(initialThemeMode)),
+      // On Linux desktop the events backend is the astraea-service D-Bus API
+      // (ADR-003); everywhere else this adds nothing.
+      ...desktop.platformOverrides(),
     ],
   );
   await container.read(localStorageServiceProvider).init();
-  await container.read(notificationServiceProvider).init();
+  if (!desktop.isLinuxDesktop) {
+    // Mobile-only: on Linux, reminders/notifications belong to the
+    // background service, not to the UI process.
+    await container.read(notificationServiceProvider).init();
+  }
 
   runApp(
-    UncontrolledProviderScope(container: container, child: const AstraeaApp()),
+    UncontrolledProviderScope(
+      container: container,
+      child: AstraeaApp(launchArgs: args),
+    ),
   );
 
   // Deliberately not awaited: neither of these needs to block the first frame.
-  unawaited(_refreshBackgroundState(container));
+  if (!desktop.isLinuxDesktop) {
+    unawaited(_refreshBackgroundState(container));
+  }
 }
 
 /// Startup housekeeping that has no UI of its own.
@@ -86,7 +101,11 @@ Future<void> _initTimezones() async {
 }
 
 class AstraeaApp extends ConsumerWidget {
-  const AstraeaApp({super.key});
+  const AstraeaApp({super.key, this.launchArgs = const []});
+
+  /// Process arguments, used on Linux desktop to receive the initial
+  /// astraea:// deep link from the GTK runner.
+  final List<String> launchArgs;
 
   /// Brand seed color for both light and dark schemes.
   static const _brandSeed = Color(0xFF3F51B5);
@@ -120,10 +139,18 @@ class AstraeaApp extends ConsumerWidget {
         ),
         useMaterial3: true,
       ),
-      home: WidgetLaunchHandler(
-        navigatorKey: _navigatorKey,
-        child: const _AppRoot(),
-      ),
+      home: desktop.isLinuxDesktop
+          // Desktop: astraea:// deep links + desktop chrome. The Android
+          // home-widget launch handler stays out of this path entirely.
+          ? desktop.wrapHome(
+              navigatorKey: _navigatorKey,
+              launchArgs: launchArgs,
+              child: const _AppRoot(),
+            )
+          : WidgetLaunchHandler(
+              navigatorKey: _navigatorKey,
+              child: const _AppRoot(),
+            ),
     );
   }
 }

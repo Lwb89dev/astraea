@@ -33,7 +33,7 @@ mkdir -p "$unit_dir" "$dbus_dir"
 sed "s|@LIBEXECDIR@|$HOME/.local/libexec|g" \
     "$here/packaging/common/astraea.service" > "$unit_dir/astraea.service"
 sed "s|@LIBEXECDIR@|$HOME/.local/libexec|g" \
-    "$here/packaging/common/com.lwb89dev.Astraea.service" > "$dbus_dir/com.lwb89dev.Astraea.service"
+    "$here/packaging/common/com.lwb89dev.Astraea.Service.service" > "$dbus_dir/com.lwb89dev.Astraea.Service.service"
 
 if [ -f "$here/assets/desktop/com.lwb89dev.Astraea.desktop" ]; then
     echo "==> installing desktop entry"
@@ -63,7 +63,7 @@ fi
 
 echo
 echo "done. Try:"
-echo "  busctl --user call com.lwb89dev.Astraea /com/lwb89dev/Astraea \\"
+echo "  busctl --user call com.lwb89dev.Astraea.Service /com/lwb89dev/Astraea \\"
 echo "    com.lwb89dev.Astraea.Calendar1 GetVersion"
 echo "  $libexec_dir/astraea-service status"
 echo "  journalctl --user -u astraea.service -f"

@@ -10,7 +10,7 @@ if command -v systemctl >/dev/null 2>&1; then
 fi
 
 rm -f "$data_home/systemd/user/astraea.service"
-rm -f "$data_home/dbus-1/services/com.lwb89dev.Astraea.service"
+rm -f "$data_home/dbus-1/services/com.lwb89dev.Astraea.Service.service"
 rm -f "$data_home/applications/com.lwb89dev.Astraea.desktop"
 rm -f "$data_home/icons/hicolor/512x512/apps/com.lwb89dev.Astraea.png"
 rm -f "$HOME/.local/libexec/astraea/astraea-service"

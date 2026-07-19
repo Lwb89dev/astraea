@@ -33,6 +33,12 @@
       <arg type="as" name="calendarIds" direction="in"/>
       <arg type="s" name="occurrencesJson" direction="out"/>
     </method>
+    <method name="ListEvents">
+      <arg type="x" name="startTimestamp" direction="in"/>
+      <arg type="x" name="endTimestamp" direction="in"/>
+      <arg type="as" name="calendarIds" direction="in"/>
+      <arg type="s" name="eventsJson" direction="out"/>
+    </method>
     <method name="GetEvent">
       <arg type="s" name="eventId" direction="in"/>
       <arg type="s" name="eventJson" direction="out"/>

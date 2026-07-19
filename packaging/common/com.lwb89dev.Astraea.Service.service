@@ -6,6 +6,6 @@
 # the documented fallback — no systemd required).
 
 [D-BUS Service]
-Name=com.lwb89dev.Astraea
+Name=com.lwb89dev.Astraea.Service
 Exec=@LIBEXECDIR@/astraea/astraea-service run
 SystemdService=astraea.service
