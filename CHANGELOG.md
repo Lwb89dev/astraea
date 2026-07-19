@@ -11,6 +11,15 @@ All notable changes to Astraea are documented here. The format follows
 - Final Android application ID and production signing setup.
 - Dedicated production hardening for additional platforms.
 
+## [0.1.1] - 2026-07-19
+
+### Fixed
+
+- Crash on launch in release builds: R8 code shrinking broke WorkManager's
+  reflective startup database lookup (a transitive dependency pulled in by
+  the home-screen widgets), causing every release install to crash before
+  the app UI could load.
+
 ## [0.1.0] - 2026-07-19
 
 ### Added
