@@ -72,6 +72,16 @@ android {
 
     buildTypes {
         release {
+            // AGP 9 shrinks/obfuscates release builds by default; without an
+            // explicit proguard-rules.pro, R8 breaks WorkManager's reflective
+            // Room database lookup (see proguard-rules.pro) and the app
+            // crashes on launch. isMinifyEnabled is set explicitly here so
+            // that's not implicit.
+            isMinifyEnabled = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
             // Never fall back to the debug identity for a distributable build.
             if (releaseSigningReady) {
                 signingConfig = signingConfigs.getByName("release")
