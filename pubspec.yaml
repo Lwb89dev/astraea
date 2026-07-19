@@ -32,7 +32,7 @@ dependencies:
   # IANA timezone database. Events are stored in UTC and converted to the
   # event's (or device's) timezone for display and for computing the exact
   # local wall-clock instant a reminder must fire at.
-  timezone: ^0.9.4
+  timezone: ^0.10.1
   # Reads the device's current IANA timezone name at startup to seed the
   # `timezone` package's local location.
   flutter_timezone: ^3.0.1
