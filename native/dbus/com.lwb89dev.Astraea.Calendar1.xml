@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+ "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<!-- Normative introspection for the Astraea calendar service.
+     See docs/dbus-api.md for payload schemas and compatibility rules. -->
+<node>
+  <interface name="com.lwb89dev.Astraea.Calendar1">
+    <method name="GetVersion">
+      <arg type="s" name="version" direction="out"/>
+    </method>
+    <method name="GetServiceStatus">
+      <arg type="s" name="statusJson" direction="out"/>
+    </method>
+    <method name="GetAgenda">
+      <arg type="x" name="startTimestamp" direction="in"/>
+      <arg type="x" name="endTimestamp" direction="in"/>
+      <arg type="as" name="calendarIds" direction="in"/>
+      <arg type="s" name="occurrencesJson" direction="out"/>
+    </method>
+    <method name="GetDay">
+      <arg type="s" name="date" direction="in"/>
+      <arg type="as" name="calendarIds" direction="in"/>
+      <arg type="s" name="occurrencesJson" direction="out"/>
+    </method>
+    <method name="GetWeek">
+      <arg type="s" name="startDate" direction="in"/>
+      <arg type="as" name="calendarIds" direction="in"/>
+      <arg type="s" name="occurrencesJson" direction="out"/>
+    </method>
+    <method name="GetMonth">
+      <arg type="u" name="year" direction="in"/>
+      <arg type="u" name="month" direction="in"/>
+      <arg type="as" name="calendarIds" direction="in"/>
+      <arg type="s" name="occurrencesJson" direction="out"/>
+    </method>
+    <method name="GetEvent">
+      <arg type="s" name="eventId" direction="in"/>
+      <arg type="s" name="eventJson" direction="out"/>
+    </method>
+    <method name="CreateEvent">
+      <arg type="s" name="draftJson" direction="in"/>
+      <arg type="s" name="eventId" direction="out"/>
+    </method>
+    <method name="UpdateEvent">
+      <arg type="s" name="eventId" direction="in"/>
+      <arg type="s" name="patchJson" direction="in"/>
+      <arg type="s" name="eventJson" direction="out"/>
+    </method>
+    <method name="DeleteEvent">
+      <arg type="s" name="eventId" direction="in"/>
+    </method>
+    <method name="GetCalendars">
+      <arg type="s" name="calendarsJson" direction="out"/>
+    </method>
+    <method name="CreateCalendar">
+      <arg type="s" name="draftJson" direction="in"/>
+      <arg type="s" name="calendarId" direction="out"/>
+    </method>
+    <method name="UpdateCalendar">
+      <arg type="s" name="calendarId" direction="in"/>
+      <arg type="s" name="patchJson" direction="in"/>
+      <arg type="s" name="calendarJson" direction="out"/>
+    </method>
+    <method name="DeleteCalendar">
+      <arg type="s" name="calendarId" direction="in"/>
+    </method>
+    <method name="SyncNow">
+      <arg type="s" name="operationId" direction="out"/>
+    </method>
+    <method name="GetSyncStatus">
+      <arg type="s" name="statusJson" direction="out"/>
+    </method>
+    <method name="OpenDesktop">
+      <arg type="s" name="view" direction="in"/>
+      <arg type="s" name="targetId" direction="in"/>
+      <arg type="s" name="date" direction="in"/>
+    </method>
+    <method name="GetSettings">
+      <arg type="s" name="settingsJson" direction="out"/>
+    </method>
+    <method name="UpdateSettings">
+      <arg type="s" name="patchJson" direction="in"/>
+      <arg type="s" name="settingsJson" direction="out"/>
+    </method>
+
+    <signal name="EventsChanged">
+      <arg type="as" name="eventIds"/>
+    </signal>
+    <signal name="CalendarsChanged"/>
+    <signal name="SyncStatusChanged">
+      <arg type="s" name="statusJson"/>
+    </signal>
+    <signal name="SettingsChanged">
+      <arg type="s" name="settingsJson"/>
+    </signal>
+    <signal name="NotificationRaised">
+      <arg type="s" name="eventId"/>
+      <arg type="s" name="title"/>
+      <arg type="x" name="fireAt"/>
+    </signal>
+    <signal name="ServiceError">
+      <arg type="s" name="code"/>
+      <arg type="s" name="message"/>
+    </signal>
+  </interface>
+</node>
