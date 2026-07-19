@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="astraea_widget_empty">No events</string>
+    <string name="astraea_widget_untitled">(untitled)</string>
+    <string name="astraea_widget_add">New event</string>
+    <string name="astraea_widget_previous">Previous period</string>
+    <string name="astraea_widget_next">Next period</string>
+    <string name="astraea_widget_day_label">Astraea — daily agenda</string>
+    <string name="astraea_widget_week_label">Astraea — weekly agenda</string>
+    <string name="astraea_widget_month_label">Astraea — monthly agenda</string>
+
+    <!-- Month grid weekday strip. Single letters so seven fit at widget width;
+         the grid always starts on Monday (see MonthGridFactory). -->
+    <string name="astraea_weekday_mon">M</string>
+    <string name="astraea_weekday_tue">T</string>
+    <string name="astraea_weekday_wed">W</string>
+    <string name="astraea_weekday_thu">T</string>
+    <string name="astraea_weekday_fri">F</string>
+    <string name="astraea_weekday_sat">S</string>
+    <string name="astraea_weekday_sun">S</string>
+</resources>

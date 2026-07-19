@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Daily agenda: a 4x2 cell block.
+
+  updatePeriodMillis is 30 minutes (the shortest Android honours) so the widget
+  keeps itself current even if Astraea is never opened — the app also pushes a
+  redraw whenever events change, and the provider redraws on ACTION_DATE_CHANGED
+  at midnight. Widgets are added by long-pressing the home screen; the app has
+  no "add widget" UI.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="250dp"
+    android:minHeight="110dp"
+    android:targetCellWidth="4"
+    android:targetCellHeight="2"
+    android:resizeMode="horizontal|vertical"
+    android:minResizeWidth="180dp"
+    android:minResizeHeight="110dp"
+    android:widgetCategory="home_screen"
+    android:description="@string/astraea_widget_day_label"
+    android:initialLayout="@layout/astraea_widget_list"
+    android:updatePeriodMillis="1800000" />

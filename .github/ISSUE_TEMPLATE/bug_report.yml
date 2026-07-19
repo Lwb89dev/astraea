@@ -1,0 +1,75 @@
+name: Bug report
+description: Report a reproducible problem in Astraea.
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not include private keys, real calendar exports or sensitive event data.
+        Security issues must be reported privately from the repository Security tab.
+
+  - type: input
+    id: version
+    attributes:
+      label: Astraea version
+      placeholder: 0.1.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Android
+        - Web (experimental)
+        - Other / development target
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Device and OS
+      placeholder: Pixel 8, Android 16
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the observed and expected behavior.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open …
+        2. Tap …
+        3. Observe …
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Sanitized logs or screenshots
+      description: Remove keys, public identifiers, relay credentials and calendar contents first.
+      render: shell
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues.
+          required: true
+        - label: I removed private or personally identifiable data.
+          required: true
+        - label: This is not a security vulnerability.
+          required: true

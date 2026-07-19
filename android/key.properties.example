@@ -1,0 +1,6 @@
+# Copy to android/key.properties (ignored by Git) and keep the keystore itself
+# outside the repository, ideally in a secrets manager-backed build pipeline.
+storeFile=/absolute/path/to/astraea-release.jks
+storePassword=replace-me
+keyAlias=astraea
+keyPassword=replace-me

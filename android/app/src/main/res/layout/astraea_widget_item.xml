@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  One agenda row: the event's colour bar, its time, its title. Tapping it opens
+  that event (a fill-in intent on item_root — see AstraeaWidgetService).
+
+  Every view here must be one RemoteViews supports: plain <View> is NOT on that
+  list and makes the whole widget fail to inflate ("Problem loading widget"),
+  which is why the colour bar is an ImageView with a background colour rather
+  than a <View>.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/item_root"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingTop="4dp"
+    android:paddingBottom="4dp">
+
+    <ImageView
+        android:id="@+id/item_color"
+        android:layout_width="3dp"
+        android:layout_height="14dp"
+        android:layout_marginEnd="7dp"
+        android:contentDescription="@null" />
+
+    <TextView
+        android:id="@+id/item_time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="6dp"
+        android:maxLines="1"
+        android:textColor="#B3FFFFFF"
+        android:textSize="11sp" />
+
+    <TextView
+        android:id="@+id/item_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textColor="#FFFFFFFF"
+        android:textSize="12sp" />
+</LinearLayout>
