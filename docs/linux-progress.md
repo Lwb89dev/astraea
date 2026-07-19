@@ -81,11 +81,18 @@ Risks identified:
 - Note: the mobile onboarding is skipped on desktop (service owns
   relays/identity from phase 6 on).
 
-## Phase 5 — GNOME Shell extension
+## Phase 5 — GNOME Shell extension ✅
 
-- [ ] extensions/gnome: indicator + calendar/agenda popup, quick add
-- [ ] D-Bus proxy with timeouts, signals, service-absent state
-- [ ] gettext, a11y, lint
+- [x] extensions/gnome/astraea@lwb89dev — ESM extension, GNOME 45–48
+- [x] Indicator + day agenda popup (‹/today/›), quick-add form
+      (title/start/end/all-day), open-event / open-app via OpenDesktop
+- [x] Async D-Bus client with 10 s timeouts, EventsChanged signal updates
+      (no polling; refresh-on-open only), service-absent status line
+- [x] gettext (en template + it), keyboard focus for the quick form
+- [x] Clock-menu integration decision recorded in docs/gnome-extension.md
+      (standalone indicator now; optional guarded DateMenu adapter later)
+- Note: dev machine runs COSMIC → runtime validation happens on GNOME
+  VMs per the manual test plan in docs/gnome-extension.md; CI lints JS.
 
 ## Phase 6 — Browser auth
 
