@@ -35,7 +35,7 @@ dependencies:
   timezone: ^0.9.4
   # Reads the device's current IANA timezone name at startup to seed the
   # `timezone` package's local location.
-  flutter_timezone: ^3.0.1
+  flutter_timezone: ^5.1.0
 
   # Local persistence for events. Events (with recurrence + reminders) are
   # structured enough that shared_preferences would be awkward; stored as
