@@ -15,15 +15,27 @@ credentials/
 # Signing material and private keys. Keep examples/templates with a different
 # suffix (for example android/key.properties.example) under version control.
 **/key.properties
+**/keystore.properties
+**/signing.properties
+**/signing-config.properties
 **/*.jks
 **/*.keystore
+**/*.jceks
+**/*.bcfks
 **/*.p12
 **/*.pfx
 **/*.pem
+**/*.key
+**/*.p8
 **/*.pk8
 **/*.der
 **/*.private-key
 **/*.nsec
+**/*.mobileprovision
+**/*.provisionprofile
+**/upload-keystore*
+**/release-keystore*
+**/distribution-keystore*
 
 # Service configuration tied to a private project/account.
 **/google-services.json
