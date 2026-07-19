@@ -1,0 +1,19 @@
+* text=auto eol=lf
+
+*.bat text eol=crlf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.jar binary
+*.jks binary
+*.keystore binary
+*.p12 binary
+*.pfx binary
+
+pubspec.lock linguist-generated=false
+android/app/src/main/res/drawable-*/ic_launcher_foreground.png linguist-generated=true
+android/app/src/main/res/mipmap-*/ic_launcher.png linguist-generated=true
+web/icons/*.png linguist-generated=true

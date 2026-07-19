@@ -1,0 +1,132 @@
+name: astraea
+description: "Astraea - offline-first, privacy-first calendar on the Nostr protocol. Part of the Echoes ecosystem."
+publish_to: 'none'
+
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State management: Riverpod (same choice as Echoes) — AsyncNotifier/
+  # AsyncValue model the async relay sync/fetch operations well (explicit
+  # loading/error/data states, no nested FutureBuilders).
+  flutter_riverpod: ^3.3.2
+
+  # Nostr protocol: key generation (new keypair), nsec/hex import, event
+  # signing, and REQ subscriptions over websockets. Same SDK as Echoes.
+  dart_nostr: ^10.0.1
+
+  # Calendar UI: month view (and the day/list views build on the same
+  # selected-day state). The de-facto Flutter calendar widget.
+  table_calendar: ^3.1.2
+
+  # Local, OS-scheduled reminders. Notifications are scheduled with
+  # zonedSchedule() at event create/edit time; the OS delivers them — no
+  # background polling, no android_alarm_manager (deprecated).
+  flutter_local_notifications: ^18.0.1
+
+  # IANA timezone database. Events are stored in UTC and converted to the
+  # event's (or device's) timezone for display and for computing the exact
+  # local wall-clock instant a reminder must fire at.
+  timezone: ^0.9.4
+  # Reads the device's current IANA timezone name at startup to seed the
+  # `timezone` package's local location.
+  flutter_timezone: ^3.0.1
+
+  # Local persistence for events. Events (with recurrence + reminders) are
+  # structured enough that shared_preferences would be awkward; stored as
+  # Map<String, dynamic> via manual toJson/fromJson (no hive_generator/
+  # build_runner — it conflicts with the analyzer versions dart_nostr/
+  # riverpod pull in, same constraint as Echoes).
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+
+  # Non-sensitive settings: relay list, home/backup relay URL, timezone
+  # override, notifications toggle, last-sync timestamp.
+  shared_preferences: ^2.5.5
+
+  # Encrypted storage dedicated to the account private key (nsec). The
+  # private key must never end up in plaintext SharedPreferences: native
+  # keystore/keychain instead.
+  flutter_secure_storage: ^10.3.1
+
+  # Stable per-event ids (also used as the NIP-78 `d` tag suffix).
+  uuid: ^4.5.3
+
+  # Login via Amber (NIP-55 external signer, Android only): the app never sees
+  # the private key — signing and NIP-44 encrypt/decrypt are delegated to
+  # Amber over an intent, for extra security/privacy. Same package as Echoes.
+  amberflutter: ^0.0.9
+
+  # Low-level crypto primitives (secp256k1 EC point math, HMAC-SHA256,
+  # ChaCha20) backing our own NIP-44 implementation — see
+  # lib/utils/nip44.dart, copied unmodified from Echoes. dart_nostr doesn't
+  # implement NIP-44, and every published Dart package that does conflicts
+  # with dart_nostr's transitive pointycastle ^3.x; implementing directly
+  # against pointycastle avoids the conflict entirely.
+  pointycastle: ^3.9.1
+
+  # `@visibleForTesting` on the NIP-44 internals that test/nip44_test.dart
+  # exercises directly against the official spec vectors.
+  meta: ^1.16.0
+
+  # Localized date/time formatting in the calendar and event views.
+  intl: ^0.20.2
+
+  # Fetching the logged-in account's public kind-0 profile (name/avatar) and
+  # downloading the avatar image.
+  http: ^1.6.0
+
+  # SHA-256 cache keys for the downloaded avatar.
+  crypto: ^3.0.7
+
+  # App-private cache directory for the avatar image — never external/shared
+  # storage.
+  path_provider: ^2.1.0
+
+  # Password-protected event exports (PBKDF2-HMAC-SHA256 + AES-256-GCM), same
+  # scheme Echoes uses for its encrypted note exports.
+  cryptography: ^2.9.0
+
+  # Event export/import (Settings > Data): saveFile()/pickFiles(withData:)
+  # need at least file_picker 8.x.
+  file_picker: ^8.0.0
+
+  # "Support Astraea" tile: opens the developer's Lightning address via a
+  # `lightning:` URI in whatever wallet app is installed.
+  url_launcher: ^6.3.2
+
+  # Android home-screen widgets (daily/weekly/monthly agenda): shares data
+  # with the native AppWidgetProviders and triggers their redraw.
+  home_widget: ^0.7.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+  # Generates the platform launcher icons (Android adaptive + web) from
+  # assets/icon/. Regenerate after changing the source PNGs with:
+  #   dart run flutter_launcher_icons
+  flutter_launcher_icons: ^0.14.4
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/icon/
+
+# App launcher icon supplied in assets/icon/. It is already a complete artwork
+# with transparency, so Android must use it directly rather than placing it on
+# a second adaptive-icon background.
+flutter_launcher_icons:
+  android: true
+  image_path: "assets/icon/icon.png"
+  web:
+    generate: true
+    background_color: "#3F51B5"
+    theme_color: "#3F51B5"

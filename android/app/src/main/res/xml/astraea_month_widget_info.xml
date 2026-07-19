@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Monthly agenda: a 4x4 cell block — the grid needs the extra height. See the
+     day widget's info for why it updates on a 30-minute period. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="250dp"
+    android:minHeight="180dp"
+    android:targetCellWidth="4"
+    android:targetCellHeight="4"
+    android:resizeMode="horizontal|vertical"
+    android:minResizeWidth="180dp"
+    android:minResizeHeight="110dp"
+    android:widgetCategory="home_screen"
+    android:description="@string/astraea_widget_month_label"
+    android:initialLayout="@layout/astraea_widget_month"
+    android:updatePeriodMillis="1800000" />

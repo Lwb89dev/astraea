@@ -1,0 +1,114 @@
+# ---------------------------------------------------------------------------
+# Secrets and machine-specific configuration
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+.envrc
+.direnv/
+.secrets/
+secrets/
+credentials/
+*credentials*.json
+*service-account*.json
+
+# Signing material and private keys. Keep examples/templates with a different
+# suffix (for example android/key.properties.example) under version control.
+**/key.properties
+**/*.jks
+**/*.keystore
+**/*.p12
+**/*.pfx
+**/*.pem
+**/*.pk8
+**/*.der
+**/*.private-key
+**/*.nsec
+
+# Service configuration tied to a private project/account.
+**/google-services.json
+**/GoogleService-Info.plist
+
+# Ignore private root-level tooling metadata by default. Only the public
+# repository configuration and Flutter project metadata are allow-listed.
+/.*/
+!/.github/
+!/.github/**
+!/.gitignore
+!/.gitattributes
+!/.editorconfig
+!/.metadata
+!/.env.example
+
+# ---------------------------------------------------------------------------
+# Editors and operating systems
+# ---------------------------------------------------------------------------
+*.iml
+*.ipr
+*.iws
+*.code-workspace
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+.history/
+.fleet/
+
+# ---------------------------------------------------------------------------
+# Dart and Flutter
+# ---------------------------------------------------------------------------
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+.fvm/flutter_sdk
+.melos_tool/
+/build/
+/coverage/
+**/doc/api/
+**/ios/Flutter/.last_build_id
+
+# Generated symbolication and obfuscation output.
+app.*.symbols
+app.*.map.json
+
+# ---------------------------------------------------------------------------
+# Android / Gradle
+# ---------------------------------------------------------------------------
+**/.gradle/
+**/.kotlin/
+**/.cxx/
+**/captures/
+**/local.properties
+/android/app/debug/
+/android/app/profile/
+/android/app/release/
+/android/build/
+/android/app/build/
+/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
+
+# Flutter regenerates these wrapper launchers/artifacts for this project.
+/android/gradle/wrapper/gradle-wrapper.jar
+/android/gradlew
+/android/gradlew.bat
+
+# ---------------------------------------------------------------------------
+# User data, exports, logs and temporary files
+# ---------------------------------------------------------------------------
+*.ics
+*.ics.json
+astraea-*.json
+*.hive
+*.hive.lock
+*.log
+*.class
+*.pyc
+*.tmp
+*.temp
+*.bak
+*.hprof
+.build/
+.buildlog/

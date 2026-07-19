@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Day and week agenda widgets: a header (title + "add event" button) plus a
+     scrollable list fed by AstraeaWidgetService's factory. Shared by both — they
+     differ only in which events the factory selects. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/astraea_widget_background"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <ImageView
+            android:id="@+id/widget_previous"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:contentDescription="@string/astraea_widget_previous"
+            android:padding="7dp"
+            android:src="@drawable/astraea_widget_previous" />
+
+        <TextView
+            android:id="@+id/widget_header"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:drawableStart="@drawable/astraea_widget_dot"
+            android:drawablePadding="6dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="#FFFFFFFF"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:id="@+id/widget_next"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:contentDescription="@string/astraea_widget_next"
+            android:padding="7dp"
+            android:src="@drawable/astraea_widget_next" />
+
+        <ImageView
+            android:id="@+id/widget_add"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:background="@drawable/astraea_widget_add_background"
+            android:contentDescription="@string/astraea_widget_add"
+            android:padding="6dp"
+            android:src="@drawable/astraea_widget_plus" />
+    </LinearLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="6dp"
+        android:layout_weight="1">
+
+        <ListView
+            android:id="@+id/widget_list"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:divider="@null"
+            android:dividerHeight="0dp" />
+
+        <TextView
+            android:id="@+id/widget_empty"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:text="@string/astraea_widget_empty"
+            android:textColor="#B3FFFFFF"
+            android:textSize="12sp" />
+    </FrameLayout>
+</LinearLayout>
