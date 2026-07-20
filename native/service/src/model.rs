@@ -173,12 +173,34 @@ impl Event {
 
     /// The `d` tag of this event's kind-30078 replaceable event
     /// (legacy `epochs:` prefix — see docs/nostr-sync.md).
-    /// Consumed by the sync worker (phase 7); already part of the wire
-    /// contract and covered by tests, hence the targeted allow.
-    #[allow(dead_code)]
     pub fn d_tag(&self) -> String {
         format!("epochs:{}", self.id)
     }
+}
+
+/// A decrypted wire payload plus the envelope facts the LWW merge needs
+/// (docs/nostr-sync.md). Produced by `sync::wire::parse_payload`, consumed
+/// by `Store::merge_remote_event`.
+#[derive(Debug, Clone)]
+pub struct RemotePayload {
+    pub id: String,
+    pub title: String,
+    pub description: String,
+    pub start: DateTime<Utc>,
+    pub end: DateTime<Utc>,
+    pub timezone: String,
+    pub all_day: bool,
+    pub recurrence: Recurrence,
+    pub recurrence_end: Option<DateTime<Utc>>,
+    pub reminders: Vec<Reminder>,
+    pub color: String,
+    pub location: Option<String>,
+    pub deleted: bool,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    /// Linux-side optional extensions (ADR-005); Android drops them.
+    pub calendar_id: Option<String>,
+    pub url: Option<String>,
 }
 
 /// Draft accepted by `CreateEvent` (docs/dbus-api.md).

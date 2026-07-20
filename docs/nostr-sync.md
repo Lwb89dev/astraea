@@ -123,3 +123,16 @@ The service's SQLite schema tracks a richer `sync_state` machine
 `synced`, `conflict`, `failed`, `deleted_pending`, `deleted_synced`) and a
 persistent `sync_queue`. On the wire none of this exists — the states
 project onto the payload's `synced`/`deleted` booleans when publishing.
+
+Engine behaviour (`native/service/src/sync/engine.rs`, all local-only):
+
+- **Incremental pull**: `created_at == updatedAt` makes the replaceable
+  timestamp exactly the merge key, so the service keeps a last-seen cursor
+  (`app_settings` key `sync.cursor_s`) and pulls `since = cursor − 1h`
+  (overlap absorbs clock skew). A fresh install pulls everything.
+- **Retry**: failed pushes back off exponentially (5 s · 2^attempts, capped
+  at 1 h) and are never dropped; after 5 attempts they also surface in the
+  `failed` count and `sync_failures`. Interactive-only signers *park*
+  operations (`pending_signature`) without burning attempts.
+- **Encryption/signing** go through the active `SignerBackend`; the engine
+  never touches key material itself.

@@ -30,6 +30,20 @@ pub async fn run(store: Store) -> anyhow::Result<()> {
     // Lets the account manager emit AuthenticationChanged from async
     // completions (the browser callback arrives outside any D-Bus call).
     state.account.set_connection(connection.clone());
+
+    // Sync engine over the real relay pool. It only runs when an account,
+    // a capable signer and relays exist; otherwise its cycles are no-ops.
+    let engine = crate::sync::SyncEngine::new(
+        store.clone(),
+        state.account.clone(),
+        Arc::new(crate::sync::transport::NostrSdkTransport::new()),
+    );
+    engine.set_connection(connection.clone());
+    let _ = state.sync.set(engine.clone());
+    // Stored permit: the loop's first iteration runs promptly, so a freshly
+    // activated service reconciles with the relays without waiting a tick.
+    engine.nudge();
+    tokio::spawn(engine.run_loop());
     info!(
         bus = BUS_NAME,
         path = OBJECT_PATH,

@@ -23,6 +23,9 @@ pub const OBJECT_PATH: &str = "/com/lwb89dev/Astraea";
 pub struct AppState {
     pub store: Arc<Store>,
     pub account: Arc<crate::account::AccountManager>,
+    /// Set by the daemon once the relay transport exists; None only in
+    /// stripped-down test setups.
+    pub sync: tokio::sync::OnceCell<Arc<crate::sync::SyncEngine>>,
     pub started_at: DateTime<Utc>,
     /// Unix ms of the last client interaction, for the idle-exit policy.
     pub last_activity_ms: AtomicI64,
@@ -34,6 +37,7 @@ impl AppState {
         Arc::new(AppState {
             store,
             account,
+            sync: tokio::sync::OnceCell::new(),
             started_at: Utc::now(),
             last_activity_ms: AtomicI64::new(Utc::now().timestamp_millis()),
         })
@@ -41,6 +45,14 @@ impl AppState {
 
     pub fn touch(&self) {
         self.last_activity_ms.store(Utc::now().timestamp_millis(), Ordering::Relaxed);
+    }
+
+    /// Wakes the sync engine after a local mutation (offline-first: the
+    /// change is already committed; publication should follow promptly).
+    pub fn nudge_sync(&self) {
+        if let Some(engine) = self.sync.get() {
+            engine.nudge();
+        }
     }
 }
 
@@ -127,14 +139,21 @@ impl Calendar1 {
         let pending = blocking(move || store.pending_operations()).await?;
         let store = self.state.store.clone();
         let last_sync = blocking(move || store.get_setting("last_sync_at")).await?;
+        let store = self.state.store.clone();
+        let account = blocking(move || store.active_account()).await?;
+        let network = match self.state.sync.get() {
+            Some(engine) => engine.network_status().await,
+            None => "unknown".to_owned(),
+        };
         to_json(&serde_json::json!({
             "schemaVersion": SCHEMA_VERSION,
             "serviceVersion": env!("CARGO_PKG_VERSION"),
             "databaseStatus": "ok",
-            "networkStatus": "unknown",
+            "networkStatus": network,
             "syncStatus": if pending > 0 { "pending" } else { "idle" },
-            "authenticated": false,
-            "activeAccount": serde_json::Value::Null,
+            "authenticated": account.is_some(),
+            "activeAccount": account.map(|a| serde_json::Value::String(a.npub))
+                .unwrap_or(serde_json::Value::Null),
             "lastSync": last_sync,
             "pendingOperations": pending,
             "startedAt": self.state.started_at.to_rfc3339(),
@@ -245,6 +264,7 @@ impl Calendar1 {
         let store = self.state.store.clone();
         let event = blocking(move || store.create_event(draft, "linux-service")).await?;
         let _ = Calendar1::events_changed(&emitter, vec![event.id.clone()]).await;
+        self.state.nudge_sync();
         Ok(event.id)
     }
 
@@ -260,6 +280,7 @@ impl Calendar1 {
         let id = event_id.clone();
         let event = blocking(move || store.update_event(&id, patch)).await?;
         let _ = Calendar1::events_changed(&emitter, vec![event_id]).await;
+        self.state.nudge_sync();
         to_json(&with_schema_version(&event)?)
     }
 
@@ -273,6 +294,7 @@ impl Calendar1 {
         let id = event_id.clone();
         blocking(move || store.delete_event(&id)).await?;
         let _ = Calendar1::events_changed(&emitter, vec![event_id]).await;
+        self.state.nudge_sync();
         Ok(())
     }
 
@@ -325,12 +347,18 @@ impl Calendar1 {
 
     async fn sync_now(&self) -> Result<String, Error> {
         self.state.touch();
-        // Relay sync lands in phase 7; the operation id contract is stable.
-        Err(Error::Internal("Nostr sync is not implemented yet in this build".into()))
+        match self.state.sync.get() {
+            Some(engine) => Ok(engine.request_sync().await),
+            None => Err(Error::Internal("sync engine is not running".into())),
+        }
     }
 
     async fn get_sync_status(&self) -> Result<String, Error> {
         self.state.touch();
+        if let Some(engine) = self.state.sync.get() {
+            return Ok(engine.status_json().await);
+        }
+        // Degraded answer for setups without an engine (unit-test servers).
         let store = self.state.store.clone();
         let pending = blocking(move || store.pending_operations()).await?;
         let store = self.state.store.clone();
@@ -375,6 +403,33 @@ impl Calendar1 {
         self.state.touch();
         let patch: serde_json::Map<String, serde_json::Value> =
             parse_json(&patch_json, "settings patch")?;
+        // Relays get real validation + their own table (the sync engine and
+        // diagnostics read it); everything else is an opaque preference.
+        let relay_urls: Option<Vec<String>> = match patch.get("relays") {
+            None => None,
+            Some(serde_json::Value::Array(list)) => {
+                let mut urls = Vec::with_capacity(list.len());
+                for value in list {
+                    let url = value
+                        .as_str()
+                        .ok_or_else(|| Error::InvalidArgument("relays must be strings".into()))?;
+                    crate::sync::transport::validate_relay_url(url)
+                        .map_err(Error::InvalidArgument)?;
+                    let url = url.trim_end_matches('/').to_owned();
+                    if !urls.contains(&url) {
+                        urls.push(url);
+                    }
+                }
+                Some(urls)
+            }
+            Some(serde_json::Value::Null) => Some(Vec::new()),
+            Some(_) => return Err(Error::InvalidArgument("relays must be a list".into())),
+        };
+        if let Some(urls) = &relay_urls {
+            let store = self.state.store.clone();
+            let urls = urls.clone();
+            blocking(move || store.set_relays(&urls)).await?;
+        }
         let store = self.state.store.clone();
         let merged = blocking(move || {
             let current = store.get_setting("settings")?.unwrap_or_else(default_settings_json);
@@ -398,6 +453,11 @@ impl Calendar1 {
         })
         .await?;
         let _ = Calendar1::settings_changed(&emitter, merged.clone()).await;
+        if relay_urls.is_some() {
+            if let Some(engine) = self.state.sync.get() {
+                let _ = engine.request_sync().await;
+            }
+        }
         Ok(merged)
     }
 
@@ -523,7 +583,10 @@ impl NostrAccount1 {
     /// the bus: provisioning happens against the Secret Service directly.
     async fn set_signer(&self, signer_name: String) -> Result<(), Error> {
         self.state.touch();
-        Ok(self.state.account.set_signer(&signer_name).await?)
+        self.state.account.set_signer(&signer_name).await?;
+        // A newly capable signer can unpark pending_signature events.
+        self.state.nudge_sync();
+        Ok(())
     }
 
     #[zbus(signal)]
