@@ -24,7 +24,11 @@ fn shared_parse_cases_produce_the_expected_values() {
             wire::parse_payload(&payload_json).unwrap_or_else(|| panic!("{name}: must parse"));
 
         assert_eq!(payload.id, expect["id"].as_str().expect("id"), "{name}: id");
-        assert_eq!(payload.title, expect["title"].as_str().expect("title"), "{name}: title");
+        assert_eq!(
+            payload.title,
+            expect["title"].as_str().expect("title"),
+            "{name}: title"
+        );
         assert_eq!(
             payload.start.timestamp_millis(),
             expect["startMs"].as_i64().expect("startMs"),
@@ -35,8 +39,16 @@ fn shared_parse_cases_produce_the_expected_values() {
             expect["endMs"].as_i64().expect("endMs"),
             "{name}: end"
         );
-        assert_eq!(payload.timezone, expect["timezone"].as_str().expect("timezone"), "{name}: tz");
-        assert_eq!(payload.all_day, expect["allDay"].as_bool().expect("allDay"), "{name}: allDay");
+        assert_eq!(
+            payload.timezone,
+            expect["timezone"].as_str().expect("timezone"),
+            "{name}: tz"
+        );
+        assert_eq!(
+            payload.all_day,
+            expect["allDay"].as_bool().expect("allDay"),
+            "{name}: allDay"
+        );
         assert_eq!(
             payload.recurrence.as_wire(),
             expect["recurrence"].as_str(),
@@ -55,8 +67,16 @@ fn shared_parse_cases_produce_the_expected_values() {
             .filter_map(Value::as_i64)
             .collect();
         assert_eq!(minutes, expected_minutes, "{name}: reminders");
-        assert_eq!(payload.location.as_deref(), expect["location"].as_str(), "{name}: location");
-        assert_eq!(payload.deleted, expect["deleted"].as_bool().expect("deleted"), "{name}: deleted");
+        assert_eq!(
+            payload.location.as_deref(),
+            expect["location"].as_str(),
+            "{name}: location"
+        );
+        assert_eq!(
+            payload.deleted,
+            expect["deleted"].as_bool().expect("deleted"),
+            "{name}: deleted"
+        );
         assert_eq!(
             payload.created_at.timestamp_millis(),
             expect["createdAtMs"].as_i64().expect("createdAtMs"),
@@ -75,7 +95,11 @@ fn shared_parse_cases_produce_the_expected_values() {
                 rust_only["calendarId"].as_str(),
                 "{name}: calendarId"
             );
-            assert_eq!(payload.url.as_deref(), rust_only["url"].as_str(), "{name}: url");
+            assert_eq!(
+                payload.url.as_deref(),
+                rust_only["url"].as_str(),
+                "{name}: url"
+            );
         }
     }
 }
@@ -88,7 +112,9 @@ fn produced_payloads_round_trip() {
     let doc = fixtures();
     for case in doc["parseCases"].as_array().expect("parseCases") {
         let payload_json = case["payload"].to_string();
-        let Some(parsed) = wire::parse_payload(&payload_json) else { continue };
+        let Some(parsed) = wire::parse_payload(&payload_json) else {
+            continue;
+        };
         // Rebuild a service event from the parsed payload and re-serialize.
         let event: astraea_service::model::Event = serde_json::from_value(serde_json::json!({
             "id": parsed.id,

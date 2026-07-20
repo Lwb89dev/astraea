@@ -66,9 +66,23 @@ No Astraea server, account service or analytics backend sits in this path.
 | Platform | Status | Notes |
 | --- | --- | --- |
 | Android | Supported | Primary audited target; Amber and home-screen widgets available. |
+| Linux desktop | Supported | Flutter app + `astraea-service` daemon (D-Bus, encrypted Nostr sync, browser NIP-07 login), GNOME Shell extension, modular packaging (deb/rpm/PKGBUILD/Flatpak/tarball). |
 | Web | Experimental | Builds are scaffolded, but sensitive production use needs a browser/CSP review. |
 | iOS | Not configured | Platform project and release hardening are not included yet. |
-| Desktop | Not configured | No packaged desktop targets yet. |
+
+### Linux in short
+
+```bash
+./scripts/install-dev.sh        # user-session dev install (no root)
+flutter run -d linux            # the desktop UI (talks to the service over D-Bus)
+astraea-service diagnostics     # paths, D-Bus, database, relays — no secrets
+```
+
+The background service owns storage, sync, auth and notifications; the
+Flutter app, the GNOME extension and the COSMIC applet are thin D-Bus
+frontends. Start from [docs/linux-architecture.md](docs/linux-architecture.md),
+[docs/packaging.md](docs/packaging.md) and
+[docs/troubleshooting.md](docs/troubleshooting.md).
 
 ## Getting started
 
@@ -110,9 +124,14 @@ lib/
   services/     Storage, Nostr, sync, notifications, widgets and exports
   utils/        NIP-44, recurrence, iCalendar, formatting and validation
 android/        Android host app and native home-screen widgets
-test/           Unit, crypto-vector and widget tests
+linux/          Flutter Linux runner (single-instance, astraea:// deep links)
+native/         astraea-service Rust daemon, D-Bus XML, COSMIC applet
+extensions/     GNOME Shell extension (thin D-Bus frontend)
+packaging/      deb, rpm, Arch, Flatpak, tarball definitions
+scripts/        Linux build/install/packaging/version scripts
+test/           Unit, crypto-vector, wire-compat and widget tests
 web/            Experimental Flutter web shell
-docs/           Architecture, release notes and security audit
+docs/           Architecture, wire contract, threat model, packaging, releases
 ```
 
 ## Release builds
@@ -129,6 +148,14 @@ staged change.
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md)
+- [Linux architecture](docs/linux-architecture.md) ·
+  [D-Bus API](docs/dbus-api.md) ·
+  [Authentication](docs/authentication.md) ·
+  [Nostr wire contract](docs/nostr-sync.md)
+- [Packaging](docs/packaging.md) ·
+  [Threat model](docs/threat-model.md) ·
+  [Troubleshooting](docs/troubleshooting.md) ·
+  [Release process](docs/release-process.md)
 - [Privacy policy](PRIVACY.md)
 - [Security policy](SECURITY.md)
 - [Security audit](docs/SECURITY_AUDIT.md)

@@ -141,13 +141,15 @@ impl SyncEngine {
         let _guard = self.run_lock.lock().await;
 
         let Some(identity) = self.identity.active().await else {
-            self.finish("idle", Some("not authenticated".into()), "unknown").await;
+            self.finish("idle", Some("not authenticated".into()), "unknown")
+                .await;
             return;
         };
         let relays = match self.blocking_store(|s| s.relays()).await {
             Ok(relays) if !relays.is_empty() => relays,
             Ok(_) => {
-                self.finish("idle", Some("no relays configured".into()), "unknown").await;
+                self.finish("idle", Some("no relays configured".into()), "unknown")
+                    .await;
                 return;
             }
             Err(e) => {
@@ -193,12 +195,18 @@ impl SyncEngine {
                 .await;
         }
         let now = Utc::now().to_rfc3339();
-        let _ = self.blocking_store(move |s| s.set_setting(LAST_SYNC_KEY, &now)).await;
+        let _ = self
+            .blocking_store(move |s| s.set_setting(LAST_SYNC_KEY, &now))
+            .await;
 
         if !changed.is_empty() {
             self.emit_events_changed(changed).await;
         }
-        let state = if last_error.is_some() { "error" } else { "idle" };
+        let state = if last_error.is_some() {
+            "error"
+        } else {
+            "idle"
+        };
         self.finish(state, last_error, network).await;
     }
 
@@ -239,7 +247,9 @@ impl SyncEngine {
         // multiple relays can disagree).
         let mut newest: HashMap<String, nostr::Event> = HashMap::new();
         for event in events.into_iter().take(wire::MAX_PULL_EVENTS) {
-            let Some(uuid) = wire::screen_envelope(&event, &identity.pubkey) else { continue };
+            let Some(uuid) = wire::screen_envelope(&event, &identity.pubkey) else {
+                continue;
+            };
             match newest.get(&uuid) {
                 Some(seen) if seen.created_at >= event.created_at => {}
                 _ => {
@@ -256,7 +266,9 @@ impl SyncEngine {
                 // Contract: skip payloads that fail to decrypt, never fail.
                 Err(_) => continue,
             };
-            let Some(payload) = wire::parse_payload(&plaintext) else { continue };
+            let Some(payload) = wire::parse_payload(&plaintext) else {
+                continue;
+            };
             let remote_id = event.id.to_hex();
             let owner = identity.pubkey.to_hex();
             match self
@@ -272,7 +284,9 @@ impl SyncEngine {
 
         if max_seen > 0 {
             let value = max_seen.to_string();
-            let _ = self.blocking_store(move |s| s.set_setting(CURSOR_KEY, &value)).await;
+            let _ = self
+                .blocking_store(move |s| s.set_setting(CURSOR_KEY, &value))
+                .await;
         }
         Ok(())
     }
@@ -288,7 +302,10 @@ impl SyncEngine {
         configured: &[String],
         changed: &mut Vec<String>,
     ) -> Option<String> {
-        let items = match self.blocking_store(|s| s.due_queue_items(QUEUE_BATCH)).await {
+        let items = match self
+            .blocking_store(|s| s.due_queue_items(QUEUE_BATCH))
+            .await
+        {
             Ok(items) => items,
             Err(e) => return Some(e),
         };
@@ -484,12 +501,18 @@ impl SyncEngine {
 
     pub async fn status_json(&self) -> String {
         let inner = self.status.lock().await.clone();
-        let pending = self.blocking_store(|s| s.pending_operations()).await.unwrap_or(0);
+        let pending = self
+            .blocking_store(|s| s.pending_operations())
+            .await
+            .unwrap_or(0);
         let failed = self
             .blocking_store(|s| s.failing_operations(FAILING_THRESHOLD))
             .await
             .unwrap_or(0);
-        let relays = self.blocking_store(|s| s.relays()).await.unwrap_or_default();
+        let relays = self
+            .blocking_store(|s| s.relays())
+            .await
+            .unwrap_or_default();
         let last_sync = self
             .blocking_store(|s| s.get_setting(LAST_SYNC_KEY))
             .await
@@ -535,19 +558,24 @@ impl SyncEngine {
     }
 
     async fn emit_sync_status(&self) {
-        let Some(connection) = self.connection.get() else { return };
+        let Some(connection) = self.connection.get() else {
+            return;
+        };
         let status = self.status_json().await;
         if let Ok(iface) = connection
             .object_server()
             .interface::<_, crate::bus::Calendar1>(crate::bus::OBJECT_PATH)
             .await
         {
-            let _ = crate::bus::Calendar1::sync_status_changed(iface.signal_emitter(), status).await;
+            let _ =
+                crate::bus::Calendar1::sync_status_changed(iface.signal_emitter(), status).await;
         }
     }
 
     async fn emit_events_changed(&self, ids: Vec<String>) {
-        let Some(connection) = self.connection.get() else { return };
+        let Some(connection) = self.connection.get() else {
+            return;
+        };
         if let Ok(iface) = connection
             .object_server()
             .interface::<_, crate::bus::Calendar1>(crate::bus::OBJECT_PATH)

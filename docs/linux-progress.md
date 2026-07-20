@@ -179,8 +179,27 @@ Risks identified:
 - Note: no fake widget code; the panel plugs into `AppletState` when
   libcosmic is packaged.
 
-## Phase 10 — Hardening
+## Phase 10 — Hardening ✅
 
-- [ ] docs/threat-model.md, troubleshooting, release process
-- [ ] CI: cargo fmt/clippy/test, flutter analyze/test, ext lint, packaging jobs
-- [ ] Version-coherence check script
+- [x] docs/threat-model.md (auth bridge, keys, D-Bus surface — session bus
+      explicitly NOT a security boundary, relays, storage, supply chain,
+      downgrade; assets ranked, non-goals stated, review cadence)
+- [x] docs/troubleshooting.md and docs/release-process.md (single version
+      number owned by pubspec; manual-only publication)
+- [x] CI: new `rust` job (fmt --check, clippy -D warnings, tests for both
+      crates, --locked), `lint-meta` job (version coherence, extension ES
+      syntax lint, desktop/AppStream/package validation), `linux-packages`
+      dry-run job (DEBs + tarball + SHA256SUMS + SPDX SBOM as artifacts,
+      publishes nothing)
+- [x] scripts/check-versions.sh (pubspec ↔ both Cargo.toml ↔ AppStream ↔
+      spec ↔ PKGBUILD; extension deliberately unversioned)
+- [x] Whole Rust tree normalized with rustfmt (both crates check clean)
+- [x] `diagnostics` now also reports relay health (no secrets) and GNOME
+      extension presence; README gained the Linux sections
+- Verified: 46 + 3 Rust tests green after reformat, live diagnostics run,
+  check-versions green, test-packages green.
+
+All ten phases of the Linux integration brief are complete. Remaining
+follow-ups live in their docs: NIP-46 signer (authentication.md), libcosmic
+panel UI (cosmic-applet.md), real AppStream screenshots (packaging.md),
+distro-matrix runs on real VMs (packaging.md).

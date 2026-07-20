@@ -40,7 +40,9 @@ impl SignerBackend for TestSigner {
         &self,
         unsigned: nostr::UnsignedEvent,
     ) -> Result<nostr::Event, SignerError> {
-        unsigned.sign_with_keys(&self.keys).map_err(|e| SignerError::Failed(e.to_string()))
+        unsigned
+            .sign_with_keys(&self.keys)
+            .map_err(|e| SignerError::Failed(e.to_string()))
     }
 
     async fn nip44_self_encrypt(&self, plaintext: &str) -> Result<String, SignerError> {
@@ -71,7 +73,10 @@ impl IdentitySource for FixedIdentity {
             Some(keys) => Box::new(TestSigner { keys: keys.clone() }),
             None => Box::new(ReadOnlySigner),
         };
-        Some(ActiveIdentity { pubkey: self.pubkey, signer })
+        Some(ActiveIdentity {
+            pubkey: self.pubkey,
+            signer,
+        })
     }
 }
 
@@ -136,7 +141,10 @@ impl RelayTransport for FakeRelays {
         state
             .configured
             .iter()
-            .map(|url| RelayHealth { url: url.clone(), connected: !state.offline })
+            .map(|url| RelayHealth {
+                url: url.clone(),
+                connected: !state.offline,
+            })
             .collect()
     }
 }
@@ -152,8 +160,10 @@ fn setup(keys: Option<Keys>) -> (Arc<Store>, Arc<SyncEngine>, Arc<FakeRelays>, K
         .set_relays(&["wss://one.example".into(), "wss://two.example".into()])
         .expect("relays");
     let transport = Arc::new(FakeRelays::default());
-    let identity =
-        Arc::new(FixedIdentity { pubkey: identity_keys.public_key(), keys });
+    let identity = Arc::new(FixedIdentity {
+        pubkey: identity_keys.public_key(),
+        keys,
+    });
     let engine = SyncEngine::new(store.clone(), identity, transport.clone());
     (store, engine, transport, identity_keys)
 }
@@ -225,20 +235,23 @@ async fn create_publishes_an_encrypted_replaceable_event() {
     assert_eq!(state.published.len(), 1);
     let wire_event = &state.published[0];
     assert_eq!(wire_event.kind.as_u16(), wire::CALENDAR_KIND);
-    assert_eq!(wire_event.tags.identifier(), Some(format!("epochs:{}", event.id).as_str()));
+    assert_eq!(
+        wire_event.tags.identifier(),
+        Some(format!("epochs:{}", event.id).as_str())
+    );
     assert!(wire_event.verify().is_ok());
 
     // created_at is the LWW merge key, in seconds.
     let stored = store.get_event(&event.id).expect("stored");
-    assert_eq!(wire_event.created_at.as_secs() as i64, stored.updated_at.timestamp());
+    assert_eq!(
+        wire_event.created_at.as_secs() as i64,
+        stored.updated_at.timestamp()
+    );
 
     // Content is NIP-44, decrypts to the contract payload.
-    let plaintext = nostr::nips::nip44::decrypt(
-        keys.secret_key(),
-        &keys.public_key(),
-        &wire_event.content,
-    )
-    .expect("decrypts");
+    let plaintext =
+        nostr::nips::nip44::decrypt(keys.secret_key(), &keys.public_key(), &wire_event.content)
+            .expect("decrypts");
     let payload = wire::parse_payload(&plaintext).expect("parses");
     assert_eq!(payload.id, event.id);
     assert_eq!(payload.title, "Dentist");
@@ -246,7 +259,10 @@ async fn create_publishes_an_encrypted_replaceable_event() {
 
     // Local bookkeeping: synced, concrete id recorded, queue drained.
     assert_eq!(stored.sync_state, SyncState::Synced);
-    assert_eq!(stored.nostr_event_id.as_deref(), Some(wire_event.id.to_hex().as_str()));
+    assert_eq!(
+        stored.nostr_event_id.as_deref(),
+        Some(wire_event.id.to_hex().as_str())
+    );
     assert_eq!(store.pending_operations().expect("count"), 0);
 }
 
@@ -256,7 +272,11 @@ async fn delete_publishes_tombstone_and_nip09_for_the_previous_id() {
     let (store, engine, relays, _) = setup(Some(keys.clone()));
     let event = create_event(&store, "Cancel me");
     engine.run_once().await;
-    let first_concrete = store.get_event(&event.id).expect("event").nostr_event_id.expect("id");
+    let first_concrete = store
+        .get_event(&event.id)
+        .expect("event")
+        .nostr_event_id
+        .expect("id");
 
     store.delete_event(&event.id).expect("delete");
     engine.run_once().await;
@@ -266,27 +286,35 @@ async fn delete_publishes_tombstone_and_nip09_for_the_previous_id() {
     let tombstone = &state.published[1];
     let deletion = &state.published[2];
 
-    let plaintext = nostr::nips::nip44::decrypt(
-        keys.secret_key(),
-        &keys.public_key(),
-        &tombstone.content,
-    )
-    .expect("tombstone decrypts");
+    let plaintext =
+        nostr::nips::nip44::decrypt(keys.secret_key(), &keys.public_key(), &tombstone.content)
+            .expect("tombstone decrypts");
     assert!(wire::parse_payload(&plaintext).expect("parses").deleted);
 
     assert_eq!(deletion.kind, nostr::Kind::EventDeletion);
     let tags = deletion.as_json();
-    assert!(tags.contains(&first_concrete), "NIP-09 must reference the previous concrete id");
+    assert!(
+        tags.contains(&first_concrete),
+        "NIP-09 must reference the previous concrete id"
+    );
     assert!(!tags.contains("30078:"), "never the replaceable coordinate");
 
-    assert_eq!(store.get_event(&event.id).expect("event").sync_state, SyncState::DeletedSynced);
+    assert_eq!(
+        store.get_event(&event.id).expect("event").sync_state,
+        SyncState::DeletedSynced
+    );
     assert_eq!(store.pending_operations().expect("count"), 0);
 }
 
 #[tokio::test]
 async fn partial_relay_acceptance_keeps_the_event_pending() {
     let (store, engine, relays, _) = setup(Some(Keys::generate()));
-    relays.state.lock().await.rejecting.push("wss://two.example".into());
+    relays
+        .state
+        .lock()
+        .await
+        .rejecting
+        .push("wss://two.example".into());
     let event = create_event(&store, "Half-accepted");
 
     engine.run_once().await;
@@ -309,7 +337,10 @@ async fn partial_relay_acceptance_keeps_the_event_pending() {
         )
         .expect("update");
     engine.run_once().await;
-    assert_eq!(store.get_event(&event.id).expect("event").sync_state, SyncState::Synced);
+    assert_eq!(
+        store.get_event(&event.id).expect("event").sync_state,
+        SyncState::Synced
+    );
 }
 
 #[tokio::test]
@@ -321,13 +352,19 @@ async fn offline_keeps_the_queue_and_recovers() {
     engine.run_once().await;
     // Offline is detected at pull time, so push is skipped entirely: the
     // event keeps its local state and the queue item stays immediately due.
-    assert_eq!(store.get_event(&event.id).expect("event").sync_state, SyncState::LocalOnly);
+    assert_eq!(
+        store.get_event(&event.id).expect("event").sync_state,
+        SyncState::LocalOnly
+    );
     assert_eq!(store.pending_operations().expect("count"), 1);
 
     relays.state.lock().await.offline = false;
     assert_eq!(store.due_queue_items(10).expect("due").len(), 1);
     engine.run_once().await;
-    assert_eq!(store.get_event(&event.id).expect("event").sync_state, SyncState::Synced);
+    assert_eq!(
+        store.get_event(&event.id).expect("event").sync_state,
+        SyncState::Synced
+    );
     assert_eq!(store.pending_operations().expect("count"), 0);
 }
 
@@ -366,7 +403,12 @@ async fn pull_adopts_new_remote_events_and_applies_lww() {
         state.remote = vec![
             remote_event(
                 &keys,
-                wire_payload("aaaaaaaa-0000-4000-8000-000000000001", "From phone", 1784450000000, false),
+                wire_payload(
+                    "aaaaaaaa-0000-4000-8000-000000000001",
+                    "From phone",
+                    1784450000000,
+                    false,
+                ),
                 1784450000,
             ),
             remote_event(
@@ -378,12 +420,17 @@ async fn pull_adopts_new_remote_events_and_applies_lww() {
     }
     engine.run_once().await;
 
-    let adopted = store.get_event("aaaaaaaa-0000-4000-8000-000000000001").expect("adopted");
+    let adopted = store
+        .get_event("aaaaaaaa-0000-4000-8000-000000000001")
+        .expect("adopted");
     assert_eq!(adopted.title, "From phone");
     assert_eq!(adopted.sync_state, SyncState::Synced);
 
     let merged = store.get_event(&local.id).expect("merged");
-    assert_eq!(merged.title, "Phone edit wins", "strictly newer remote wins");
+    assert_eq!(
+        merged.title, "Phone edit wins",
+        "strictly newer remote wins"
+    );
 }
 
 #[tokio::test]
@@ -402,7 +449,10 @@ async fn pull_keeps_local_when_remote_is_older_or_tied() {
     )];
     engine.run_once().await;
 
-    assert_eq!(store.get_event(&local.id).expect("event").title, "Local wins");
+    assert_eq!(
+        store.get_event(&local.id).expect("event").title,
+        "Local wins"
+    );
 }
 
 #[tokio::test]
@@ -444,17 +494,28 @@ async fn pull_skips_foreign_and_junk_events() {
         // Authored by someone else entirely.
         remote_event(
             &stranger,
-            wire_payload("bbbbbbbb-0000-4000-8000-000000000001", "Not yours", 1784450000000, false),
+            wire_payload(
+                "bbbbbbbb-0000-4000-8000-000000000001",
+                "Not yours",
+                1784450000000,
+                false,
+            ),
             1784450000,
         ),
         // Garbage content under our key.
         nostr::EventBuilder::new(nostr::Kind::from_u16(wire::CALENDAR_KIND), "not nip44")
-            .tag(nostr::Tag::identifier("epochs:cccccccc-0000-4000-8000-000000000001"))
+            .tag(nostr::Tag::identifier(
+                "epochs:cccccccc-0000-4000-8000-000000000001",
+            ))
             .sign_with_keys(&keys)
             .expect("sign"),
     ];
     engine.run_once().await;
 
-    assert!(store.get_event("bbbbbbbb-0000-4000-8000-000000000001").is_err());
-    assert!(store.get_event("cccccccc-0000-4000-8000-000000000001").is_err());
+    assert!(store
+        .get_event("bbbbbbbb-0000-4000-8000-000000000001")
+        .is_err());
+    assert!(store
+        .get_event("cccccccc-0000-4000-8000-000000000001")
+        .is_err());
 }

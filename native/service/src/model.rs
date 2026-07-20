@@ -376,7 +376,9 @@ mod tests {
     use chrono::TimeZone;
 
     fn utc(y: i32, mo: u32, d: u32, h: u32, mi: u32) -> DateTime<Utc> {
-        Utc.with_ymd_and_hms(y, mo, d, h, mi, 0).single().expect("valid test date")
+        Utc.with_ymd_and_hms(y, mo, d, h, mi, 0)
+            .single()
+            .expect("valid test date")
     }
 
     #[test]

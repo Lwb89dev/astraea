@@ -42,3 +42,121 @@ jobs:
 
       - name: Test
         run: flutter test
+
+  rust:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            native/service
+            native/cosmic-applet
+
+      - name: Format (service)
+        run: cargo fmt --check --manifest-path native/service/Cargo.toml
+
+      - name: Format (cosmic applet)
+        run: cargo fmt --check --manifest-path native/cosmic-applet/Cargo.toml
+
+      - name: Clippy (service)
+        run: cargo clippy --all-targets --locked --manifest-path native/service/Cargo.toml -- -D warnings
+
+      - name: Clippy (cosmic applet)
+        run: cargo clippy --all-targets --locked --manifest-path native/cosmic-applet/Cargo.toml -- -D warnings
+
+      - name: Test (service)
+        run: cargo test --all-targets --locked --manifest-path native/service/Cargo.toml
+
+      - name: Test (cosmic applet)
+        run: cargo test --all-targets --locked --manifest-path native/cosmic-applet/Cargo.toml
+
+  lint-meta:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Version coherence
+        run: ./scripts/check-versions.sh
+
+      - name: GNOME extension syntax (ES modules)
+        run: |
+          npx --yes eslint@8 --no-eslintrc \
+            --parser-options=ecmaVersion:2022,sourceType:module \
+            'extensions/gnome/astraea@lwb89dev/**/*.js'
+
+      - name: Desktop entry + AppStream + packaging metadata
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -qy desktop-file-utils appstream
+          ./scripts/test-packages.sh
+
+  # Packaging dry-run: builds real artifacts, uploads them to the workflow
+  # run, publishes nothing (releases are manual — docs/release-process.md).
+  linux-packages:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -qy ninja-build libgtk-3-dev imagemagick \
+            desktop-file-utils appstream lintian
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: native/service
+
+      - name: Locked Flutter dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Build DEBs + tarball
+        run: |
+          ./scripts/build-deb.sh
+          ./scripts/build-tarball.sh --no-build
+
+      - name: Validate packages
+        run: ./scripts/test-packages.sh
+
+      - name: Checksums
+        run: cd dist && sha256sum *.deb *.tar.gz > SHA256SUMS
+
+      - name: SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          path: .
+          format: spdx-json
+          output-file: dist/astraea.sbom.spdx.json
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-packages
+          path: |
+            dist/*.deb
+            dist/*.tar.gz
+            dist/*.sha256
+            dist/SHA256SUMS
+            dist/astraea.sbom.spdx.json
+          retention-days: 14

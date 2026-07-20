@@ -114,11 +114,14 @@ pub fn parse_payload(plaintext: &str) -> Option<RemotePayload> {
     let start = parse_iso(value.get("startTimeUtc")?)?;
     let end = parse_iso(value.get("endTimeUtc")?)?;
     let str_or = |key: &str, default: &str| -> String {
-        value.get(key).and_then(Value::as_str).unwrap_or(default).to_owned()
+        value
+            .get(key)
+            .and_then(Value::as_str)
+            .unwrap_or(default)
+            .to_owned()
     };
-    let opt_str = |key: &str| -> Option<String> {
-        value.get(key).and_then(Value::as_str).map(str::to_owned)
-    };
+    let opt_str =
+        |key: &str| -> Option<String> { value.get(key).and_then(Value::as_str).map(str::to_owned) };
     let reminders = value
         .get("reminders")
         .and_then(Value::as_array)
@@ -136,22 +139,36 @@ pub fn parse_payload(plaintext: &str) -> Option<RemotePayload> {
         start,
         end,
         timezone: str_or("timezone", "UTC"),
-        all_day: value.get("isAllDay").and_then(Value::as_bool).unwrap_or(false),
+        all_day: value
+            .get("isAllDay")
+            .and_then(Value::as_bool)
+            .unwrap_or(false),
         recurrence: Recurrence::from_wire(value.get("recurrence").and_then(Value::as_str)),
         recurrence_end: value.get("recurrenceEnd").and_then(parse_iso),
         reminders,
         color: str_or("color", "0xFF2196F3"),
         location: opt_str("location").filter(|s| !s.is_empty()),
-        deleted: value.get("deleted").and_then(Value::as_bool).unwrap_or(false),
-        created_at: value.get("createdAt").and_then(parse_timestamp).unwrap_or(start),
-        updated_at: value.get("updatedAt").and_then(parse_timestamp).unwrap_or(start),
+        deleted: value
+            .get("deleted")
+            .and_then(Value::as_bool)
+            .unwrap_or(false),
+        created_at: value
+            .get("createdAt")
+            .and_then(parse_timestamp)
+            .unwrap_or(start),
+        updated_at: value
+            .get("updatedAt")
+            .and_then(parse_timestamp)
+            .unwrap_or(start),
         calendar_id: opt_str("calendarId").filter(|s| !s.is_empty()),
         url: opt_str("url").filter(|s| !s.is_empty()),
     })
 }
 
 fn parse_iso(value: &Value) -> Option<DateTime<Utc>> {
-    DateTime::parse_from_rfc3339(value.as_str()?).ok().map(|t| t.with_timezone(&Utc))
+    DateTime::parse_from_rfc3339(value.as_str()?)
+        .ok()
+        .map(|t| t.with_timezone(&Utc))
 }
 
 /// Epoch milliseconds, tolerating historical ISO-string values.
@@ -206,7 +223,10 @@ mod tests {
         let event = sample_event();
         let unsigned = build_unsigned(keys.public_key(), &event, "cipher".into());
         assert_eq!(unsigned.kind, Kind::from_u16(30078));
-        assert_eq!(unsigned.created_at.as_secs() as i64, event.updated_at.timestamp());
+        assert_eq!(
+            unsigned.created_at.as_secs() as i64,
+            event.updated_at.timestamp()
+        );
         assert_eq!(
             unsigned.tags.identifier(),
             Some("epochs:5f0e8f7a-1111-4222-8333-944444444444")
@@ -228,7 +248,10 @@ mod tests {
         .to_string();
         let payload = parse_payload(&plaintext).expect("parses");
         assert_eq!(payload.recurrence, Recurrence::None);
-        assert_eq!(payload.created_at, Utc.with_ymd_and_hms(2026, 7, 19, 8, 0, 0).unwrap());
+        assert_eq!(
+            payload.created_at,
+            Utc.with_ymd_and_hms(2026, 7, 19, 8, 0, 0).unwrap()
+        );
         assert_eq!(payload.updated_at.timestamp_millis(), 1784449800000);
         assert_eq!(payload.timezone, "UTC");
         assert!(!payload.deleted);
@@ -249,9 +272,15 @@ mod tests {
         assert_eq!(unsigned.kind, Kind::EventDeletion);
         let has_e = unsigned.tags.iter().any(|t| {
             t.as_slice().first().map(|k| k == "e").unwrap_or(false)
-                && t.as_slice().get(1).map(|v| v == &previous.to_hex()).unwrap_or(false)
+                && t.as_slice()
+                    .get(1)
+                    .map(|v| v == &previous.to_hex())
+                    .unwrap_or(false)
         });
-        let has_a = unsigned.tags.iter().any(|t| t.as_slice().first().map(|k| k == "a").unwrap_or(false));
+        let has_a = unsigned
+            .tags
+            .iter()
+            .any(|t| t.as_slice().first().map(|k| k == "a").unwrap_or(false));
         assert!(has_e && !has_a);
     }
 }

@@ -9,7 +9,11 @@ use clap::{Parser, Subcommand};
 use tracing_subscriber::EnvFilter;
 
 #[derive(Parser)]
-#[command(name = "astraea-service", version, about = "Astraea calendar background service")]
+#[command(
+    name = "astraea-service",
+    version,
+    about = "Astraea calendar background service"
+)]
 struct Cli {
     #[command(subcommand)]
     command: Option<Command>,
@@ -63,7 +67,9 @@ enum AuthCommand {
 
 fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")))
+        .with_env_filter(
+            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
+        )
         .with_writer(std::io::stderr)
         .init();
 
@@ -75,7 +81,9 @@ fn main() -> anyhow::Result<()> {
         Command::Sync => runtime.block_on(cli_sync()),
         Command::Diagnostics => runtime.block_on(cli_diagnostics()),
         Command::Doctor => runtime.block_on(cli_doctor()),
-        Command::Db { command: DbCommand::Migrate } => cli_db_migrate(),
+        Command::Db {
+            command: DbCommand::Migrate,
+        } => cli_db_migrate(),
         Command::Auth { command } => runtime.block_on(cli_auth(command)),
     }
 }
@@ -206,17 +214,34 @@ async fn cli_diagnostics() -> anyhow::Result<()> {
             println!("session D-Bus: ok");
             let dbus = zbus::fdo::DBusProxy::new(&connection).await?;
             let owned = dbus.name_has_owner(bus::BUS_NAME.try_into()?).await?;
-            println!("service on bus: {}", if owned { "running" } else { "not running (activatable on demand)" });
-            let secrets = dbus.name_has_owner("org.freedesktop.secrets".try_into()?).await
+            println!(
+                "service on bus: {}",
+                if owned {
+                    "running"
+                } else {
+                    "not running (activatable on demand)"
+                }
+            );
+            let secrets = dbus
+                .name_has_owner("org.freedesktop.secrets".try_into()?)
+                .await
                 .unwrap_or(false);
             let activatable = dbus
                 .list_activatable_names()
                 .await
-                .map(|names| names.iter().any(|n| n.as_str() == "org.freedesktop.secrets"))
+                .map(|names| {
+                    names
+                        .iter()
+                        .any(|n| n.as_str() == "org.freedesktop.secrets")
+                })
                 .unwrap_or(false);
             println!(
                 "secret service: {}",
-                if secrets || activatable { "available" } else { "NOT available" }
+                if secrets || activatable {
+                    "available"
+                } else {
+                    "NOT available"
+                }
             );
         }
         Err(e) => println!("session D-Bus: UNAVAILABLE ({e})"),
@@ -229,7 +254,9 @@ async fn cli_diagnostics() -> anyhow::Result<()> {
     println!("log dir:     {}", paths::log_dir().display());
     println!(
         "runtime dir: {}",
-        paths::runtime_dir().map(|p| p.display().to_string()).unwrap_or_else(|| "unset".into())
+        paths::runtime_dir()
+            .map(|p| p.display().to_string())
+            .unwrap_or_else(|| "unset".into())
     );
 
     let db_path = paths::database_path();
@@ -251,12 +278,45 @@ async fn cli_diagnostics() -> anyhow::Result<()> {
                     "database: ok (schema v{}, {events} events, {calendars} calendars)",
                     db::schema_version(&conn)?
                 );
+                // Relay health — URLs and states only, never secrets.
+                let mut stmt =
+                    conn.prepare("SELECT url, state, last_ok_ms FROM nostr_relays ORDER BY url")?;
+                let relays: Vec<(String, String, Option<i64>)> = stmt
+                    .query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?
+                    .collect::<Result<_, _>>()?;
+                if relays.is_empty() {
+                    println!("relays: none configured");
+                } else {
+                    for (url, state, last_ok) in relays {
+                        let last = last_ok
+                            .and_then(|ms| chrono::DateTime::from_timestamp_millis(ms))
+                            .map(|t| t.to_rfc3339())
+                            .unwrap_or_else(|| "never".into());
+                        println!("relay: {url} ({state}, last ok: {last})");
+                    }
+                }
             }
             Err(e) => println!("database: ERROR ({e})"),
         }
     } else {
         println!("database: not created yet");
     }
+
+    // GNOME extension presence (best effort; COSMIC/KDE simply say absent).
+    let ext_id = "astraea@lwb89dev";
+    let user_ext = paths::data_dir()
+        .parent()
+        .map(|d| d.join("gnome-shell/extensions").join(ext_id))
+        .filter(|p| p.exists());
+    let system_ext = std::path::Path::new("/usr/share/gnome-shell/extensions").join(ext_id);
+    println!(
+        "gnome extension: {}",
+        match (user_ext, system_ext.exists()) {
+            (Some(p), _) => format!("installed (user: {})", p.display()),
+            (None, true) => "installed (system)".to_owned(),
+            (None, false) => "not installed".to_owned(),
+        }
+    );
 
     let unit = std::process::Command::new("systemctl")
         .args(["--user", "is-enabled", "astraea.service"])
@@ -335,7 +395,11 @@ fn read_os_release() -> String {
             content
                 .lines()
                 .find(|l| l.starts_with("PRETTY_NAME="))
-                .map(|l| l.trim_start_matches("PRETTY_NAME=").trim_matches('"').to_owned())
+                .map(|l| {
+                    l.trim_start_matches("PRETTY_NAME=")
+                        .trim_matches('"')
+                        .to_owned()
+                })
         })
         .unwrap_or_else(|| "unknown".into())
 }

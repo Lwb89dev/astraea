@@ -33,7 +33,10 @@ impl SecretStore {
         let collection = service.get_default_collection().await?;
         collection
             .create_item(
-                &format!("Astraea delegated calendar key ({})", &pubkey[..8.min(pubkey.len())]),
+                &format!(
+                    "Astraea delegated calendar key ({})",
+                    &pubkey[..8.min(pubkey.len())]
+                ),
                 Self::attributes("delegated-key", pubkey),
                 secret.as_bytes(),
                 true, // replace
