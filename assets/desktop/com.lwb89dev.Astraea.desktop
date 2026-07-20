@@ -1,0 +1,18 @@
+[Desktop Entry]
+Name=Astraea
+Name[it]=Astraea
+GenericName=Calendar
+GenericName[it]=Calendario
+Comment=Nostr-synced calendar and agenda
+Comment[it]=Calendario e agenda sincronizzati via Nostr
+Exec=astraea %U
+Icon=com.lwb89dev.Astraea
+Terminal=false
+Type=Application
+Categories=Office;Calendar;
+MimeType=x-scheme-handler/astraea;
+Keywords=calendar;agenda;events;nostr;
+Keywords[it]=calendario;agenda;eventi;nostr;
+StartupNotify=true
+StartupWMClass=astraea
+DBusActivatable=false

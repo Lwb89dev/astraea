@@ -136,11 +136,33 @@ Risks identified:
   LWW pull, junk/foreign-event screening), flutter analyze clean,
   84 Dart tests green.
 
-## Phase 8 — Packaging
+## Phase 8 — Packaging ✅
 
-- [ ] deb, rpm (Fedora + openSUSE notes), PKGBUILD, Flatpak manifest,
-      tarball + install script, optional AppImage
-- [ ] desktop entry, AppStream, icons, MIME/URL handler, systemd user unit
+- [x] One staged `/usr` tree (`scripts/build-linux.sh`) feeding every
+      format; desktop entry (validated), AppStream metainfo (validated,
+      screenshot placeholder documented), hicolor icons generated from
+      assets/icon at build time, `x-scheme-handler/astraea` MIME
+- [x] Modular DEBs (`scripts/build-deb.sh` → astraea-service /
+      astraea-desktop / astraea-gnome-shell-extension with proper
+      Depends/Recommends); maintainer scripts cache-refresh only,
+      headless-safe — built and validated locally
+- [x] RPM spec with the same three subpackages (Fedora + openSUSE macro
+      notes, rpmlint hook, builds from the staged tree — rationale in the
+      spec header) + `scripts/build-rpm.sh`
+- [x] Arch PKGBUILD (source build, `--locked` cargo, no /usr/libexec)
+- [x] Flatpak manifest (GUI only, single `--talk-name` grant; the
+      in-sandbox-service trade-off is documented and rejected)
+- [x] Relocatable tarball + `install.sh` (`--prefix`/`--user`/`--dry-run`/
+      `--uninstall` with recorded manifest; user data never deleted) —
+      dry-run exercised locally; optional AppImage script with its
+      documented integration limits
+- [x] `scripts/test-packages.sh` + docs/packaging.md (incl. distro test
+      matrix); `dist/` gitignored
+- Verified: full release staging (flutter + cargo), three .deb built,
+  desktop-file-validate + appstreamcli + structural deb checks green.
+- Note: rpmbuild/makepkg/flatpak-builder are absent on this machine —
+  those artifacts are validated by their scripts on the matching distros
+  (docs/packaging.md matrix) and in CI.
 
 ## Phase 9 — COSMIC applet
 

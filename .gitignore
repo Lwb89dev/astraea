@@ -135,3 +135,6 @@ astraea-*.json
 *.hprof
 .build/
 .buildlog/
+
+# Linux packaging outputs
+dist/
