@@ -164,9 +164,20 @@ Risks identified:
   those artifacts are validated by their scripts on the matching distros
   (docs/packaging.md matrix) and in CI.
 
-## Phase 9 — COSMIC applet
+## Phase 9 — COSMIC applet ✅ (scaffold; panel UI blocked on libcosmic)
 
-- [ ] native/cosmic-applet scaffold: D-Bus client, state model, popup
+- [x] `native/cosmic-applet` crate: zbus Calendar1 client (methods +
+      EventsChanged/SyncStatusChanged signal streams), toolkit-independent
+      `AppletState` view model (agenda rows, indicator label, degraded
+      states) with unit tests
+- [x] Working terminal frontend over the same modules
+      (`astraea-cosmic-applet [DATE] [--open]`) — verified live against the
+      running service via D-Bus activation on this COSMIC machine
+- [x] docs/cosmic-applet.md: what exists, what is deliberately absent
+      (libcosmic is git-only/API-unstable — the documented blocked part),
+      and the 5-step panel integration plan
+- Note: no fake widget code; the panel plugs into `AppletState` when
+  libcosmic is packaged.
 
 ## Phase 10 — Hardening
 
