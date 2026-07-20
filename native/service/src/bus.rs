@@ -6,8 +6,8 @@ use std::sync::Arc;
 
 use chrono::{DateTime, Duration, NaiveDate, TimeZone, Utc};
 use tokio::task::spawn_blocking;
-use zbus::object_server::SignalEmitter;
 use zbus::interface;
+use zbus::object_server::SignalEmitter;
 
 use crate::model::{self, CalendarDraft, CalendarPatch, EventDraft, EventPatch, SCHEMA_VERSION};
 use crate::recurrence;
@@ -44,7 +44,8 @@ impl AppState {
     }
 
     pub fn touch(&self) {
-        self.last_activity_ms.store(Utc::now().timestamp_millis(), Ordering::Relaxed);
+        self.last_activity_ms
+            .store(Utc::now().timestamp_millis(), Ordering::Relaxed);
     }
 
     /// Wakes the sync engine after a local mutation (offline-first: the
@@ -126,7 +127,9 @@ impl Calendar1 {
             return Err(Error::InvalidArgument("end must be after start".into()));
         }
         if end - start > Duration::days(366 * 3) {
-            return Err(Error::InvalidArgument("range too large (max 3 years)".into()));
+            return Err(Error::InvalidArgument(
+                "range too large (max 3 years)".into(),
+            ));
         }
         let store = self.state.store.clone();
         let events = blocking(move || store.events_in_range(start, end, &calendar_ids)).await?;
@@ -194,17 +197,28 @@ impl Calendar1 {
         let day = parse_date(&date)?;
         let start = day.and_hms_opt(0, 0, 0).map(|d| Utc.from_utc_datetime(&d));
         let start = start.ok_or_else(|| Error::InvalidArgument("invalid date".into()))?;
-        self.agenda_json(start, start + Duration::days(1), calendar_ids).await
+        self.agenda_json(start, start + Duration::days(1), calendar_ids)
+            .await
     }
 
-    async fn get_week(&self, start_date: String, calendar_ids: Vec<String>) -> Result<String, Error> {
+    async fn get_week(
+        &self,
+        start_date: String,
+        calendar_ids: Vec<String>,
+    ) -> Result<String, Error> {
         let day = parse_date(&start_date)?;
         let start = day.and_hms_opt(0, 0, 0).map(|d| Utc.from_utc_datetime(&d));
         let start = start.ok_or_else(|| Error::InvalidArgument("invalid date".into()))?;
-        self.agenda_json(start, start + Duration::days(7), calendar_ids).await
+        self.agenda_json(start, start + Duration::days(7), calendar_ids)
+            .await
     }
 
-    async fn get_month(&self, year: u32, month: u32, calendar_ids: Vec<String>) -> Result<String, Error> {
+    async fn get_month(
+        &self,
+        year: u32,
+        month: u32,
+        calendar_ids: Vec<String>,
+    ) -> Result<String, Error> {
         if !(1..=12).contains(&month) || !(1970..=9999).contains(&year) {
             return Err(Error::InvalidArgument("invalid year/month".into()));
         }
@@ -212,7 +226,11 @@ impl Calendar1 {
             .and_then(|d| d.and_hms_opt(0, 0, 0))
             .map(|d| Utc.from_utc_datetime(&d))
             .ok_or_else(|| Error::InvalidArgument("invalid year/month".into()))?;
-        let (ny, nm) = if month == 12 { (year + 1, 1) } else { (year, month + 1) };
+        let (ny, nm) = if month == 12 {
+            (year + 1, 1)
+        } else {
+            (year, month + 1)
+        };
         let end = NaiveDate::from_ymd_opt(ny as i32, nm, 1)
             .and_then(|d| d.and_hms_opt(0, 0, 0))
             .map(|d| Utc.from_utc_datetime(&d))
@@ -243,7 +261,10 @@ impl Calendar1 {
         }
         let store = self.state.store.clone();
         let events = blocking(move || store.events_in_range(start, end, &calendar_ids)).await?;
-        let values = events.iter().map(with_schema_version).collect::<Result<Vec<_>, _>>()?;
+        let values = events
+            .iter()
+            .map(with_schema_version)
+            .collect::<Result<Vec<_>, _>>()?;
         to_json(&values)
     }
 
@@ -373,7 +394,12 @@ impl Calendar1 {
         }))
     }
 
-    async fn open_desktop(&self, view: String, target_id: String, date: String) -> Result<(), Error> {
+    async fn open_desktop(
+        &self,
+        view: String,
+        target_id: String,
+        date: String,
+    ) -> Result<(), Error> {
         self.state.touch();
         let uri = build_desktop_uri(&view, &target_id, &date)?;
         // Detached, fixed argv — never a shell, never user-controlled args
@@ -432,7 +458,9 @@ impl Calendar1 {
         }
         let store = self.state.store.clone();
         let merged = blocking(move || {
-            let current = store.get_setting("settings")?.unwrap_or_else(default_settings_json);
+            let current = store
+                .get_setting("settings")?
+                .unwrap_or_else(default_settings_json);
             let mut settings: serde_json::Map<String, serde_json::Value> =
                 serde_json::from_str(&current).unwrap_or_default();
             for (k, v) in patch {
@@ -462,16 +490,25 @@ impl Calendar1 {
     }
 
     #[zbus(signal)]
-    pub async fn events_changed(emitter: &SignalEmitter<'_>, event_ids: Vec<String>) -> zbus::Result<()>;
+    pub async fn events_changed(
+        emitter: &SignalEmitter<'_>,
+        event_ids: Vec<String>,
+    ) -> zbus::Result<()>;
 
     #[zbus(signal)]
     pub async fn calendars_changed(emitter: &SignalEmitter<'_>) -> zbus::Result<()>;
 
     #[zbus(signal)]
-    pub async fn sync_status_changed(emitter: &SignalEmitter<'_>, status_json: String) -> zbus::Result<()>;
+    pub async fn sync_status_changed(
+        emitter: &SignalEmitter<'_>,
+        status_json: String,
+    ) -> zbus::Result<()>;
 
     #[zbus(signal)]
-    pub async fn settings_changed(emitter: &SignalEmitter<'_>, settings_json: String) -> zbus::Result<()>;
+    pub async fn settings_changed(
+        emitter: &SignalEmitter<'_>,
+        settings_json: String,
+    ) -> zbus::Result<()>;
 
     #[zbus(signal)]
     pub async fn notification_raised(
@@ -482,7 +519,11 @@ impl Calendar1 {
     ) -> zbus::Result<()>;
 
     #[zbus(signal)]
-    pub async fn service_error(emitter: &SignalEmitter<'_>, code: String, message: String) -> zbus::Result<()>;
+    pub async fn service_error(
+        emitter: &SignalEmitter<'_>,
+        code: String,
+        message: String,
+    ) -> zbus::Result<()>;
 }
 
 fn default_settings_json() -> String {
@@ -590,7 +631,10 @@ impl NostrAccount1 {
     }
 
     #[zbus(signal)]
-    pub async fn authentication_changed(emitter: &SignalEmitter<'_>, status_json: String) -> zbus::Result<()>;
+    pub async fn authentication_changed(
+        emitter: &SignalEmitter<'_>,
+        status_json: String,
+    ) -> zbus::Result<()>;
 }
 
 #[cfg(test)]
@@ -599,7 +643,10 @@ mod tests {
 
     #[test]
     fn desktop_uri_validation() {
-        assert_eq!(build_desktop_uri("", "", "").expect("uri"), "astraea://calendar");
+        assert_eq!(
+            build_desktop_uri("", "", "").expect("uri"),
+            "astraea://calendar"
+        );
         assert_eq!(
             build_desktop_uri("day", "", "2026-07-19").expect("uri"),
             "astraea://calendar/day/2026-07-19"

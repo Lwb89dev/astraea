@@ -57,13 +57,18 @@ fn now_ms() -> i64 {
 }
 
 fn ms_to_dt(ms: i64) -> DateTime<Utc> {
-    Utc.timestamp_millis_opt(ms).single().unwrap_or_else(Utc::now)
+    Utc.timestamp_millis_opt(ms)
+        .single()
+        .unwrap_or_else(Utc::now)
 }
 
 impl Store {
     pub fn open(path: PathBuf) -> Result<Self, StoreError> {
         let conn = db::open(&path)?;
-        Ok(Store { conn: Mutex::new(conn), db_path: path })
+        Ok(Store {
+            conn: Mutex::new(conn),
+            db_path: path,
+        })
     }
 
     /// In-memory database (unit + integration tests, `db doctor` dry runs).
@@ -71,10 +76,16 @@ impl Store {
         let conn = Connection::open_in_memory()?;
         conn.pragma_update(None, "foreign_keys", "ON")?;
         db::migrate(&conn, false, std::path::Path::new(":memory:"))?;
-        Ok(Store { conn: Mutex::new(conn), db_path: PathBuf::from(":memory:") })
+        Ok(Store {
+            conn: Mutex::new(conn),
+            db_path: PathBuf::from(":memory:"),
+        })
     }
 
-    fn with_conn<T>(&self, f: impl FnOnce(&Connection) -> Result<T, StoreError>) -> Result<T, StoreError> {
+    fn with_conn<T>(
+        &self,
+        f: impl FnOnce(&Connection) -> Result<T, StoreError>,
+    ) -> Result<T, StoreError> {
         let guard = self.conn.lock().map_err(|_| StoreError::Poisoned)?;
         f(&guard)
     }
@@ -83,10 +94,20 @@ impl Store {
     // Events
     // ------------------------------------------------------------------
 
-    pub fn create_event(&self, draft: EventDraft, source_device: &str) -> Result<Event, StoreError> {
+    pub fn create_event(
+        &self,
+        draft: EventDraft,
+        source_device: &str,
+    ) -> Result<Event, StoreError> {
         let timezone = draft.timezone.clone().unwrap_or_else(|| "UTC".to_owned());
-        validate_event_fields(&draft.title, &draft.description, draft.start, draft.end, &timezone)
-            .map_err(StoreError::Invalid)?;
+        validate_event_fields(
+            &draft.title,
+            &draft.description,
+            draft.start,
+            draft.end,
+            &timezone,
+        )
+        .map_err(StoreError::Invalid)?;
 
         let (recurrence, recurrence_end) = match &draft.recurrence {
             None => (Recurrence::None, None),
@@ -103,7 +124,10 @@ impl Store {
         let now = Utc::now();
         let event = Event {
             id,
-            calendar_id: draft.calendar_id.clone().unwrap_or_else(|| "default".to_owned()),
+            calendar_id: draft
+                .calendar_id
+                .clone()
+                .unwrap_or_else(|| "default".to_owned()),
             nostr_event_id: None,
             owner_pubkey: None,
             title: draft.title,
@@ -137,14 +161,21 @@ impl Store {
                 |r| r.get(0),
             )?;
             if calendar_exists == 0 {
-                return Err(StoreError::NotFound(format!("calendar {}", event.calendar_id)));
+                return Err(StoreError::NotFound(format!(
+                    "calendar {}",
+                    event.calendar_id
+                )));
             }
-            let duplicate: i64 =
-                conn.query_row("SELECT COUNT(*) FROM events WHERE id = ?1", [&event.id], |r| {
-                    r.get(0)
-                })?;
+            let duplicate: i64 = conn.query_row(
+                "SELECT COUNT(*) FROM events WHERE id = ?1",
+                [&event.id],
+                |r| r.get(0),
+            )?;
             if duplicate > 0 {
-                return Err(StoreError::Invalid(format!("event id {} already exists", event.id)));
+                return Err(StoreError::Invalid(format!(
+                    "event id {} already exists",
+                    event.id
+                )));
             }
             insert_event_row(conn, &event)?;
             enqueue(conn, &event.id, "publish")?;
@@ -155,9 +186,13 @@ impl Store {
 
     pub fn get_event(&self, id: &str) -> Result<Event, StoreError> {
         self.with_conn(|conn| {
-            conn.query_row(&format!("SELECT {EVENT_COLS} FROM events WHERE id = ?1"), [id], event_from_row)
-                .optional()?
-                .ok_or_else(|| StoreError::NotFound(format!("event {id}")))
+            conn.query_row(
+                &format!("SELECT {EVENT_COLS} FROM events WHERE id = ?1"),
+                [id],
+                event_from_row,
+            )
+            .optional()?
+            .ok_or_else(|| StoreError::NotFound(format!("event {id}")))
         })
     }
 
@@ -215,8 +250,14 @@ impl Store {
                 }
             }
         }
-        validate_event_fields(&event.title, &event.description, event.start, event.end, &event.timezone)
-            .map_err(StoreError::Invalid)?;
+        validate_event_fields(
+            &event.title,
+            &event.description,
+            event.start,
+            event.end,
+            &event.timezone,
+        )
+        .map_err(StoreError::Invalid)?;
 
         // Replaceable-event ordering has one-second resolution on the wire:
         // guarantee a strictly newer updatedAt (see docs/nostr-sync.md).
@@ -224,7 +265,9 @@ impl Store {
         event.updated_at = std::cmp::max(Utc::now(), min_next);
         event.local_revision += 1;
         event.sync_state = match event.sync_state {
-            SyncState::Synced | SyncState::Failed | SyncState::Conflict => SyncState::PendingPublish,
+            SyncState::Synced | SyncState::Failed | SyncState::Conflict => {
+                SyncState::PendingPublish
+            }
             other => other,
         };
 
@@ -235,7 +278,10 @@ impl Store {
                 |r| r.get(0),
             )?;
             if calendar_exists == 0 {
-                return Err(StoreError::NotFound(format!("calendar {}", event.calendar_id)));
+                return Err(StoreError::NotFound(format!(
+                    "calendar {}",
+                    event.calendar_id
+                )));
             }
             update_event_row(conn, &event)?;
             enqueue(conn, &event.id, "publish")?;
@@ -285,8 +331,9 @@ impl Store {
             let mut args: Vec<Box<dyn rusqlite::types::ToSql>> =
                 vec![Box::new(end.to_rfc3339()), Box::new(start.to_rfc3339())];
             if !calendar_ids.is_empty() {
-                let placeholders: Vec<String> =
-                    (0..calendar_ids.len()).map(|i| format!("?{}", i + 3)).collect();
+                let placeholders: Vec<String> = (0..calendar_ids.len())
+                    .map(|i| format!("?{}", i + 3))
+                    .collect();
                 sql.push_str(&format!(" AND calendar_id IN ({})", placeholders.join(",")));
                 for id in calendar_ids {
                     args.push(Box::new(id.clone()));
@@ -324,7 +371,9 @@ impl Store {
 
     pub fn create_calendar(&self, draft: CalendarDraft) -> Result<Calendar, StoreError> {
         if draft.name.trim().is_empty() {
-            return Err(StoreError::Invalid("calendar name must not be empty".into()));
+            return Err(StoreError::Invalid(
+                "calendar name must not be empty".into(),
+            ));
         }
         let now = Utc::now();
         let calendar = Calendar {
@@ -360,7 +409,9 @@ impl Store {
                 .ok_or_else(|| StoreError::NotFound(format!("calendar {id}")))?;
             if let Some(v) = patch.name {
                 if v.trim().is_empty() {
-                    return Err(StoreError::Invalid("calendar name must not be empty".into()));
+                    return Err(StoreError::Invalid(
+                        "calendar name must not be empty".into(),
+                    ));
                 }
                 calendar.name = v;
             }
@@ -388,7 +439,9 @@ impl Store {
     /// Soft-deletes a calendar; its events move to the default calendar.
     pub fn delete_calendar(&self, id: &str) -> Result<(), StoreError> {
         if id == "default" {
-            return Err(StoreError::Invalid("the default calendar cannot be deleted".into()));
+            return Err(StoreError::Invalid(
+                "the default calendar cannot be deleted".into(),
+            ));
         }
         self.with_conn(|conn| {
             let n = conn.execute(
@@ -413,7 +466,11 @@ impl Store {
     pub fn get_setting(&self, key: &str) -> Result<Option<String>, StoreError> {
         self.with_conn(|conn| {
             Ok(conn
-                .query_row("SELECT value FROM app_settings WHERE key = ?1", [key], |r| r.get(0))
+                .query_row(
+                    "SELECT value FROM app_settings WHERE key = ?1",
+                    [key],
+                    |r| r.get(0),
+                )
                 .optional()?)
         })
     }
@@ -430,7 +487,9 @@ impl Store {
     }
 
     pub fn pending_operations(&self) -> Result<i64, StoreError> {
-        self.with_conn(|conn| Ok(conn.query_row("SELECT COUNT(*) FROM sync_queue", [], |r| r.get(0))?))
+        self.with_conn(|conn| {
+            Ok(conn.query_row("SELECT COUNT(*) FROM sync_queue", [], |r| r.get(0))?)
+        })
     }
 
     // ------------------------------------------------------------------
@@ -440,8 +499,9 @@ impl Store {
 
     pub fn relays(&self) -> Result<Vec<RelayRow>, StoreError> {
         self.with_conn(|conn| {
-            let mut stmt = conn
-                .prepare("SELECT url, read, write, state, last_ok_ms FROM nostr_relays ORDER BY url")?;
+            let mut stmt = conn.prepare(
+                "SELECT url, read, write, state, last_ok_ms FROM nostr_relays ORDER BY url",
+            )?;
             let rows = stmt.query_map([], |row| {
                 Ok(RelayRow {
                     url: row.get(0)?,
@@ -467,9 +527,13 @@ impl Store {
                 conn.execute("DELETE FROM nostr_relays", [])?;
                 return Ok(());
             }
-            let placeholders: Vec<String> = (0..urls.len()).map(|i| format!("?{}", i + 1)).collect();
+            let placeholders: Vec<String> =
+                (0..urls.len()).map(|i| format!("?{}", i + 1)).collect();
             conn.execute(
-                &format!("DELETE FROM nostr_relays WHERE url NOT IN ({})", placeholders.join(",")),
+                &format!(
+                    "DELETE FROM nostr_relays WHERE url NOT IN ({})",
+                    placeholders.join(",")
+                ),
                 rusqlite::params_from_iter(urls.iter()),
             )?;
             for url in urls {
@@ -532,7 +596,12 @@ impl Store {
     /// Records a failed attempt: bumps the counter and schedules the retry
     /// at `next_attempt_ms`. The item is never dropped — publishing is
     /// idempotent and the queue must survive long offline periods.
-    pub fn queue_retry(&self, item_id: i64, next_attempt_ms: i64, error: &str) -> Result<(), StoreError> {
+    pub fn queue_retry(
+        &self,
+        item_id: i64,
+        next_attempt_ms: i64,
+        error: &str,
+    ) -> Result<(), StoreError> {
         self.with_conn(|conn| {
             conn.execute(
                 "UPDATE sync_queue SET attempts = attempts + 1, next_attempt_ms = ?2, last_error = ?3
@@ -545,7 +614,12 @@ impl Store {
 
     /// Defers an item without counting an attempt (signer unavailable is a
     /// wait-for-the-user situation, not a failure).
-    pub fn queue_defer(&self, item_id: i64, next_attempt_ms: i64, reason: &str) -> Result<(), StoreError> {
+    pub fn queue_defer(
+        &self,
+        item_id: i64,
+        next_attempt_ms: i64,
+        reason: &str,
+    ) -> Result<(), StoreError> {
         self.with_conn(|conn| {
             conn.execute(
                 "UPDATE sync_queue SET next_attempt_ms = ?2, last_error = ?3 WHERE id = ?1",
@@ -566,7 +640,12 @@ impl Store {
         })
     }
 
-    pub fn record_sync_failure(&self, event_id: &str, op: &str, error: &str) -> Result<(), StoreError> {
+    pub fn record_sync_failure(
+        &self,
+        event_id: &str,
+        op: &str,
+        error: &str,
+    ) -> Result<(), StoreError> {
         self.with_conn(|conn| {
             conn.execute(
                 "INSERT INTO sync_failures (event_id, op, error, failed_at_ms) VALUES (?1, ?2, ?3, ?4)",
@@ -604,7 +683,11 @@ impl Store {
         owner_pubkey: &str,
         deleted: bool,
     ) -> Result<(), StoreError> {
-        let state = if deleted { SyncState::DeletedSynced } else { SyncState::Synced };
+        let state = if deleted {
+            SyncState::DeletedSynced
+        } else {
+            SyncState::Synced
+        };
         self.with_conn(|conn| {
             let n = conn.execute(
                 "UPDATE events SET nostr_event_id = ?2, owner_pubkey = ?3, remote_revision = ?2,
@@ -740,7 +823,12 @@ impl Store {
     // ------------------------------------------------------------------
 
     /// Inserts (or refreshes) an account and makes it the active one.
-    pub fn activate_account(&self, pubkey: &str, npub: &str, signer: &str) -> Result<String, StoreError> {
+    pub fn activate_account(
+        &self,
+        pubkey: &str,
+        npub: &str,
+        signer: &str,
+    ) -> Result<String, StoreError> {
         self.with_conn(|conn| {
             let now = now_ms();
             conn.execute("UPDATE accounts SET is_active = 0", [])?;
@@ -815,7 +903,10 @@ impl Store {
                 .optional()?
                 .ok_or_else(|| StoreError::NotFound(format!("account {account_id}")))?;
             conn.execute("UPDATE accounts SET is_active = 0", [])?;
-            conn.execute("UPDATE accounts SET is_active = 1 WHERE id = ?1", [account_id])?;
+            conn.execute(
+                "UPDATE accounts SET is_active = 1 WHERE id = ?1",
+                [account_id],
+            )?;
             Ok(account)
         })
     }
@@ -841,7 +932,8 @@ fn account_from_row(row: &Row<'_>) -> rusqlite::Result<Account> {
 }
 
 // Column list shared by every event SELECT so row mapping stays in one place.
-const EVENT_COLS: &str = "id, calendar_id, nostr_event_id, owner_pubkey, title, description, location, url, \
+const EVENT_COLS: &str =
+    "id, calendar_id, nostr_event_id, owner_pubkey, title, description, location, url, \
      start_utc, end_utc, timezone, all_day, recurrence, recurrence_end_utc, reminders, status, \
      visibility, color, created_at_ms, updated_at_ms, deleted_at_ms, local_revision, \
      remote_revision, sync_state, source_device, metadata";
@@ -1002,7 +1094,9 @@ mod tests {
     use chrono::TimeZone;
 
     fn utc(y: i32, mo: u32, d: u32, h: u32) -> DateTime<Utc> {
-        Utc.with_ymd_and_hms(y, mo, d, h, 0, 0).single().expect("valid test date")
+        Utc.with_ymd_and_hms(y, mo, d, h, 0, 0)
+            .single()
+            .expect("valid test date")
     }
 
     fn draft(title: &str, start: DateTime<Utc>, end: DateTime<Utc>) -> EventDraft {
@@ -1019,7 +1113,10 @@ mod tests {
     fn create_get_update_delete_round_trip() {
         let store = Store::open_in_memory().expect("open");
         let created = store
-            .create_event(draft("Standup", utc(2026, 7, 20, 9), utc(2026, 7, 20, 10)), "test")
+            .create_event(
+                draft("Standup", utc(2026, 7, 20, 9), utc(2026, 7, 20, 10)),
+                "test",
+            )
             .expect("create");
         assert_eq!(created.sync_state, SyncState::LocalOnly);
         assert_eq!(store.pending_operations().expect("pending"), 1);
@@ -1029,7 +1126,8 @@ mod tests {
         assert_eq!(fetched.timezone, "Europe/Rome");
 
         let patch: EventPatch =
-            serde_json::from_str(r#"{"title":"Daily standup","location":"Room 1"}"#).expect("patch");
+            serde_json::from_str(r#"{"title":"Daily standup","location":"Room 1"}"#)
+                .expect("patch");
         let updated = store.update_event(&created.id, patch).expect("update");
         assert_eq!(updated.title, "Daily standup");
         assert_eq!(updated.location.as_deref(), Some("Room 1"));
@@ -1043,14 +1141,20 @@ mod tests {
             .events_in_range(utc(2026, 7, 20, 0), utc(2026, 7, 21, 0), &[])
             .expect("range");
         assert!(in_range.is_empty());
-        assert!(store.get_event(&created.id).expect("get tombstone").is_deleted());
+        assert!(store
+            .get_event(&created.id)
+            .expect("get tombstone")
+            .is_deleted());
     }
 
     #[test]
     fn range_query_includes_recurring_events_anchored_before_window() {
         let store = Store::open_in_memory().expect("open");
         let mut d = draft("Weekly", utc(2026, 1, 5, 9), utc(2026, 1, 5, 10));
-        d.recurrence = Some(crate::model::RecurrenceDraft { kind: "weekly".into(), until: None });
+        d.recurrence = Some(crate::model::RecurrenceDraft {
+            kind: "weekly".into(),
+            until: None,
+        });
         store.create_event(d, "test").expect("create");
         let events = store
             .events_in_range(utc(2026, 7, 1, 0), utc(2026, 8, 1, 0), &[])
@@ -1062,13 +1166,22 @@ mod tests {
     fn update_bumps_updated_at_strictly_by_a_second_on_rapid_saves() {
         let store = Store::open_in_memory().expect("open");
         let created = store
-            .create_event(draft("A", utc(2026, 7, 20, 9), utc(2026, 7, 20, 10)), "test")
+            .create_event(
+                draft("A", utc(2026, 7, 20, 9), utc(2026, 7, 20, 10)),
+                "test",
+            )
             .expect("create");
         let u1 = store
-            .update_event(&created.id, serde_json::from_str(r#"{"title":"B"}"#).expect("p"))
+            .update_event(
+                &created.id,
+                serde_json::from_str(r#"{"title":"B"}"#).expect("p"),
+            )
             .expect("u1");
         let u2 = store
-            .update_event(&created.id, serde_json::from_str(r#"{"title":"C"}"#).expect("p"))
+            .update_event(
+                &created.id,
+                serde_json::from_str(r#"{"title":"C"}"#).expect("p"),
+            )
             .expect("u2");
         assert!(u2.updated_at.timestamp() > u1.updated_at.timestamp());
         assert!(u1.updated_at.timestamp() > created.updated_at.timestamp());
@@ -1078,7 +1191,10 @@ mod tests {
     fn delete_supersedes_pending_publish_in_queue() {
         let store = Store::open_in_memory().expect("open");
         let created = store
-            .create_event(draft("X", utc(2026, 7, 20, 9), utc(2026, 7, 20, 10)), "test")
+            .create_event(
+                draft("X", utc(2026, 7, 20, 9), utc(2026, 7, 20, 10)),
+                "test",
+            )
             .expect("create");
         store.delete_event(&created.id).expect("delete");
         // Only the delete op remains.
@@ -1105,6 +1221,9 @@ mod tests {
         let store = Store::open_in_memory().expect("open");
         let mut d = draft("Nope", utc(2026, 7, 20, 9), utc(2026, 7, 20, 10));
         d.calendar_id = Some("missing".into());
-        assert!(matches!(store.create_event(d, "test"), Err(StoreError::NotFound(_))));
+        assert!(matches!(
+            store.create_event(d, "test"),
+            Err(StoreError::NotFound(_))
+        ));
     }
 }

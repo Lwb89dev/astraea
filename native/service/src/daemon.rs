@@ -23,8 +23,18 @@ pub async fn run(store: Store) -> anyhow::Result<()> {
 
     let connection = connection::Builder::session()?
         .name(BUS_NAME)?
-        .serve_at(OBJECT_PATH, Calendar1 { state: state.clone() })?
-        .serve_at(OBJECT_PATH, NostrAccount1 { state: state.clone() })?
+        .serve_at(
+            OBJECT_PATH,
+            Calendar1 {
+                state: state.clone(),
+            },
+        )?
+        .serve_at(
+            OBJECT_PATH,
+            NostrAccount1 {
+                state: state.clone(),
+            },
+        )?
         .build()
         .await?;
     // Lets the account manager emit AuthenticationChanged from async

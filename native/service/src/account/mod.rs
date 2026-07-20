@@ -89,7 +89,9 @@ impl AccountManager {
             "read_only" | "browser_nip07" | "remote_nip46" | "local_delegated"
         );
         if !valid {
-            return Err(AccountError::Login(format!("unknown signer: {signer_name}")));
+            return Err(AccountError::Login(format!(
+                "unknown signer: {signer_name}"
+            )));
         }
         let store = self.store.clone();
         let name = signer_name.to_owned();
@@ -148,7 +150,11 @@ impl AccountManager {
         let pubkey_owned = pubkey.to_owned();
         let npub_clone = npub.clone();
         tokio::task::spawn_blocking(move || {
-            store.activate_account(&pubkey_owned, &npub_clone, SignerKind::BrowserNip07.as_str())
+            store.activate_account(
+                &pubkey_owned,
+                &npub_clone,
+                SignerKind::BrowserNip07.as_str(),
+            )
         })
         .await
         .map_err(|e| AccountError::Login(e.to_string()))??;
@@ -252,8 +258,12 @@ impl AccountManager {
     }
 
     async fn emit_authentication_changed(&self) {
-        let Some(connection) = self.connection.get() else { return };
-        let Ok(status) = self.status_json().await else { return };
+        let Some(connection) = self.connection.get() else {
+            return;
+        };
+        let Ok(status) = self.status_json().await else {
+            return;
+        };
         let iface_ref = connection
             .object_server()
             .interface::<_, crate::bus::NostrAccount1>(crate::bus::OBJECT_PATH)

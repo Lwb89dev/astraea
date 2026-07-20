@@ -171,17 +171,28 @@ mod tests {
         let mut state = AppletState::default();
         assert_eq!(state.indicator_label(), "service unavailable");
 
-        state.apply_status(r#"{"authenticated":false,"networkStatus":"unknown","pendingOperations":0}"#);
+        state.apply_status(
+            r#"{"authenticated":false,"networkStatus":"unknown","pendingOperations":0}"#,
+        );
         assert_eq!(state.indicator_label(), "not signed in");
 
-        state.apply_status(r#"{"authenticated":true,"networkStatus":"online","pendingOperations":0}"#);
-        state.apply_day(NaiveDate::from_ymd_opt(2026, 7, 20).expect("date"), &day_json());
+        state.apply_status(
+            r#"{"authenticated":true,"networkStatus":"online","pendingOperations":0}"#,
+        );
+        state.apply_day(
+            NaiveDate::from_ymd_opt(2026, 7, 20).expect("date"),
+            &day_json(),
+        );
         assert_eq!(state.indicator_label(), "2 events");
 
-        state.apply_status(r#"{"authenticated":true,"networkStatus":"offline","pendingOperations":3}"#);
+        state.apply_status(
+            r#"{"authenticated":true,"networkStatus":"offline","pendingOperations":3}"#,
+        );
         assert_eq!(state.indicator_label(), "2 events · offline");
 
-        state.apply_status(r#"{"authenticated":true,"networkStatus":"online","pendingOperations":3}"#);
+        state.apply_status(
+            r#"{"authenticated":true,"networkStatus":"online","pendingOperations":3}"#,
+        );
         assert_eq!(state.indicator_label(), "2 events · 3 pending");
     }
 
@@ -190,7 +201,10 @@ mod tests {
         let mut state = AppletState::default();
         state.apply_status("not json at all");
         assert!(state.service.is_none());
-        state.apply_day(NaiveDate::from_ymd_opt(2026, 7, 20).expect("date"), "also not json");
+        state.apply_day(
+            NaiveDate::from_ymd_opt(2026, 7, 20).expect("date"),
+            "also not json",
+        );
         assert!(state.items.is_empty());
     }
 }

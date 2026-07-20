@@ -30,7 +30,11 @@ pub fn schema_version(conn: &Connection) -> Result<i64, DbError> {
     if exists == 0 {
         return Ok(0);
     }
-    Ok(conn.query_row("SELECT COALESCE(MAX(version), 0) FROM schema_migrations", [], |r| r.get(0))?)
+    Ok(conn.query_row(
+        "SELECT COALESCE(MAX(version), 0) FROM schema_migrations",
+        [],
+        |r| r.get(0),
+    )?)
 }
 
 /// Opens (creating if needed) the database at `path`, applies pragmas and any
@@ -89,12 +93,13 @@ pub fn migrate(conn: &Connection, backup_first: bool, path: &Path) -> Result<(),
         let sql = MIGRATIONS[(version - 1) as usize];
         info!(version, "applying migration");
         conn.execute_batch("BEGIN")?;
-        let applied = conn
-            .execute_batch(sql)
-            .and_then(|()| {
-                conn.execute("INSERT INTO schema_migrations (version) VALUES (?1)", [version])
-                    .map(|_| ())
-            });
+        let applied = conn.execute_batch(sql).and_then(|()| {
+            conn.execute(
+                "INSERT INTO schema_migrations (version) VALUES (?1)",
+                [version],
+            )
+            .map(|_| ())
+        });
         match applied {
             Ok(()) => conn.execute_batch("COMMIT")?,
             Err(e) => {
@@ -107,7 +112,10 @@ pub fn migrate(conn: &Connection, backup_first: bool, path: &Path) -> Result<(),
 }
 
 fn sibling(path: &Path, suffix: &str) -> PathBuf {
-    let mut name = path.file_name().map(|n| n.to_os_string()).unwrap_or_default();
+    let mut name = path
+        .file_name()
+        .map(|n| n.to_os_string())
+        .unwrap_or_default();
     name.push(suffix);
     path.with_file_name(name)
 }
@@ -121,9 +129,14 @@ mod tests {
         let dir = tempdir();
         let path = dir.join("astraea.db");
         let conn = open(&path).expect("open");
-        assert_eq!(schema_version(&conn).expect("version"), MIGRATIONS.len() as i64);
+        assert_eq!(
+            schema_version(&conn).expect("version"),
+            MIGRATIONS.len() as i64
+        );
         let name: String = conn
-            .query_row("SELECT name FROM calendars WHERE is_default = 1", [], |r| r.get(0))
+            .query_row("SELECT name FROM calendars WHERE is_default = 1", [], |r| {
+                r.get(0)
+            })
             .expect("default calendar");
         assert_eq!(name, "Astraea");
         cleanup(dir);
@@ -137,7 +150,10 @@ mod tests {
             let _ = open(&path).expect("first open");
         }
         let conn = open(&path).expect("second open");
-        assert_eq!(schema_version(&conn).expect("version"), MIGRATIONS.len() as i64);
+        assert_eq!(
+            schema_version(&conn).expect("version"),
+            MIGRATIONS.len() as i64
+        );
         cleanup(dir);
     }
 

@@ -13,7 +13,11 @@ const MAX_OCCURRENCES: usize = 3660;
 
 /// Every occurrence of `event` overlapping the half-open window
 /// `[range_start, range_end)`, in chronological order.
-pub fn expand(event: &Event, range_start: DateTime<Utc>, range_end: DateTime<Utc>) -> Vec<Occurrence> {
+pub fn expand(
+    event: &Event,
+    range_start: DateTime<Utc>,
+    range_end: DateTime<Utc>,
+) -> Vec<Occurrence> {
     if event.is_deleted() {
         return Vec::new();
     }
@@ -37,7 +41,11 @@ pub fn expand(event: &Event, range_start: DateTime<Utc>, range_end: DateTime<Utc
         _ => range_end,
     };
 
-    let slack = if duration < Duration::zero() { Duration::zero() } else { duration };
+    let slack = if duration < Duration::zero() {
+        Duration::zero()
+    } else {
+        duration
+    };
     let mut index = first_useful_index(event.start, event.recurrence, range_start - slack);
     let mut current = occurrence_at(event.start, event.recurrence, index);
     let mut guard = 0usize;
@@ -106,12 +114,19 @@ fn occurrence_at(anchor: DateTime<Utc>, kind: Recurrence, index: i64) -> DateTim
 /// anchor's time of day. Mirrors Dart's `DateTime.utc(..., day.clamp(...))`.
 fn at_clamped(anchor: DateTime<Utc>, year: i32, month: u32) -> DateTime<Utc> {
     let day = anchor.day().min(days_in_month(year, month));
-    Utc.with_ymd_and_hms(year, month, day, anchor.hour(), anchor.minute(), anchor.second())
-        .single()
-        .map(|dt| dt + Duration::nanoseconds(anchor.nanosecond() as i64))
-        // Unreachable for a clamped valid Gregorian date in UTC (no DST gaps);
-        // fall back to the anchor rather than panicking in a daemon.
-        .unwrap_or(anchor)
+    Utc.with_ymd_and_hms(
+        year,
+        month,
+        day,
+        anchor.hour(),
+        anchor.minute(),
+        anchor.second(),
+    )
+    .single()
+    .map(|dt| dt + Duration::nanoseconds(anchor.nanosecond() as i64))
+    // Unreachable for a clamped valid Gregorian date in UTC (no DST gaps);
+    // fall back to the anchor rather than panicking in a daemon.
+    .unwrap_or(anchor)
 }
 
 fn days_in_month(year: i32, month: u32) -> u32 {
@@ -136,10 +151,17 @@ mod tests {
     use chrono::TimeZone;
 
     fn utc(y: i32, mo: u32, d: u32, h: u32, mi: u32) -> DateTime<Utc> {
-        Utc.with_ymd_and_hms(y, mo, d, h, mi, 0).single().expect("valid test date")
+        Utc.with_ymd_and_hms(y, mo, d, h, mi, 0)
+            .single()
+            .expect("valid test date")
     }
 
-    fn event(start: DateTime<Utc>, end: DateTime<Utc>, rec: Recurrence, until: Option<DateTime<Utc>>) -> Event {
+    fn event(
+        start: DateTime<Utc>,
+        end: DateTime<Utc>,
+        rec: Recurrence,
+        until: Option<DateTime<Utc>>,
+    ) -> Event {
         Event {
             id: "e1".into(),
             calendar_id: "default".into(),
@@ -172,17 +194,30 @@ mod tests {
 
     #[test]
     fn single_event_overlap_is_half_open() {
-        let e = event(utc(2026, 7, 19, 9, 0), utc(2026, 7, 19, 10, 0), Recurrence::None, None);
+        let e = event(
+            utc(2026, 7, 19, 9, 0),
+            utc(2026, 7, 19, 10, 0),
+            Recurrence::None,
+            None,
+        );
         // Window ending exactly at the start excludes it.
         assert!(expand(&e, utc(2026, 7, 19, 8, 0), utc(2026, 7, 19, 9, 0)).is_empty());
         // Window starting exactly at the end excludes it.
         assert!(expand(&e, utc(2026, 7, 19, 10, 0), utc(2026, 7, 19, 11, 0)).is_empty());
-        assert_eq!(expand(&e, utc(2026, 7, 19, 0, 0), utc(2026, 7, 20, 0, 0)).len(), 1);
+        assert_eq!(
+            expand(&e, utc(2026, 7, 19, 0, 0), utc(2026, 7, 20, 0, 0)).len(),
+            1
+        );
     }
 
     #[test]
     fn daily_series_expands_within_window() {
-        let e = event(utc(2026, 7, 1, 9, 0), utc(2026, 7, 1, 9, 30), Recurrence::Daily, None);
+        let e = event(
+            utc(2026, 7, 1, 9, 0),
+            utc(2026, 7, 1, 9, 30),
+            Recurrence::Daily,
+            None,
+        );
         let occ = expand(&e, utc(2026, 7, 10, 0, 0), utc(2026, 7, 13, 0, 0));
         assert_eq!(occ.len(), 3);
         assert_eq!(occ[0].occurrence_start, utc(2026, 7, 10, 9, 0));
@@ -191,18 +226,32 @@ mod tests {
 
     #[test]
     fn monthly_jan31_clamps_to_february_then_recovers() {
-        let e = event(utc(2026, 1, 31, 12, 0), utc(2026, 1, 31, 13, 0), Recurrence::Monthly, None);
+        let e = event(
+            utc(2026, 1, 31, 12, 0),
+            utc(2026, 1, 31, 13, 0),
+            Recurrence::Monthly,
+            None,
+        );
         let occ = expand(&e, utc(2026, 1, 1, 0, 0), utc(2026, 4, 1, 0, 0));
         let starts: Vec<_> = occ.iter().map(|o| o.occurrence_start).collect();
         assert_eq!(
             starts,
-            vec![utc(2026, 1, 31, 12, 0), utc(2026, 2, 28, 12, 0), utc(2026, 3, 31, 12, 0)]
+            vec![
+                utc(2026, 1, 31, 12, 0),
+                utc(2026, 2, 28, 12, 0),
+                utc(2026, 3, 31, 12, 0)
+            ]
         );
     }
 
     #[test]
     fn yearly_feb29_clamps_on_non_leap_years() {
-        let e = event(utc(2024, 2, 29, 8, 0), utc(2024, 2, 29, 9, 0), Recurrence::Yearly, None);
+        let e = event(
+            utc(2024, 2, 29, 8, 0),
+            utc(2024, 2, 29, 9, 0),
+            Recurrence::Yearly,
+            None,
+        );
         let occ = expand(&e, utc(2025, 1, 1, 0, 0), utc(2026, 12, 31, 0, 0));
         let starts: Vec<_> = occ.iter().map(|o| o.occurrence_start).collect();
         assert_eq!(starts, vec![utc(2025, 2, 28, 8, 0), utc(2026, 2, 28, 8, 0)]);
@@ -222,7 +271,12 @@ mod tests {
 
     #[test]
     fn deleted_events_produce_nothing() {
-        let mut e = event(utc(2026, 7, 1, 9, 0), utc(2026, 7, 1, 10, 0), Recurrence::Daily, None);
+        let mut e = event(
+            utc(2026, 7, 1, 9, 0),
+            utc(2026, 7, 1, 10, 0),
+            Recurrence::Daily,
+            None,
+        );
         e.sync_state = SyncState::DeletedPending;
         assert!(expand(&e, utc(2026, 7, 1, 0, 0), utc(2026, 8, 1, 0, 0)).is_empty());
     }
@@ -230,7 +284,12 @@ mod tests {
     #[test]
     fn long_event_overlapping_window_start_is_included() {
         // 3-day event recurring weekly; window starts mid-occurrence.
-        let e = event(utc(2026, 7, 6, 0, 0), utc(2026, 7, 9, 0, 0), Recurrence::Weekly, None);
+        let e = event(
+            utc(2026, 7, 6, 0, 0),
+            utc(2026, 7, 9, 0, 0),
+            Recurrence::Weekly,
+            None,
+        );
         let occ = expand(&e, utc(2026, 7, 7, 12, 0), utc(2026, 7, 8, 0, 0));
         assert_eq!(occ.len(), 1);
         assert_eq!(occ[0].occurrence_start, utc(2026, 7, 6, 0, 0));

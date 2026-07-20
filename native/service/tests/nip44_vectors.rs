@@ -15,13 +15,17 @@ fn vectors() -> Value {
 }
 
 fn b64(s: &str) -> Vec<u8> {
-    base64::engine::general_purpose::STANDARD.decode(s).expect("base64 payload")
+    base64::engine::general_purpose::STANDARD
+        .decode(s)
+        .expect("base64 payload")
 }
 
 #[test]
 fn conversation_key_derivation_matches_the_vectors() {
     let doc = vectors();
-    let cases = doc["v2"]["valid"]["get_conversation_key"].as_array().expect("cases");
+    let cases = doc["v2"]["valid"]["get_conversation_key"]
+        .as_array()
+        .expect("cases");
     assert!(!cases.is_empty());
     for case in cases {
         let sec1 = SecretKey::from_hex(case["sec1"].as_str().expect("sec1")).expect("sec1 parses");
@@ -39,7 +43,9 @@ fn conversation_key_derivation_matches_the_vectors() {
 #[test]
 fn encrypt_decrypt_vectors_decrypt_and_round_trip() {
     let doc = vectors();
-    let cases = doc["v2"]["valid"]["encrypt_decrypt"].as_array().expect("cases");
+    let cases = doc["v2"]["valid"]["encrypt_decrypt"]
+        .as_array()
+        .expect("cases");
     assert!(!cases.is_empty());
     for case in cases {
         let sec1 = SecretKey::from_hex(case["sec1"].as_str().expect("sec1")).expect("sec1");
@@ -52,7 +58,10 @@ fn encrypt_decrypt_vectors_decrypt_and_round_trip() {
         let key = ConversationKey::derive(&sec1, &pub2).expect("derive 1→2");
         let key_rev = ConversationKey::derive(&sec2, &pub1).expect("derive 2→1");
         assert_eq!(key.as_bytes(), key_rev.as_bytes());
-        assert_eq!(hex::encode(key.as_bytes()), case["conversation_key"].as_str().expect("key"));
+        assert_eq!(
+            hex::encode(key.as_bytes()),
+            case["conversation_key"].as_str().expect("key")
+        );
 
         // Decrypt direction against the fixed vector ciphertext.
         let decrypted =
@@ -64,8 +73,7 @@ fn encrypt_decrypt_vectors_decrypt_and_round_trip() {
         // back with the peer's view of the conversation.
         let ciphertext =
             nip44::encrypt(&sec1, &pub2, plaintext, nip44::Version::V2).expect("encrypts");
-        let round =
-            nip44::decrypt(&sec2, &pub1, &ciphertext).expect("round trip decrypts");
+        let round = nip44::decrypt(&sec2, &pub1, &ciphertext).expect("round trip decrypts");
         assert_eq!(round, plaintext);
     }
 }
@@ -74,7 +82,9 @@ fn encrypt_decrypt_vectors_decrypt_and_round_trip() {
 fn invalid_vectors_are_rejected() {
     let doc = vectors();
 
-    let cases = doc["v2"]["invalid"]["decrypt"].as_array().expect("decrypt cases");
+    let cases = doc["v2"]["invalid"]["decrypt"]
+        .as_array()
+        .expect("decrypt cases");
     assert!(!cases.is_empty());
     for case in cases {
         let key_bytes =
@@ -90,8 +100,9 @@ fn invalid_vectors_are_rejected() {
         );
     }
 
-    let cases =
-        doc["v2"]["invalid"]["get_conversation_key"].as_array().expect("derivation cases");
+    let cases = doc["v2"]["invalid"]["get_conversation_key"]
+        .as_array()
+        .expect("derivation cases");
     assert!(!cases.is_empty());
     for case in cases {
         let sec1 = SecretKey::from_hex(case["sec1"].as_str().expect("sec1"));
@@ -100,6 +111,10 @@ fn invalid_vectors_are_rejected() {
             (Ok(sec1), Ok(pub2)) => ConversationKey::derive(&sec1, &pub2).is_ok(),
             _ => false,
         };
-        assert!(!derivable, "must reject: {}", case["note"].as_str().unwrap_or(""));
+        assert!(
+            !derivable,
+            "must reject: {}",
+            case["note"].as_str().unwrap_or("")
+        );
     }
 }

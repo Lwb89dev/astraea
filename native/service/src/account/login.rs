@@ -56,7 +56,10 @@ fn random_hex_32() -> String {
 /// that resolves with the verified pubkey (or an error string).
 pub async fn begin(
     open_browser: bool,
-) -> anyhow::Result<(LoginSession, oneshot::Receiver<Result<LoginOutcome, String>>)> {
+) -> anyhow::Result<(
+    LoginSession,
+    oneshot::Receiver<Result<LoginOutcome, String>>,
+)> {
     // Loopback only, kernel-chosen free port. Never 0.0.0.0.
     let listener = TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0)).await?;
     let port = listener.local_addr()?.port();
@@ -88,7 +91,12 @@ pub async fn begin(
 
     info!(port, "browser login session started");
     Ok((
-        LoginSession { session_id, url, expires_at, cancel: Some(cancel_tx) },
+        LoginSession {
+            session_id,
+            url,
+            expires_at,
+            cancel: Some(cancel_tx),
+        },
         done_rx,
     ))
 }
@@ -218,9 +226,13 @@ fn verify_callback(body: &str, state: &str, challenge: &str) -> Result<LoginOutc
     if (now - created_at).abs() > CREATED_AT_SLACK_SECS {
         return Err("challenge signature is not fresh".into());
     }
-    event.verify().map_err(|_| "invalid event id or signature".to_owned())?;
+    event
+        .verify()
+        .map_err(|_| "invalid event id or signature".to_owned())?;
 
-    Ok(LoginOutcome { pubkey: event.pubkey.to_hex() })
+    Ok(LoginOutcome {
+        pubkey: event.pubkey.to_hex(),
+    })
 }
 
 async fn read_request(stream: &mut TcpStream) -> anyhow::Result<(String, String)> {
@@ -267,7 +279,10 @@ async fn read_request(stream: &mut TcpStream) -> anyhow::Result<(String, String)
             anyhow::bail!("body too large");
         }
     }
-    Ok((request_line, String::from_utf8_lossy(&body_bytes).into_owned()))
+    Ok((
+        request_line,
+        String::from_utf8_lossy(&body_bytes).into_owned(),
+    ))
 }
 
 fn find_header_end(buffer: &[u8]) -> Option<usize> {
@@ -331,7 +346,10 @@ mod tests {
         let keys = Keys::generate();
         let challenge = random_hex_32();
         let state = random_hex_32();
-        let body = format!(r#"{{"state":"{state}","event":{}}}"#, signed_challenge(&keys, &challenge));
+        let body = format!(
+            r#"{{"state":"{state}","event":{}}}"#,
+            signed_challenge(&keys, &challenge)
+        );
         let outcome = verify_callback(&body, &state, &challenge).expect("accepted");
         assert_eq!(outcome.pubkey, keys.public_key().to_hex());
     }

@@ -48,7 +48,11 @@ async fn full_login_round_trip_succeeds() {
         &format!("GET /login?state={state}&challenge={challenge} HTTP/1.1\r\nHost: x\r\n\r\n"),
     )
     .await;
-    assert!(page.starts_with("HTTP/1.1 200"), "page: {}", &page[..40.min(page.len())]);
+    assert!(
+        page.starts_with("HTTP/1.1 200"),
+        "page: {}",
+        &page[..40.min(page.len())]
+    );
     assert!(page.contains("window.nostr"));
 
     let wrong = http_request(port, "GET /login?state=wrong HTTP/1.1\r\nHost: x\r\n\r\n").await;

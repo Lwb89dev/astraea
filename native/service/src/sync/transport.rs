@@ -58,8 +58,7 @@ pub trait RelayTransport: Send + Sync {
     async fn publish(&self, event: Event) -> Result<PublishOutcome, TransportError>;
 
     /// Fetches events matching `filter` from all relays, deduplicated.
-    async fn fetch(&self, filter: Filter, timeout: Duration)
-        -> Result<Vec<Event>, TransportError>;
+    async fn fetch(&self, filter: Filter, timeout: Duration) -> Result<Vec<Event>, TransportError>;
 
     async fn health(&self) -> Vec<RelayHealth>;
 }
@@ -71,7 +70,9 @@ pub struct NostrSdkTransport {
 
 impl NostrSdkTransport {
     pub fn new() -> Self {
-        Self { client: nostr_sdk::Client::default() }
+        Self {
+            client: nostr_sdk::Client::default(),
+        }
     }
 }
 
@@ -87,7 +88,10 @@ impl RelayTransport for NostrSdkTransport {
         let current: Vec<nostr_sdk::RelayUrl> =
             self.client.relays().await.keys().cloned().collect();
         for existing in &current {
-            if !urls.iter().any(|u| u.trim_end_matches('/') == existing.as_str().trim_end_matches('/')) {
+            if !urls
+                .iter()
+                .any(|u| u.trim_end_matches('/') == existing.as_str().trim_end_matches('/'))
+            {
                 let _ = self.client.remove_relay(existing.clone()).await;
             }
         }
@@ -117,11 +121,7 @@ impl RelayTransport for NostrSdkTransport {
         })
     }
 
-    async fn fetch(
-        &self,
-        filter: Filter,
-        timeout: Duration,
-    ) -> Result<Vec<Event>, TransportError> {
+    async fn fetch(&self, filter: Filter, timeout: Duration) -> Result<Vec<Event>, TransportError> {
         let events = self
             .client
             .fetch_events(filter, timeout)

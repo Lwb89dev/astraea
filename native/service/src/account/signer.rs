@@ -178,7 +178,10 @@ pub struct LocalDelegatedSigner {
 
 impl LocalDelegatedSigner {
     pub fn new(secrets: SecretStore, account_pubkey: String) -> Self {
-        Self { secrets, account_pubkey }
+        Self {
+            secrets,
+            account_pubkey,
+        }
     }
 
     async fn keys(&self) -> Result<Keys, SignerError> {
@@ -230,9 +233,16 @@ impl SignerBackend for LocalDelegatedSigner {
 }
 
 /// Chooses the backend for a stored signer name (the accounts.signer column).
-pub fn backend_for(name: &str, secrets: SecretStore, account_pubkey: &str) -> Box<dyn SignerBackend> {
+pub fn backend_for(
+    name: &str,
+    secrets: SecretStore,
+    account_pubkey: &str,
+) -> Box<dyn SignerBackend> {
     match name {
-        "local_delegated" => Box::new(LocalDelegatedSigner::new(secrets, account_pubkey.to_owned())),
+        "local_delegated" => Box::new(LocalDelegatedSigner::new(
+            secrets,
+            account_pubkey.to_owned(),
+        )),
         "remote_nip46" => Box::new(RemoteSigner),
         "browser_nip07" => Box::new(BrowserNip07Signer),
         _ => Box::new(ReadOnlySigner),

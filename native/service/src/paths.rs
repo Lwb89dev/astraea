@@ -9,7 +9,9 @@ fn xdg_dir(var: &str, home_fallback: &[&str]) -> PathBuf {
     match env::var_os(var) {
         Some(v) if !v.is_empty() => PathBuf::from(v).join(APP_DIR),
         _ => {
-            let home = env::var_os("HOME").map(PathBuf::from).unwrap_or_else(|| PathBuf::from("."));
+            let home = env::var_os("HOME")
+                .map(PathBuf::from)
+                .unwrap_or_else(|| PathBuf::from("."));
             let mut p = home;
             for part in home_fallback {
                 p.push(part);
