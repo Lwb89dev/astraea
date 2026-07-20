@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.lwb89dev.Astraea</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Astraea</name>
+  <summary>Nostr-synced calendar and agenda</summary>
+  <summary xml:lang="it">Calendario e agenda sincronizzati via Nostr</summary>
+  <description>
+    <p>
+      Astraea is an offline-first, privacy-first calendar. Events are stored
+      locally, end-to-end encrypted with your own Nostr key (NIP-44), and
+      synchronized through Nostr relays — no account, no server of ours,
+      the same calendar on your phone and your desktop.
+    </p>
+    <p xml:lang="it">
+      Astraea è un calendario offline-first e privacy-first. Gli eventi sono
+      salvati in locale, cifrati end-to-end con la tua chiave Nostr (NIP-44)
+      e sincronizzati attraverso i relay Nostr — nessun account, nessun
+      nostro server, lo stesso calendario su telefono e desktop.
+    </p>
+    <p>
+      The Linux desktop version ships a background service with a D-Bus API,
+      a GNOME Shell extension with agenda and quick event creation in the top
+      bar, and browser-based login with any NIP-07 extension.
+    </p>
+  </description>
+  <launchable type="desktop-id">com.lwb89dev.Astraea.desktop</launchable>
+  <provides>
+    <binary>astraea</binary>
+    <dbus type="user">com.lwb89dev.Astraea.Service</dbus>
+  </provides>
+  <url type="homepage">https://github.com/Lwb89dev/astraea</url>
+  <url type="bugtracker">https://github.com/Lwb89dev/astraea/issues</url>
+  <url type="vcs-browser">https://github.com/Lwb89dev/astraea</url>
+  <developer id="dev.lwb89">
+    <name>Lwb89dev</name>
+  </developer>
+  <!-- Screenshots are placeholders until real captures exist; see
+       docs/packaging.md ("AppStream screenshots"). -->
+  <screenshots>
+    <screenshot type="default">
+      <caption>Month view with the calendars sidebar</caption>
+      <image>https://raw.githubusercontent.com/Lwb89dev/astraea/main/docs/screenshots/linux-month.png</image>
+    </screenshot>
+  </screenshots>
+  <content_rating type="oars-1.1"/>
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+    <control>touch</control>
+  </supports>
+  <releases>
+    <release version="0.1.1" date="2026-07-20">
+      <description>
+        <p>First Linux desktop release: background service with D-Bus API,
+        Flutter desktop app, GNOME Shell extension, browser (NIP-07) login,
+        encrypted Nostr synchronization.</p>
+      </description>
+    </release>
+  </releases>
+</component>
