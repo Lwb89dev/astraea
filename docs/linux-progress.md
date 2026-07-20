@@ -94,11 +94,23 @@ Risks identified:
 - Note: dev machine runs COSMIC → runtime validation happens on GNOME
   VMs per the manual test plan in docs/gnome-extension.md; CI lints JS.
 
-## Phase 6 — Browser auth
+## Phase 6 — Browser auth ✅
 
-- [ ] Login session (state, nonce, expiry) + 127.0.0.1 callback listener
-- [ ] Local login page (NIP-07), signature verification
-- [ ] Secret Service storage; signer abstraction (browser/remote/delegated/read-only)
+- [x] Login session (state + signed challenge as nonce, 5-min expiry) with a
+      single-use 127.0.0.1 listener on a kernel-chosen port
+- [x] Local login page (NIP-07, strict CSP, names the requesting app),
+      kind-22242 verification: state, challenge tag, created_at freshness,
+      NIP-01 id + Schnorr signature
+- [x] Secret Service storage (delegated key only; SQLite holds pubkeys);
+      signer abstraction (read-only/browser/remote-NIP-46/local-delegated),
+      `SetSigner` on NostrAccount1, `auth provision-key` via stdin
+- [x] AuthenticationChanged emitted from async completions; accounts CRUD
+      wired to the existing `accounts` table
+- Verified: cargo check clean, 26 tests green (3 integration tests in
+  tests/login_bridge.rs: round trip, bad signature rejected, cancellation).
+- Notes: login sessions are in-memory by design (the `auth_sessions` table
+  stays reserved for future remote-signer sessions); a hardware signer is a
+  documented future backend, not a stub enum variant.
 
 ## Phase 7 — Nostr sync in the service
 
