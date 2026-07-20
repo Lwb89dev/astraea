@@ -21,6 +21,10 @@
     <method name="SwitchAccount">
       <arg type="s" name="accountId" direction="in"/>
     </method>
+    <!-- Switches signer mode only; secret material never crosses D-Bus. -->
+    <method name="SetSigner">
+      <arg type="s" name="signerName" direction="in"/>
+    </method>
 
     <signal name="AuthenticationChanged">
       <arg type="s" name="statusJson"/>

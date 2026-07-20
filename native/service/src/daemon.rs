@@ -27,6 +27,9 @@ pub async fn run(store: Store) -> anyhow::Result<()> {
         .serve_at(OBJECT_PATH, NostrAccount1 { state: state.clone() })?
         .build()
         .await?;
+    // Lets the account manager emit AuthenticationChanged from async
+    // completions (the browser callback arrives outside any D-Bus call).
+    state.account.set_connection(connection.clone());
     info!(
         bus = BUS_NAME,
         path = OBJECT_PATH,

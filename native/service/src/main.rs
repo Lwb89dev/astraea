@@ -4,14 +4,7 @@
 //! executes). Subcommands are a thin CLI over the D-Bus API plus local
 //! database/diagnostic helpers. See docs/linux-architecture.md.
 
-mod bus;
-mod daemon;
-mod db;
-mod model;
-mod paths;
-mod recurrence;
-mod store;
-
+use astraea_service::{account, bus, daemon, db, paths, store};
 use clap::{Parser, Subcommand};
 use tracing_subscriber::EnvFilter;
 
@@ -54,9 +47,18 @@ enum DbCommand {
 
 #[derive(Subcommand)]
 enum AuthCommand {
+    /// Start a browser (NIP-07) login.
     Login,
     Status,
     Logout,
+    /// Provision a calendar signing key for the active account so the
+    /// service can sign/publish in the background (LocalDelegatedSigner).
+    ///
+    /// The key is read from STDIN (never a CLI argument: argv is visible in
+    /// `ps` and shell history) and stored ONLY in the Secret Service. Use a
+    /// calendar-scoped identity — not your main social nsec — whenever you
+    /// can. Revoke with `auth logout` or by deleting the keyring item.
+    ProvisionKey,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -136,6 +138,44 @@ async fn cli_auth(command: AuthCommand) -> anyhow::Result<()> {
         AuthCommand::Logout => {
             proxy.call::<_, _, ()>("Logout", &()).await?;
             println!("logged out");
+        }
+        AuthCommand::ProvisionKey => {
+            let status: String = proxy.call("GetAuthenticationStatus", &()).await?;
+            let status: serde_json::Value = serde_json::from_str(&status)?;
+            let Some(account_pubkey) = status["pubkey"].as_str().map(str::to_owned) else {
+                println!("no active account — run `astraea-service auth login` first");
+                return Ok(());
+            };
+
+            eprintln!("Paste the calendar signing key (nsec or hex), then Enter.");
+            eprintln!("It is stored only in the Secret Service keyring.");
+            let mut line = String::new();
+            std::io::stdin().read_line(&mut line)?;
+            let trimmed = line.trim();
+            let keys = match nostr::Keys::parse(trimmed) {
+                Ok(keys) => keys,
+                Err(_) => {
+                    println!("that is not a valid nsec/hex private key");
+                    return Ok(());
+                }
+            };
+            if keys.public_key().to_hex() != account_pubkey {
+                println!(
+                    "this key does not belong to the active account — the events it \
+                     signs would be invisible to your other devices. Log in with the \
+                     matching identity first."
+                );
+                return Ok(());
+            }
+
+            let secrets = account::secrets::SecretStore;
+            secrets
+                .set_delegated_key(&account_pubkey, &keys.secret_key().to_secret_hex())
+                .await?;
+            proxy
+                .call::<_, _, ()>("SetSigner", &("local_delegated",))
+                .await?;
+            println!("signing key stored in the keyring; background signing enabled");
         }
     }
     Ok(())

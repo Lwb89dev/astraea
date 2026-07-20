@@ -413,6 +413,111 @@ impl Store {
     pub fn pending_operations(&self) -> Result<i64, StoreError> {
         self.with_conn(|conn| Ok(conn.query_row("SELECT COUNT(*) FROM sync_queue", [], |r| r.get(0))?))
     }
+
+    // ------------------------------------------------------------------
+    // Accounts (identity metadata only — pubkeys are public; secrets live
+    // exclusively in the Secret Service, never in this database)
+    // ------------------------------------------------------------------
+
+    /// Inserts (or refreshes) an account and makes it the active one.
+    pub fn activate_account(&self, pubkey: &str, npub: &str, signer: &str) -> Result<String, StoreError> {
+        self.with_conn(|conn| {
+            let now = now_ms();
+            conn.execute("UPDATE accounts SET is_active = 0", [])?;
+            conn.execute(
+                "INSERT INTO accounts (id, pubkey, npub, label, signer, is_active, created_at_ms, updated_at_ms)
+                 VALUES (?1, ?2, ?3, '', ?4, 1, ?5, ?5)
+                 ON CONFLICT(pubkey) DO UPDATE SET
+                     is_active = 1, signer = excluded.signer, npub = excluded.npub,
+                     updated_at_ms = excluded.updated_at_ms",
+                params![Uuid::new_v4().to_string(), pubkey, npub, signer, now],
+            )?;
+            let id: String =
+                conn.query_row("SELECT id FROM accounts WHERE pubkey = ?1", [pubkey], |r| r.get(0))?;
+            Ok(id)
+        })
+    }
+
+    pub fn active_account(&self) -> Result<Option<Account>, StoreError> {
+        self.with_conn(|conn| {
+            Ok(conn
+                .query_row(
+                    "SELECT id, pubkey, npub, label, signer FROM accounts WHERE is_active = 1",
+                    [],
+                    account_from_row,
+                )
+                .optional()?)
+        })
+    }
+
+    pub fn accounts(&self) -> Result<Vec<Account>, StoreError> {
+        self.with_conn(|conn| {
+            let mut stmt = conn.prepare(
+                "SELECT id, pubkey, npub, label, signer FROM accounts ORDER BY created_at_ms",
+            )?;
+            let rows = stmt.query_map([], account_from_row)?;
+            let mut out = Vec::new();
+            for row in rows {
+                out.push(row?);
+            }
+            Ok(out)
+        })
+    }
+
+    pub fn deactivate_accounts(&self) -> Result<(), StoreError> {
+        self.with_conn(|conn| {
+            conn.execute("UPDATE accounts SET is_active = 0", [])?;
+            Ok(())
+        })
+    }
+
+    pub fn set_active_account_signer(&self, signer: &str) -> Result<(), StoreError> {
+        self.with_conn(|conn| {
+            let n = conn.execute(
+                "UPDATE accounts SET signer = ?1, updated_at_ms = ?2 WHERE is_active = 1",
+                params![signer, now_ms()],
+            )?;
+            if n == 0 {
+                return Err(StoreError::NotFound("no active account".into()));
+            }
+            Ok(())
+        })
+    }
+
+    pub fn switch_account(&self, account_id: &str) -> Result<Account, StoreError> {
+        self.with_conn(|conn| {
+            let account = conn
+                .query_row(
+                    "SELECT id, pubkey, npub, label, signer FROM accounts WHERE id = ?1",
+                    [account_id],
+                    account_from_row,
+                )
+                .optional()?
+                .ok_or_else(|| StoreError::NotFound(format!("account {account_id}")))?;
+            conn.execute("UPDATE accounts SET is_active = 0", [])?;
+            conn.execute("UPDATE accounts SET is_active = 1 WHERE id = ?1", [account_id])?;
+            Ok(account)
+        })
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Account {
+    pub id: String,
+    pub pubkey: String,
+    pub npub: String,
+    pub label: String,
+    pub signer: String,
+}
+
+fn account_from_row(row: &Row<'_>) -> rusqlite::Result<Account> {
+    Ok(Account {
+        id: row.get(0)?,
+        pubkey: row.get(1)?,
+        npub: row.get(2)?,
+        label: row.get(3)?,
+        signer: row.get(4)?,
+    })
 }
 
 // Column list shared by every event SELECT so row mapping stays in one place.

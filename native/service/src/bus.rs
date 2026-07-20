@@ -22,6 +22,7 @@ pub const OBJECT_PATH: &str = "/com/lwb89dev/Astraea";
 /// State shared by both interfaces and the daemon loop.
 pub struct AppState {
     pub store: Arc<Store>,
+    pub account: Arc<crate::account::AccountManager>,
     pub started_at: DateTime<Utc>,
     /// Unix ms of the last client interaction, for the idle-exit policy.
     pub last_activity_ms: AtomicI64,
@@ -29,8 +30,10 @@ pub struct AppState {
 
 impl AppState {
     pub fn new(store: Arc<Store>) -> Arc<Self> {
+        let account = crate::account::AccountManager::new(store.clone());
         Arc::new(AppState {
             store,
+            account,
             started_at: Utc::now(),
             last_activity_ms: AtomicI64::new(Utc::now().timestamp_millis()),
         })
@@ -464,9 +467,21 @@ fn build_desktop_uri(view: &str, target_id: &str, date: &str) -> Result<String, 
 }
 
 // ---------------------------------------------------------------------
-// com.lwb89dev.NostrAccount1 — identity interface (ADR-004).
-// Phase 3 ships the shape; browser login lands in phase 6.
+// com.lwb89dev.NostrAccount1 — identity interface (ADR-004), backed by the
+// account module (browser login bridge + Secret Service + signers).
 // ---------------------------------------------------------------------
+
+impl From<crate::account::AccountError> for Error {
+    fn from(e: crate::account::AccountError) -> Self {
+        match e {
+            crate::account::AccountError::Store(inner) => Error::from(inner),
+            crate::account::AccountError::NoSuchSession => {
+                Error::NotFound("no such login session".into())
+            }
+            crate::account::AccountError::Login(m) => Error::Internal(m),
+        }
+    }
+}
 
 pub struct NostrAccount1 {
     pub state: Arc<AppState>,
@@ -476,42 +491,39 @@ pub struct NostrAccount1 {
 impl NostrAccount1 {
     async fn begin_browser_login(&self) -> Result<String, Error> {
         self.state.touch();
-        Err(Error::SignerUnavailable(
-            "browser login is not available yet in this build".into(),
-        ))
+        Ok(self.state.account.begin_browser_login().await?)
     }
 
-    async fn cancel_browser_login(&self, _session_id: String) -> Result<(), Error> {
+    async fn cancel_browser_login(&self, session_id: String) -> Result<(), Error> {
         self.state.touch();
-        Err(Error::NotFound("no such login session".into()))
+        Ok(self.state.account.cancel_browser_login(&session_id).await?)
     }
 
     async fn get_authentication_status(&self) -> Result<String, Error> {
         self.state.touch();
-        to_json(&serde_json::json!({
-            "schemaVersion": SCHEMA_VERSION,
-            "authenticated": false,
-            "pubkey": serde_json::Value::Null,
-            "npub": serde_json::Value::Null,
-            "signer": "none",
-            "signerState": "unavailable",
-            "readOnly": true,
-        }))
+        Ok(self.state.account.status_json().await?)
     }
 
     async fn logout(&self) -> Result<(), Error> {
         self.state.touch();
-        Ok(())
+        Ok(self.state.account.logout().await?)
     }
 
     async fn get_accounts(&self) -> Result<String, Error> {
         self.state.touch();
-        to_json(&serde_json::json!([]))
+        Ok(self.state.account.accounts_json().await?)
     }
 
     async fn switch_account(&self, account_id: String) -> Result<(), Error> {
         self.state.touch();
-        Err(Error::NotFound(format!("no such account: {account_id}")))
+        Ok(self.state.account.switch_account(&account_id).await?)
+    }
+
+    /// Switches the active account's signer mode. No secret material crosses
+    /// the bus: provisioning happens against the Secret Service directly.
+    async fn set_signer(&self, signer_name: String) -> Result<(), Error> {
+        self.state.touch();
+        Ok(self.state.account.set_signer(&signer_name).await?)
     }
 
     #[zbus(signal)]
