@@ -57,16 +57,26 @@ impl AccountManager {
 
     /// The signer backend for the active account (ReadOnly when logged out).
     pub async fn active_signer(&self) -> Result<Box<dyn signer::SignerBackend>, AccountError> {
+        Ok(match self.active_identity().await? {
+            Some((_, backend)) => backend,
+            None => Box::new(signer::ReadOnlySigner),
+        })
+    }
+
+    /// The active account's pubkey (hex) with its signer backend, or `None`
+    /// when logged out. Product-neutral: callers decide what to do with it.
+    pub async fn active_identity(
+        &self,
+    ) -> Result<Option<(String, Box<dyn signer::SignerBackend>)>, AccountError> {
         let store = self.store.clone();
         let account = tokio::task::spawn_blocking(move || store.active_account())
             .await
             .map_err(|e| AccountError::Login(e.to_string()))??;
-        Ok(match account {
-            Some(account) => {
-                signer::backend_for(&account.signer, self.secrets.clone(), &account.pubkey)
-            }
-            None => Box::new(signer::ReadOnlySigner),
-        })
+        Ok(account.map(|account| {
+            let backend =
+                signer::backend_for(&account.signer, self.secrets.clone(), &account.pubkey);
+            (account.pubkey, backend)
+        }))
     }
 
     /// Changes the active account's signer mode. The secret material itself

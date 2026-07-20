@@ -11,8 +11,27 @@ use uuid::Uuid;
 use crate::db::{self, DbError};
 use crate::model::{
     validate_event_fields, Calendar, CalendarDraft, CalendarPatch, Event, EventDraft, EventPatch,
-    Recurrence, Reminder, SyncState,
+    Recurrence, Reminder, RemotePayload, SyncState,
 };
+
+/// One pending sync operation (a `sync_queue` row).
+#[derive(Debug, Clone)]
+pub struct QueueItem {
+    pub id: i64,
+    pub event_id: String,
+    pub op: String,
+    pub attempts: i64,
+}
+
+/// A configured relay with its stored health snapshot.
+#[derive(Debug, Clone)]
+pub struct RelayRow {
+    pub url: String,
+    pub read: bool,
+    pub write: bool,
+    pub state: String,
+    pub last_ok_ms: Option<i64>,
+}
 
 #[derive(Debug, thiserror::Error)]
 pub enum StoreError {
@@ -47,7 +66,7 @@ impl Store {
         Ok(Store { conn: Mutex::new(conn), db_path: path })
     }
 
-    #[cfg(test)]
+    /// In-memory database (unit + integration tests, `db doctor` dry runs).
     pub fn open_in_memory() -> Result<Self, StoreError> {
         let conn = Connection::open_in_memory()?;
         conn.pragma_update(None, "foreign_keys", "ON")?;
@@ -412,6 +431,307 @@ impl Store {
 
     pub fn pending_operations(&self) -> Result<i64, StoreError> {
         self.with_conn(|conn| Ok(conn.query_row("SELECT COUNT(*) FROM sync_queue", [], |r| r.get(0))?))
+    }
+
+    // ------------------------------------------------------------------
+    // Sync engine surface (relays, queue, remote merge) — phase 7.
+    // The engine is the only caller; nothing here does network I/O.
+    // ------------------------------------------------------------------
+
+    pub fn relays(&self) -> Result<Vec<RelayRow>, StoreError> {
+        self.with_conn(|conn| {
+            let mut stmt = conn
+                .prepare("SELECT url, read, write, state, last_ok_ms FROM nostr_relays ORDER BY url")?;
+            let rows = stmt.query_map([], |row| {
+                Ok(RelayRow {
+                    url: row.get(0)?,
+                    read: row.get::<_, i64>(1)? != 0,
+                    write: row.get::<_, i64>(2)? != 0,
+                    state: row.get(3)?,
+                    last_ok_ms: row.get(4)?,
+                })
+            })?;
+            let mut out = Vec::new();
+            for row in rows {
+                out.push(row?);
+            }
+            Ok(out)
+        })
+    }
+
+    /// Replaces the configured relay set, preserving health data for URLs
+    /// that stay. Validation happens at the D-Bus boundary.
+    pub fn set_relays(&self, urls: &[String]) -> Result<(), StoreError> {
+        self.with_conn(|conn| {
+            if urls.is_empty() {
+                conn.execute("DELETE FROM nostr_relays", [])?;
+                return Ok(());
+            }
+            let placeholders: Vec<String> = (0..urls.len()).map(|i| format!("?{}", i + 1)).collect();
+            conn.execute(
+                &format!("DELETE FROM nostr_relays WHERE url NOT IN ({})", placeholders.join(",")),
+                rusqlite::params_from_iter(urls.iter()),
+            )?;
+            for url in urls {
+                conn.execute(
+                    "INSERT INTO nostr_relays (url) VALUES (?1) ON CONFLICT(url) DO NOTHING",
+                    [url],
+                )?;
+            }
+            Ok(())
+        })
+    }
+
+    pub fn update_relay_health(&self, url: &str, connected: bool) -> Result<(), StoreError> {
+        self.with_conn(|conn| {
+            if connected {
+                conn.execute(
+                    "UPDATE nostr_relays SET state = 'connected', last_ok_ms = ?2 WHERE url = ?1",
+                    params![url, now_ms()],
+                )?;
+            } else {
+                conn.execute(
+                    "UPDATE nostr_relays SET state = 'disconnected' WHERE url = ?1",
+                    [url],
+                )?;
+            }
+            Ok(())
+        })
+    }
+
+    /// Queue items whose backoff window has elapsed, oldest first.
+    pub fn due_queue_items(&self, limit: i64) -> Result<Vec<QueueItem>, StoreError> {
+        self.with_conn(|conn| {
+            let mut stmt = conn.prepare(
+                "SELECT id, event_id, op, attempts FROM sync_queue
+                 WHERE next_attempt_ms <= ?1 ORDER BY created_at_ms LIMIT ?2",
+            )?;
+            let rows = stmt.query_map(params![now_ms(), limit], |row| {
+                Ok(QueueItem {
+                    id: row.get(0)?,
+                    event_id: row.get(1)?,
+                    op: row.get(2)?,
+                    attempts: row.get(3)?,
+                })
+            })?;
+            let mut out = Vec::new();
+            for row in rows {
+                out.push(row?);
+            }
+            Ok(out)
+        })
+    }
+
+    pub fn queue_done(&self, item_id: i64) -> Result<(), StoreError> {
+        self.with_conn(|conn| {
+            conn.execute("DELETE FROM sync_queue WHERE id = ?1", [item_id])?;
+            Ok(())
+        })
+    }
+
+    /// Records a failed attempt: bumps the counter and schedules the retry
+    /// at `next_attempt_ms`. The item is never dropped — publishing is
+    /// idempotent and the queue must survive long offline periods.
+    pub fn queue_retry(&self, item_id: i64, next_attempt_ms: i64, error: &str) -> Result<(), StoreError> {
+        self.with_conn(|conn| {
+            conn.execute(
+                "UPDATE sync_queue SET attempts = attempts + 1, next_attempt_ms = ?2, last_error = ?3
+                 WHERE id = ?1",
+                params![item_id, next_attempt_ms, error],
+            )?;
+            Ok(())
+        })
+    }
+
+    /// Defers an item without counting an attempt (signer unavailable is a
+    /// wait-for-the-user situation, not a failure).
+    pub fn queue_defer(&self, item_id: i64, next_attempt_ms: i64, reason: &str) -> Result<(), StoreError> {
+        self.with_conn(|conn| {
+            conn.execute(
+                "UPDATE sync_queue SET next_attempt_ms = ?2, last_error = ?3 WHERE id = ?1",
+                params![item_id, next_attempt_ms, reason],
+            )?;
+            Ok(())
+        })
+    }
+
+    /// Operations that keep failing (used by the sync status `failed` count).
+    pub fn failing_operations(&self, min_attempts: i64) -> Result<i64, StoreError> {
+        self.with_conn(|conn| {
+            Ok(conn.query_row(
+                "SELECT COUNT(*) FROM sync_queue WHERE attempts >= ?1",
+                [min_attempts],
+                |r| r.get(0),
+            )?)
+        })
+    }
+
+    pub fn record_sync_failure(&self, event_id: &str, op: &str, error: &str) -> Result<(), StoreError> {
+        self.with_conn(|conn| {
+            conn.execute(
+                "INSERT INTO sync_failures (event_id, op, error, failed_at_ms) VALUES (?1, ?2, ?3, ?4)",
+                params![event_id, op, error, now_ms()],
+            )?;
+            // Bounded history: this is diagnostics, not an audit log.
+            conn.execute(
+                "DELETE FROM sync_failures WHERE id NOT IN
+                     (SELECT id FROM sync_failures ORDER BY id DESC LIMIT 500)",
+                [],
+            )?;
+            Ok(())
+        })
+    }
+
+    pub fn set_event_sync_state(&self, event_id: &str, state: SyncState) -> Result<(), StoreError> {
+        self.with_conn(|conn| {
+            let n = conn.execute(
+                "UPDATE events SET sync_state = ?2 WHERE id = ?1",
+                params![event_id, state.as_str()],
+            )?;
+            if n == 0 {
+                return Err(StoreError::NotFound(format!("event {event_id}")));
+            }
+            Ok(())
+        })
+    }
+
+    /// Marks a queue op as accepted by every relay: records the concrete
+    /// Nostr event id and flips the state to synced / deleted_synced.
+    pub fn mark_event_published(
+        &self,
+        event_id: &str,
+        nostr_event_id: &str,
+        owner_pubkey: &str,
+        deleted: bool,
+    ) -> Result<(), StoreError> {
+        let state = if deleted { SyncState::DeletedSynced } else { SyncState::Synced };
+        self.with_conn(|conn| {
+            let n = conn.execute(
+                "UPDATE events SET nostr_event_id = ?2, owner_pubkey = ?3, remote_revision = ?2,
+                     sync_state = ?4
+                 WHERE id = ?1",
+                params![event_id, nostr_event_id, owner_pubkey, state.as_str()],
+            )?;
+            if n == 0 {
+                return Err(StoreError::NotFound(format!("event {event_id}")));
+            }
+            Ok(())
+        })
+    }
+
+    /// Last-write-wins merge of one pulled payload (docs/nostr-sync.md):
+    /// strictly-newer `updatedAt` wins, ties keep local. Returns the event id
+    /// when the local database changed.
+    pub fn merge_remote_event(
+        &self,
+        payload: &RemotePayload,
+        remote_concrete_id: &str,
+        owner_pubkey: &str,
+    ) -> Result<Option<String>, StoreError> {
+        self.with_conn(|conn| {
+            let local = conn
+                .query_row(
+                    &format!("SELECT {EVENT_COLS} FROM events WHERE id = ?1"),
+                    [&payload.id],
+                    event_from_row,
+                )
+                .optional()?;
+
+            let calendar_exists = |id: &str| -> Result<bool, StoreError> {
+                let n: i64 = conn.query_row(
+                    "SELECT COUNT(*) FROM calendars WHERE id = ?1 AND deleted = 0",
+                    [id],
+                    |r| r.get(0),
+                )?;
+                Ok(n > 0)
+            };
+
+            match local {
+                None => {
+                    // Unknown event: adopt it (tombstones included — the
+                    // contract says readers keep them and hide them).
+                    let calendar_id = match &payload.calendar_id {
+                        Some(id) if calendar_exists(id)? => id.clone(),
+                        _ => "default".to_owned(),
+                    };
+                    let event = Event {
+                        id: payload.id.clone(),
+                        calendar_id,
+                        nostr_event_id: Some(remote_concrete_id.to_owned()),
+                        owner_pubkey: Some(owner_pubkey.to_owned()),
+                        title: payload.title.clone(),
+                        description: payload.description.clone(),
+                        location: payload.location.clone(),
+                        url: payload.url.clone(),
+                        start: payload.start,
+                        end: payload.end,
+                        timezone: payload.timezone.clone(),
+                        all_day: payload.all_day,
+                        recurrence: payload.recurrence,
+                        recurrence_end: payload.recurrence_end,
+                        reminders: payload.reminders.clone(),
+                        status: "confirmed".to_owned(),
+                        visibility: "private".to_owned(),
+                        color: payload.color.clone(),
+                        created_at: payload.created_at,
+                        updated_at: payload.updated_at,
+                        deleted_at: payload.deleted.then_some(payload.updated_at),
+                        local_revision: 1,
+                        remote_revision: Some(remote_concrete_id.to_owned()),
+                        sync_state: if payload.deleted {
+                            SyncState::DeletedSynced
+                        } else {
+                            SyncState::Synced
+                        },
+                        source_device: None,
+                        metadata: serde_json::Map::new(),
+                    };
+                    insert_event_row(conn, &event)?;
+                    Ok(Some(event.id))
+                }
+                Some(mut event) => {
+                    if payload.updated_at <= event.updated_at {
+                        // Local wins (or tie): nothing changes; a pending
+                        // local publish will replace the remote version.
+                        return Ok(None);
+                    }
+                    // Remote wins: local pending ops for this event are stale.
+                    conn.execute("DELETE FROM sync_queue WHERE event_id = ?1", [&event.id])?;
+                    if let Some(id) = &payload.calendar_id {
+                        if calendar_exists(id)? {
+                            event.calendar_id = id.clone();
+                        }
+                    }
+                    // Payloads without calendarId keep the local assignment
+                    // (ADR-005: membership is local-first).
+                    event.title = payload.title.clone();
+                    event.description = payload.description.clone();
+                    event.location = payload.location.clone();
+                    event.url = payload.url.clone().or(event.url);
+                    event.start = payload.start;
+                    event.end = payload.end;
+                    event.timezone = payload.timezone.clone();
+                    event.all_day = payload.all_day;
+                    event.recurrence = payload.recurrence;
+                    event.recurrence_end = payload.recurrence_end;
+                    event.reminders = payload.reminders.clone();
+                    event.color = payload.color.clone();
+                    event.updated_at = payload.updated_at;
+                    event.deleted_at = payload.deleted.then_some(payload.updated_at);
+                    event.local_revision += 1;
+                    event.remote_revision = Some(remote_concrete_id.to_owned());
+                    event.nostr_event_id = Some(remote_concrete_id.to_owned());
+                    event.owner_pubkey = Some(owner_pubkey.to_owned());
+                    event.sync_state = if payload.deleted {
+                        SyncState::DeletedSynced
+                    } else {
+                        SyncState::Synced
+                    };
+                    update_event_row(conn, &event)?;
+                    Ok(Some(event.id))
+                }
+            }
+        })
     }
 
     // ------------------------------------------------------------------

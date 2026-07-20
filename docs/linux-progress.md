@@ -112,10 +112,29 @@ Risks identified:
   stays reserved for future remote-signer sessions); a hardware signer is a
   documented future backend, not a stub enum variant.
 
-## Phase 7 — Nostr sync in the service
+## Phase 7 — Nostr sync in the service ✅
 
-- [ ] nostr-sdk relay pool, offline queue, retry/backoff, LWW merge
-- [ ] Wire-compat fixtures vs. Dart implementation
+- [x] `sync/` module: wire codec for the kind-30078 contract, relay
+      transport trait over the `nostr-sdk` pool, engine with pull → LWW
+      merge → push (tombstone + NIP-09 double deletion, all-relays
+      acceptance rule, exponential backoff capped at 1 h, parked
+      `pending_signature` ops that never burn attempts)
+- [x] Incremental pull cursor (`sync.cursor_s`, 1 h skew overlap);
+      SignerBackend extended with NIP-44 self-encrypt/decrypt (the engine
+      never touches key material)
+- [x] D-Bus: real `SyncNow` (operation id), live `GetSyncStatus` +
+      `SyncStatusChanged`, relay validation in `UpdateSettings`
+      (wss-only, no credentials/fragment, persisted to `nostr_relays`),
+      `GetServiceStatus` reports network/auth; mutations nudge the engine
+- [x] Wire-compat fixtures shared with Dart
+      (`test/fixtures/wire_payloads.json` asserted by BOTH
+      `test/wire_compat_test.dart` and
+      `native/service/tests/wire_compat.rs`); Rust now also passes the
+      official NIP-44 vectors used by `test/nip44_test.dart`
+- Verified: 46 Rust tests green (9 engine integration tests over a fake
+  relay: publish, tombstone+NIP-09, partial acceptance, offline recovery,
+  LWW pull, junk/foreign-event screening), flutter analyze clean,
+  84 Dart tests green.
 
 ## Phase 8 — Packaging
 

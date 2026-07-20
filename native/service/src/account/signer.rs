@@ -52,6 +52,20 @@ pub trait SignerBackend: Send + Sync {
     fn is_interactive_only(&self) -> bool;
 
     async fn sign_event(&self, unsigned: UnsignedEvent) -> Result<Event, SignerError>;
+
+    /// NIP-44 v2 self-encryption (sender = recipient = the account key).
+    /// Backends without key material report `Unavailable` — the caller
+    /// parks the operation, exactly like an unavailable signature.
+    async fn nip44_self_encrypt(&self, plaintext: &str) -> Result<String, SignerError>;
+
+    async fn nip44_self_decrypt(&self, ciphertext: &str) -> Result<String, SignerError>;
+}
+
+/// Shared "no key material here" answer for interactive-only backends.
+fn nip44_unavailable() -> SignerError {
+    SignerError::Unavailable(
+        "this signer holds no key material for NIP-44; use a delegated or remote signer".into(),
+    )
 }
 
 /// Consultation only: every signature request parks the operation.
@@ -71,6 +85,14 @@ impl SignerBackend for ReadOnlySigner {
         Err(SignerError::Unavailable(
             "read-only session: connect a signer to publish changes".into(),
         ))
+    }
+
+    async fn nip44_self_encrypt(&self, _plaintext: &str) -> Result<String, SignerError> {
+        Err(nip44_unavailable())
+    }
+
+    async fn nip44_self_decrypt(&self, _ciphertext: &str) -> Result<String, SignerError> {
+        Err(nip44_unavailable())
     }
 }
 
@@ -97,6 +119,16 @@ impl SignerBackend for BrowserNip07Signer {
                 .into(),
         ))
     }
+
+    // `window.nostr.nip44` exists, but only inside an interactive browser
+    // page — the background sync path cannot reach it.
+    async fn nip44_self_encrypt(&self, _plaintext: &str) -> Result<String, SignerError> {
+        Err(nip44_unavailable())
+    }
+
+    async fn nip44_self_decrypt(&self, _ciphertext: &str) -> Result<String, SignerError> {
+        Err(nip44_unavailable())
+    }
 }
 
 /// NIP-46 (Nostr Connect / bunker) — the right choice for continuous
@@ -117,6 +149,18 @@ impl SignerBackend for RemoteSigner {
     }
 
     async fn sign_event(&self, _unsigned: UnsignedEvent) -> Result<Event, SignerError> {
+        Err(SignerError::Unavailable(
+            "remote signer (NIP-46) is not configured in this build".into(),
+        ))
+    }
+
+    async fn nip44_self_encrypt(&self, _plaintext: &str) -> Result<String, SignerError> {
+        Err(SignerError::Unavailable(
+            "remote signer (NIP-46) is not configured in this build".into(),
+        ))
+    }
+
+    async fn nip44_self_decrypt(&self, _ciphertext: &str) -> Result<String, SignerError> {
         Err(SignerError::Unavailable(
             "remote signer (NIP-46) is not configured in this build".into(),
         ))
@@ -164,6 +208,23 @@ impl SignerBackend for LocalDelegatedSigner {
         let keys = self.keys().await?;
         unsigned
             .sign_with_keys(&keys)
+            .map_err(|e| SignerError::Failed(e.to_string()))
+    }
+
+    async fn nip44_self_encrypt(&self, plaintext: &str) -> Result<String, SignerError> {
+        let keys = self.keys().await?;
+        nostr::nips::nip44::encrypt(
+            keys.secret_key(),
+            &keys.public_key(),
+            plaintext,
+            nostr::nips::nip44::Version::V2,
+        )
+        .map_err(|e| SignerError::Failed(e.to_string()))
+    }
+
+    async fn nip44_self_decrypt(&self, ciphertext: &str) -> Result<String, SignerError> {
+        let keys = self.keys().await?;
+        nostr::nips::nip44::decrypt(keys.secret_key(), &keys.public_key(), ciphertext)
             .map_err(|e| SignerError::Failed(e.to_string()))
     }
 }

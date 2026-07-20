@@ -50,7 +50,7 @@ and
 | `UpdateCalendar` | `(s calendarId, s patchJson) → (s json)` | |
 | `DeleteCalendar` | `(s calendarId) → ()` | events move to default calendar |
 | `SyncNow` | `() → (s operationId)` | async; completion via `SyncStatusChanged` |
-| `GetSyncStatus` | `() → (s json)` | `{state, lastSyncAt, pending, failed, relays:[{url,state}]}` |
+| `GetSyncStatus` | `() → (s json)` | `{state, operationId, lastSyncAt, pending, failed, networkStatus, lastError, relays:[{url,state,lastOkAt}]}` |
 | `OpenDesktop` | `(s view, s targetId, s date) → ()` | launches/raises the Flutter app via `astraea://` |
 | `GetSettings` | `() → (s json)` | relays, timezone, notifications, … |
 | `UpdateSettings` | `(s patchJson) → (s json)` | |
