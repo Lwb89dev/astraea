@@ -72,3 +72,11 @@ fi
 pkgroot="$here/dist/deb/astraea-gnome-shell-extension"
 copy_tree "$pkgroot" usr/share/gnome-shell
 build_pkg astraea-gnome-shell-extension control-gnome-extension all
+
+# astraea-all — empty convenience metapackage (Depends only, no files) ---
+if [ -d "$stage/usr/lib/astraea" ]; then
+    mkdir -p "$here/dist/deb/astraea-all/DEBIAN"
+    build_pkg astraea-all control-all all
+else
+    echo "skipping astraea-all (no astraea-desktop staged to depend on)"
+fi
