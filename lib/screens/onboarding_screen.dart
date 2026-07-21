@@ -332,14 +332,23 @@ class _RelaySetupPageState extends ConsumerState<_RelaySetupPage> {
   }
 
   Future<void> _addRelay(AppSettings settings, String rawUrl) async {
-    final url = normalizeSecureRelayUrl(rawUrl);
+    final url = normalizeRelayUrl(rawUrl);
     if (url == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Enter a valid encrypted wss:// relay URL.'),
+          content: Text('Enter a valid wss:// (or ws:// for a private relay) URL.'),
         ),
       );
       return;
+    }
+    if (isInsecureRelayUrl(url) && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'ws:// is unencrypted in transit — only use it for a relay you trust.',
+          ),
+        ),
+      );
     }
     if (settings.relays.contains(url)) {
       _urlController.clear();

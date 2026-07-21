@@ -112,7 +112,12 @@ Local hard-delete of a tombstone is only allowed once it is synced
 - An event counts as synced only when **every configured relay** accepted
   it (OK with `true`). Partial acceptance leaves it pending; republish is
   idempotent (same id for same fields).
-- Relay URLs must be `wss://`, no userinfo, no fragment, ≤ 2048 chars.
+- Relay URLs must be `wss://` (recommended) or `ws://`, no userinfo, no
+  fragment, ≤ 2048 chars. `ws://` exists for personal/self-hosted relays
+  without a TLS certificate (home LAN, `127.0.0.1`); event content stays
+  NIP-44 encrypted regardless, but plaintext transport exposes protocol
+  metadata (pubkey, timing, sizes) to the local network — clients should
+  warn on `ws://`, never reject it outright (docs/threat-model.md).
 - Bounds while fetching: ignore events with `content` > 90 000 chars; stop
   collecting past 5 000 events per REQ.
 

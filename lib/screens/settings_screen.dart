@@ -10,6 +10,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:url_launcher/url_launcher.dart';
 
+import '../desktop/desktop_settings_sections_stub.dart'
+    if (dart.library.io) '../desktop/desktop_settings_sections.dart'
+    as desktop_settings;
 import '../models/app_settings.dart';
 import '../models/user_model.dart';
 import '../providers/auth_provider.dart';
@@ -56,11 +59,13 @@ class SettingsScreen extends ConsumerWidget {
         data: (settings) => ListView(
           children: [
             const _SectionHeader('Account'),
-            const _AccountSection(),
+            desktop_settings.desktopAccountSection() ?? const _AccountSection(),
             const _SectionHeader('Sync'),
-            _SyncSection(settings: settings),
+            desktop_settings.desktopSyncSection() ??
+                _SyncSection(settings: settings),
             const _SectionHeader('Relays'),
-            _RelaySection(settings: settings),
+            desktop_settings.desktopRelaySection() ??
+                _RelaySection(settings: settings),
             const _SectionHeader('Appearance'),
             const _AppearanceSection(),
             const _SectionHeader('Data'),
@@ -392,6 +397,7 @@ class _RelaySection extends ConsumerWidget {
                   if (context.mounted) _showInvalidRelay(context);
                   return;
                 }
+                if (context.mounted) _warnIfInsecure(context, url);
                 if (settings.relays.contains(url)) return;
                 await _save(
                   ref,
@@ -452,6 +458,7 @@ class _RelaySection extends ConsumerWidget {
               if (context.mounted) _showInvalidRelay(context);
               return;
             }
+            if (context.mounted) _warnIfInsecure(context, url);
             await _save(ref, settings.copyWith(homeRelayUrl: url));
           },
         ),
@@ -462,18 +469,27 @@ class _RelaySection extends ConsumerWidget {
   Future<void> _save(WidgetRef ref, AppSettings updated) =>
       ref.read(settingsProvider.notifier).save(updated);
 
-  /// Accepts only `wss://` URLs (returned normalized), null otherwise.
-  ///
-  /// Plain `ws://` is rejected outright rather than warned about: Dart's
-  /// sockets are not governed by Android's cleartext-traffic policy, so a
-  /// typo'd `ws://` relay would silently move the (encrypted) events and the
-  /// user's IP/pubkey metadata over cleartext with no system pushback.
-  String? _validRelayUrl(String input) => normalizeSecureRelayUrl(input);
+  /// Accepts `wss://` (recommended) or `ws://` URLs (returned normalized),
+  /// null otherwise. `ws://` is allowed — self-hosted/personal relays often
+  /// have no TLS certificate — but flagged via [_warnIfInsecure]; event
+  /// content stays end-to-end encrypted regardless of transport.
+  String? _validRelayUrl(String input) => normalizeRelayUrl(input);
 
   void _showInvalidRelay(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Only encrypted wss:// relay URLs are supported.'),
+        content: Text('Enter a valid wss:// (or ws:// for a private relay) URL.'),
+      ),
+    );
+  }
+
+  void _warnIfInsecure(BuildContext context, String url) {
+    if (!isInsecureRelayUrl(url)) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'ws:// is unencrypted in transit — only use it for a relay you trust.',
+        ),
       ),
     );
   }

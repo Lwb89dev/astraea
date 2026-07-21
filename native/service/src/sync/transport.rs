@@ -7,8 +7,16 @@ use std::time::Duration;
 use async_trait::async_trait;
 use nostr::{Event, Filter};
 
-/// Relay URL rules from the wire contract: `wss://`, no userinfo, no
-/// fragment, at most this many characters.
+/// Relay URL rules from the wire contract: `wss://` or `ws://`, no userinfo,
+/// no fragment, at most this many characters.
+///
+/// `ws://` is accepted for personal/self-hosted relays that have no TLS
+/// certificate (e.g. a home server on the LAN). It is not rejected or
+/// silently upgraded: event content stays NIP-44 encrypted end-to-end
+/// regardless of transport, so plaintext transport only exposes protocol
+/// metadata (pubkey, timing, sizes) to the local network — the same class of
+/// exposure a malicious relay already has. Callers (D-Bus settings, CLI)
+/// should surface the trade-off to the user rather than hide it.
 pub const MAX_RELAY_URL_CHARS: usize = 2048;
 
 pub fn validate_relay_url(url: &str) -> Result<(), String> {
@@ -16,8 +24,8 @@ pub fn validate_relay_url(url: &str) -> Result<(), String> {
         return Err("relay URL too long".into());
     }
     let parsed = url::Url::parse(url).map_err(|e| format!("invalid relay URL: {e}"))?;
-    if parsed.scheme() != "wss" {
-        return Err("relay URLs must use wss://".into());
+    if parsed.scheme() != "wss" && parsed.scheme() != "ws" {
+        return Err("relay URLs must use wss:// (or ws:// for a private relay)".into());
     }
     if !parsed.username().is_empty() || parsed.password().is_some() {
         return Err("relay URLs must not carry credentials".into());
@@ -149,9 +157,11 @@ mod tests {
     #[test]
     fn relay_url_validation_enforces_the_contract() {
         assert!(validate_relay_url("wss://relay.damus.io").is_ok());
-        assert!(validate_relay_url("ws://relay.damus.io").is_err());
+        // ws:// is allowed for personal relays without TLS (docs/threat-model.md).
+        assert!(validate_relay_url("ws://192.168.1.10:7777").is_ok());
         assert!(validate_relay_url("https://relay.damus.io").is_err());
         assert!(validate_relay_url("wss://user:pw@relay.damus.io").is_err());
+        assert!(validate_relay_url("ws://user:pw@192.168.1.10:7777").is_err());
         assert!(validate_relay_url("wss://relay.damus.io/#frag").is_err());
         let long = format!("wss://x.io/{}", "a".repeat(2100));
         assert!(validate_relay_url(&long).is_err());
