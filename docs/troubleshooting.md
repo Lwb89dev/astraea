@@ -24,12 +24,21 @@ astraea-service doctor        # suggests fixes, changes nothing
 
 ## Login never completes
 
+Start it from the desktop app (Settings → Account → Sign in) or the CLI
+(`astraea-service auth login`) — both open the same browser bridge.
+
 - The browser must have a NIP-07 extension (Alby, nos2x, …); the login
   page says so explicitly if `window.nostr` is missing.
-- The session expires after 5 minutes — run `astraea-service auth login`
-  again.
+- The session expires after 5 minutes; the app's waiting dialog says so and
+  lets you retry, or run `astraea-service auth login` again.
 - Corporate browsers that block loopback HTTP will break the flow; check
-  the printed `http://127.0.0.1:<port>/login?...` opens at all.
+  the printed `http://127.0.0.1:<port>/login?...` opens at all (the app's
+  dialog has an "Open again" button for this).
+- Signed in but sync stays parked (`pending_signature`)? Browser login only
+  proves identity — background signing needs a delegated key:
+  `astraea-service auth provision-key` (never through the GUI or D-Bus —
+  the key is typed once into a terminal and stored only in the Secret
+  Service, docs/authentication.md).
 
 ## Events stay "pending"
 

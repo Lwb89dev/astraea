@@ -38,22 +38,33 @@ final desktopExportDecryptorProvider = Provider<DesktopExportDecryptor>(
   DesktopExportDecryptor.new,
 );
 
-/// Health of the background service, refreshed on a slow timer and exposed to
+/// Health of the background service, refreshed on a slow timer (fallback)
+/// and immediately on the signals that actually change it, and exposed to
 /// the desktop shell's status bar. [ServiceUnavailableException] surfaces as
 /// an error state the shell renders with recovery actions.
 class ServiceStatusNotifier extends AsyncNotifier<Map<String, dynamic>> {
   Timer? _timer;
+  List<StreamSubscription<void>>? _signals;
 
   @override
   Future<Map<String, dynamic>> build() async {
+    final client = ref.watch(dbusCalendarClientProvider);
     _timer ??= Timer.periodic(const Duration(seconds: 60), (_) {
       ref.invalidateSelf();
     });
+    _signals ??= [
+      client.authenticationChanged().listen((_) => ref.invalidateSelf()),
+      client.syncStatusChanged().listen((_) => ref.invalidateSelf()),
+    ];
     ref.onDispose(() {
       _timer?.cancel();
       _timer = null;
+      for (final sub in _signals ?? const <StreamSubscription<void>>[]) {
+        sub.cancel();
+      }
+      _signals = null;
     });
-    return ref.watch(dbusCalendarClientProvider).getServiceStatus();
+    return client.getServiceStatus();
   }
 
   Future<void> retry() async {
@@ -61,6 +72,92 @@ class ServiceStatusNotifier extends AsyncNotifier<Map<String, dynamic>> {
     await future;
   }
 }
+
+/// Live authentication status (`com.lwb89dev.NostrAccount1`), refreshed on
+/// `AuthenticationChanged` — the browser login bridge completes
+/// asynchronously (outside any D-Bus call), so polling would be laggy or
+/// wasteful; the signal is the correct source of truth.
+class DesktopAuthStatusNotifier extends AsyncNotifier<Map<String, dynamic>> {
+  StreamSubscription<void>? _signal;
+
+  @override
+  Future<Map<String, dynamic>> build() async {
+    final client = ref.watch(dbusCalendarClientProvider);
+    _signal ??= client.authenticationChanged().listen(
+      (_) => ref.invalidateSelf(),
+    );
+    ref.onDispose(() {
+      _signal?.cancel();
+      _signal = null;
+    });
+    return client.getAuthenticationStatus();
+  }
+}
+
+final desktopAuthStatusProvider =
+    AsyncNotifierProvider<DesktopAuthStatusNotifier, Map<String, dynamic>>(
+      DesktopAuthStatusNotifier.new,
+    );
+
+/// Live sync status (`GetSyncStatus`/`SyncStatusChanged`) — state, pending/
+/// failed counts, network status and per-relay health.
+class DesktopSyncStatusNotifier extends AsyncNotifier<Map<String, dynamic>> {
+  StreamSubscription<void>? _signal;
+
+  @override
+  Future<Map<String, dynamic>> build() async {
+    final client = ref.watch(dbusCalendarClientProvider);
+    _signal ??= client.syncStatusChanged().listen(
+      (_) => ref.invalidateSelf(),
+    );
+    ref.onDispose(() {
+      _signal?.cancel();
+      _signal = null;
+    });
+    return client.getSyncStatus();
+  }
+}
+
+final desktopSyncStatusProvider =
+    AsyncNotifierProvider<DesktopSyncStatusNotifier, Map<String, dynamic>>(
+      DesktopSyncStatusNotifier.new,
+    );
+
+/// The service-side relay list (`GetSettings`/`UpdateSettings`), refreshed on
+/// `SettingsChanged` so a change from the CLI or another frontend is
+/// reflected here too. This is the desktop's *only* relay configuration —
+/// unlike mobile, Linux never keeps relay/identity state in the Flutter
+/// process (ADR-004/006): it always belongs to astraea-service.
+class DesktopRelaysNotifier extends AsyncNotifier<List<String>> {
+  StreamSubscription<void>? _signal;
+
+  @override
+  Future<List<String>> build() async {
+    final client = ref.watch(dbusCalendarClientProvider);
+    _signal ??= client.settingsChanged().listen((_) => ref.invalidateSelf());
+    ref.onDispose(() {
+      _signal?.cancel();
+      _signal = null;
+    });
+    final settings = await client.getSettings();
+    final relays = settings['relays'];
+    if (relays is! List) return const [];
+    return relays.whereType<String>().toList(growable: false);
+  }
+
+  Future<void> save(List<String> relays) async {
+    await ref.read(dbusCalendarClientProvider).updateSettings({
+      'relays': relays,
+    });
+    ref.invalidateSelf();
+    await future;
+  }
+}
+
+final desktopRelaysProvider =
+    AsyncNotifierProvider<DesktopRelaysNotifier, List<String>>(
+      DesktopRelaysNotifier.new,
+    );
 
 final serviceStatusProvider =
     AsyncNotifierProvider<ServiceStatusNotifier, Map<String, dynamic>>(

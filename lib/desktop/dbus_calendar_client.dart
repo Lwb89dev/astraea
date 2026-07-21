@@ -109,9 +109,32 @@ class DbusCalendarClient {
 
   Future<String> syncNow() => _callString(calendarInterface, 'SyncNow', []);
 
+  Future<Map<String, dynamic>> getSettings() async {
+    final raw = await _callString(calendarInterface, 'GetSettings', []);
+    return Map<String, dynamic>.from(jsonDecode(raw) as Map);
+  }
+
+  /// Merge-patches settings (only present keys change; `null` clears a key).
+  /// Used for the relay list — the service validates and persists it, then
+  /// nudges the sync engine.
+  Future<Map<String, dynamic>> updateSettings(
+    Map<String, dynamic> patch,
+  ) async {
+    final raw = await _callString(calendarInterface, 'UpdateSettings', [
+      DBusString(jsonEncode(patch)),
+    ]);
+    return Map<String, dynamic>.from(jsonDecode(raw) as Map);
+  }
+
   Future<Map<String, dynamic>> beginBrowserLogin() async {
     final raw = await _callString(accountInterface, 'BeginBrowserLogin', []);
     return Map<String, dynamic>.from(jsonDecode(raw) as Map);
+  }
+
+  Future<void> cancelBrowserLogin(String sessionId) async {
+    await _call(accountInterface, 'CancelBrowserLogin', [
+      DBusString(sessionId),
+    ], null);
   }
 
   Future<void> logout() async {
@@ -166,6 +189,33 @@ class DbusCalendarClient {
         return const <String, dynamic>{};
       }
     });
+  }
+
+  Stream<Map<String, dynamic>> syncStatusChanged() {
+    return DBusSignalStream(
+      _bus,
+      sender: busName,
+      interface: calendarInterface,
+      name: 'SyncStatusChanged',
+      path: DBusObjectPath(objectPath),
+    ).map((signal) {
+      try {
+        final raw = (signal.values.first as DBusString).value;
+        return Map<String, dynamic>.from(jsonDecode(raw) as Map);
+      } catch (_) {
+        return const <String, dynamic>{};
+      }
+    });
+  }
+
+  Stream<void> settingsChanged() {
+    return DBusSignalStream(
+      _bus,
+      sender: busName,
+      interface: calendarInterface,
+      name: 'SettingsChanged',
+      path: DBusObjectPath(objectPath),
+    ).map((_) {});
   }
 
   // -------------------------------------------------------------------

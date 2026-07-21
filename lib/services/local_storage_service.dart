@@ -346,7 +346,7 @@ class LocalStorageService {
       final relays = <String>{};
       for (final value in decoded) {
         if (value is! String) continue;
-        final normalized = normalizeSecureRelayUrl(value);
+        final normalized = normalizeRelayUrl(value);
         if (normalized != null) relays.add(normalized);
       }
       return relays.toList(growable: false);

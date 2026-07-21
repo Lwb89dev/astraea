@@ -61,7 +61,7 @@ process in the session can call the API. Consequences, by design:
 | Malicious or compromised relay | Events are NIP-44 self-encrypted (confidentiality) and Schnorr-signed (integrity); pulls verify NIP-01 id + signature + `pubkey == account` before decrypting. A relay can withhold or replay old versions — LWW on `updatedAt` makes replays inert (strictly-newer wins). |
 | Manipulated event (bit-flips, forged payloads) | Signature verification rejects; undecryptable/unparseable payloads are skipped, never crash sync (fixture-tested). |
 | Relay flooding / oversized events | Pull bounds: content ≤ 90 000 chars, ≤ 5 000 events per REQ; publish requires acceptance by every configured relay before local state flips to synced. |
-| Downgrade / stripping TLS | Relay URLs must be `wss://` (validated at the D-Bus boundary); no cleartext fallback exists. |
+| Downgrade / stripping TLS | Relay URLs default to `wss://`; `ws://` is accepted (not silently upgraded) only as an explicit, user-initiated choice for personal/self-hosted relays without a certificate — both Dart and Rust warn inline that transport metadata is then observable on the local network. Event content is NIP-44 encrypted either way, so this is a metadata-only, opt-in trade-off, not a downgrade an attacker can trigger (validated at the D-Bus boundary; a relay cannot flip another relay's scheme). |
 | Metadata leakage to relays | Relays see: pubkey, event count, timing, sizes. Content, titles and locations are encrypted. Residual metadata risk documented; mitigations (padding, relay selection) are future work. |
 
 ### Local storage
