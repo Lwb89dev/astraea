@@ -21,7 +21,7 @@ Layout (defined once, in that script):
 
 ## Modular packages
 
-Traditional distros get three packages so a KDE user installs Astraea
+Traditional distros get three real packages so a KDE user installs Astraea
 without the GNOME extension (and a headless box can run the service alone):
 
 - **astraea-service** — everything else depends on it.
@@ -29,13 +29,31 @@ without the GNOME extension (and a headless box can run the service alone):
 - **astraea-gnome-shell-extension** — `Depends: astraea-service`,
   `Recommends: astraea-desktop`.
 
+A fourth, **astraea-all**, is an empty metapackage
+(`Depends: astraea-service, astraea-desktop`,
+`Recommends: astraea-gnome-shell-extension`) purely for one-command installs
+— see `scripts/install-debs.sh` below. It carries no files; removing it
+never removes the components it pulled in.
+
 ## Debian / Ubuntu / Pop!_OS
 
 ```sh
-./scripts/build-deb.sh          # builds stage + the three .deb into dist/
+./scripts/build-deb.sh          # builds stage + the four .deb into dist/
 ./scripts/test-packages.sh      # structural checks + lintian when present
-sudo apt install ./dist/astraea-service_*.deb ./dist/astraea-desktop_*.deb
+./scripts/install-debs.sh       # sudo apt install <all built .deb>, one call
 ```
+
+`install-debs.sh` builds (unless `--no-build`) and installs every package
+with a **single** `apt install` call. Modern APT (≥ 1.1 — every current
+Debian/Ubuntu/Pop!_OS) resolves the `Depends` between local `.deb` files
+given together in one invocation and installs them in dependency order
+regardless of the order they were listed in — so "priority: service, then
+app, then extension" is enforced by the packages' own `Depends`, not by the
+script sequencing separate installs. `--no-extension` drops the GNOME
+extension (and `astraea-all`, which recommends it) for KDE/COSMIC installs.
+Equivalent by hand: `sudo apt install ./dist/astraea-service_*.deb
+./dist/astraea-desktop_*.deb ./dist/astraea-gnome-shell-extension_*.deb
+./dist/astraea-all_*.deb`.
 
 Maintainer scripts only refresh the desktop/icon caches (guarded, `|| true`,
 headless-safe); they never touch user homes and never enable services —
