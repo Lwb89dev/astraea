@@ -164,6 +164,83 @@ is a separate concern behind `SignerBackend`:
 `LocalDelegatedSigner` (app-scoped key in Secret Service, revocable, never
 the main nsec), `ReadOnlySigner`. See docs/authentication.md.
 
+### ADR-007 — Event attendees: invite/accept/decline, not Echoes' unilateral share
+
+Requirement: a user adds a person to an event (by npub, NIP-05, or a search
+against their own contact list); that person must explicitly accept or
+decline; the inviter is notified of the outcome. Researched the sibling
+project Echoes (`/home/antona89/Documenti/vscode/echoes`) first, since its
+own docs name Astraea as *its* architectural reference and it ships the only
+existing person-to-person Nostr flow in the family. Finding: **Echoes has no
+accept/decline step** — sharing a note is a unilateral push (the recipient
+gets the full decrypted content immediately; their only lever is a
+one-way, irrevocable "leave" *after* receiving it) and there is no
+notification mechanism at all (zero notification packages). So half of this
+requirement — the actual invite/response/notify lifecycle — is new design,
+not something to port. What *is* directly reused, because it is
+security-reasoned and worth being consistent about across the ecosystem
+(ADR-004):
+
+- **Person lookup**, three paths, exactly Echoes' triad
+  (`echoes/lib/services/nostr_service.dart`,
+  `echoes/lib/screens/widgets/share_note_sheet.dart`):
+  1. npub / 64-hex pubkey — local bech32 decode, no network.
+  2. NIP-05 (`name@domain`) — `.well-known/nostr.json` over HTTPS only, no
+     redirect-follow without re-validating the target is still `https`,
+     bounded timeout and response size. Explicitly *not* proof of identity
+     (a domain operator's claim), so the picker must show a confirmation
+     step with the resolved npub before an invite is sent — same reason
+     Echoes shows one before sharing.
+  3. Own contact list (kind 3) + batched kind-0 profile fetch, filtered
+     **client-side** by name/npub substring. Deliberately no NIP-50
+     relay-wide name search or directory service: an unverified name match
+     is an impersonation risk when getting the wrong recipient means
+     leaking a calendar event to a stranger — Echoes rejected it for the
+     same reason (`echoes/lib/utils/constants.dart`), and it applies here
+     unchanged.
+- **Transport substrate**: kind 30078 (already the calendar event kind —
+  NIP-78 application data, reused for this exactly as Echoes reuses it for
+  content/edit/control alike), NIP-44 v2 encrypted **per recipient**
+  (never a shared key), addressed with a `p` tag to the recipient and a
+  **deterministic `d` tag** so a re-invite/re-response replaces its own
+  relay slot instead of accumulating: `astraea-invite:v1:<eventId>` (owner
+  → invitee) and `astraea-invite-response:v1:<eventId>` (invitee → owner).
+  Every payload carries a `_astraeaInvite` sentinel key — Echoes'
+  `_echoesControl` pattern — so the same "gather everything `p`-tagging me,
+  decrypt, verify the *signed* author, dispatch on the sentinel" ingestion
+  loop handles both the invite and its response.
+- Payload is a purpose-built subset (title/start/end/timezone/allDay/
+  location/inviter), never the full internal `Event` — no `calendarId`,
+  `localRevision` or `syncState` leaks to the invitee, mirroring
+  `Note.toShareJson()`'s discipline of stripping owner-only bookkeeping.
+
+New, because nothing to port exists:
+
+- **State machine** on `attendees` (a field the original data-model spec
+  already reserved but never implemented): each entry is
+  `{pubkey, status: invited|accepted|declined}`. An outgoing invite is just
+  an attendee row on the inviter's own event — no separate table. An
+  *incoming* invite has no local event yet, so it lives in a small
+  dedicated store (`invitations` table in the service; a Hive box on
+  mobile) until accepted (which creates the local event, calendarId chosen
+  by the invitee, `sourceDevice`/ownership local to them) or declined
+  (nothing is stored beyond a short-lived dedupe record).
+- **Notification of the outcome**: on Linux this is a real freedesktop
+  desktop notification (docs/dbus-api.md `NotificationRaised`, §18 of the
+  original brief) fired when a response event for one of the inviter's own
+  pending attendee rows arrives — something Echoes structurally cannot do
+  (mobile-only, no notification plugin at all).
+
+Unlike Echoes' ADR-E-005 (which keeps its note-sharing protocol Dart-only,
+citing the risk of a second implementation before a wire-fixture suite
+exists), Astraea already carries that risk for the *whole* calendar-sync
+wire format (ADR-001) and already has the guardrail Echoes doesn't: shared
+JSON fixtures asserted by both `test/` and `native/service/tests/`
+(docs/nostr-sync.md). The invite protocol is specified in
+docs/nostr-sync.md alongside the calendar event contract and implemented in
+both the Dart mobile engine and the Rust service under the same
+fixture-parity discipline — not deferred to one side.
+
 ## Repository layout (delta)
 
 ```
