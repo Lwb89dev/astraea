@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:uuid/uuid.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/event_model.dart';
 import '../models/reminder_model.dart';
 import '../providers/events_provider.dart';
@@ -154,6 +155,7 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
   }
 
   void _addReminder() async {
+    final l10n = AppLocalizations.of(context);
     final selected = await showModalBottomSheet<int>(
       context: context,
       builder: (_) => ListView(
@@ -161,7 +163,7 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
         children: Reminder.presetsMinutes
             .map(
               (m) => ListTile(
-                title: Text(Formatter.reminderLabel(m)),
+                title: Text(Formatter.reminderLabel(l10n, m)),
                 onTap: () => Navigator.of(context).pop(m),
               ),
             )
@@ -219,18 +221,20 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
     } catch (error) {
       if (!mounted) return;
       setState(() => _saving = false);
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not save the event: $error')),
+        SnackBar(content: Text(l10n.couldNotSaveEvent(error.toString()))),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final isEditing = widget.existing != null;
     return Scaffold(
       appBar: AppBar(
-        title: Text(isEditing ? 'Edit event' : 'New event'),
+        title: Text(isEditing ? l10n.editEventTitle : l10n.newEventTitle),
         actions: [
           TextButton(
             onPressed: _saving ? null : _save,
@@ -239,7 +243,7 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
                     dimension: 18,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text('Save'),
+                : Text(l10n.save),
           ),
         ],
       ),
@@ -249,27 +253,27 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
           TextField(
             controller: _titleController,
             textCapitalization: TextCapitalization.sentences,
-            decoration: const InputDecoration(
-              labelText: 'Title',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l10n.fieldTitle,
+              border: const OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 16),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('All day'),
+            title: Text(l10n.allDaySwitch),
             value: _isAllDay,
             onChanged: (v) => setState(() => _isAllDay = v),
           ),
           _DateTimeRow(
-            label: 'Starts',
+            label: l10n.startsLabel,
             value: _isAllDay
                 ? Formatter.dayLabel(_toUtc(_start), _timezone)
                 : _stampLocal(_start),
             onTap: () => _pickDateTime(isStart: true),
           ),
           _DateTimeRow(
-            label: 'Ends',
+            label: l10n.endsLabel,
             value: _isAllDay
                 ? Formatter.dayLabel(_toUtc(_end), _timezone)
                 : _stampLocal(_end),
@@ -278,7 +282,7 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.public),
-            title: const Text('Timezone'),
+            title: Text(l10n.timezoneLabel),
             subtitle: Text(_timezone),
             trailing: const Icon(Icons.chevron_right),
             // Picked from the IANA list, never typed: the times above are
@@ -297,15 +301,15 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
           const Divider(height: 32),
           DropdownButtonFormField<RecurrenceType>(
             initialValue: _recurrence,
-            decoration: const InputDecoration(
-              labelText: 'Repeats',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l10n.repeatsLabel,
+              border: const OutlineInputBorder(),
             ),
             items: RecurrenceType.values
                 .map(
                   (r) => DropdownMenuItem(
                     value: r,
-                    child: Text(Formatter.recurrenceLabel(r)),
+                    child: Text(Formatter.recurrenceLabel(l10n, r)),
                   ),
                 )
                 .toList(),
@@ -315,9 +319,9 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
           if (_recurrence != RecurrenceType.none) ...[
             const SizedBox(height: 8),
             _DateTimeRow(
-              label: 'Until',
+              label: l10n.untilLabel,
               value: _recurrenceEnd == null
-                  ? 'Forever'
+                  ? l10n.foreverLabel
                   : Formatter.dayLabel(_toUtc(_recurrenceEnd!), _timezone),
               onTap: _pickRecurrenceEnd,
               onClear: _recurrenceEnd == null
@@ -326,7 +330,7 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
             ),
           ],
           const Divider(height: 32),
-          Text('Reminders', style: Theme.of(context).textTheme.titleSmall),
+          Text(l10n.remindersLabel, style: Theme.of(context).textTheme.titleSmall),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -334,7 +338,7 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
             children: [
               ..._reminders.map(
                 (r) => InputChip(
-                  label: Text(Formatter.reminderLabel(r.minutesBefore)),
+                  label: Text(Formatter.reminderLabel(l10n, r.minutesBefore)),
                   onDeleted: () => setState(
                     () => _reminders = _reminders.where((x) => x != r).toList(),
                   ),
@@ -342,13 +346,13 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
               ),
               ActionChip(
                 avatar: const Icon(Icons.add, size: 18),
-                label: const Text('Add'),
+                label: Text(l10n.addChip),
                 onPressed: _addReminder,
               ),
             ],
           ),
           const Divider(height: 32),
-          Text('Color', style: Theme.of(context).textTheme.titleSmall),
+          Text(l10n.colorLabel, style: Theme.of(context).textTheme.titleSmall),
           const SizedBox(height: 8),
           Wrap(
             spacing: 12,
@@ -376,9 +380,9 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
           const SizedBox(height: 24),
           TextField(
             controller: _locationController,
-            decoration: const InputDecoration(
-              labelText: 'Location',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l10n.locationLabel,
+              border: const OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 16),
@@ -386,9 +390,9 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
             controller: _descriptionController,
             maxLines: 4,
             textCapitalization: TextCapitalization.sentences,
-            decoration: const InputDecoration(
-              labelText: 'Description',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l10n.descriptionLabel,
+              border: const OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 32),

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../l10n/app_localizations.dart';
 import '../utils/constants.dart';
 import '../utils/relay_url.dart';
 import 'desktop_providers.dart';
@@ -38,33 +39,32 @@ class _DesktopAccountSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final status = ref.watch(desktopAuthStatusProvider);
 
     return status.when(
-      loading: () => const ListTile(
-        leading: SizedBox(
+      loading: () => ListTile(
+        leading: const SizedBox(
           width: 20,
           height: 20,
           child: CircularProgressIndicator(strokeWidth: 2),
         ),
-        title: Text('Loading…'),
+        title: Text(l10n.loading),
       ),
       error: (e, _) => ListTile(
         leading: const Icon(Icons.error_outline),
-        title: Text('Could not reach astraea-service: $e'),
+        title: Text(l10n.couldNotReachService(e.toString())),
       ),
       data: (data) {
         final authenticated = data['authenticated'] == true;
         if (!authenticated) {
           return ListTile(
             leading: const Icon(Icons.person_outline),
-            title: const Text('Not signed in'),
-            subtitle: const Text(
-              'Sign in with your browser (NIP-07) to sync this calendar over Nostr.',
-            ),
+            title: Text(l10n.notSignedIn),
+            subtitle: Text(l10n.signInWithBrowserSubtitle),
             trailing: FilledButton(
               onPressed: () => _beginLogin(context, ref),
-              child: const Text('Sign in'),
+              child: Text(l10n.signIn),
             ),
           );
         }
@@ -74,11 +74,11 @@ class _DesktopAccountSection extends ConsumerWidget {
         return ListTile(
           leading: const Icon(Icons.verified_user_outlined),
           title: Text(_truncate(npub)),
-          subtitle: Text(_signerSubtitle(signer, signerState)),
+          subtitle: Text(_signerSubtitle(l10n, signer, signerState)),
           isThreeLine: signerState != 'ready',
           trailing: TextButton(
             onPressed: () => _confirmSignOut(context, ref),
-            child: const Text('Sign out'),
+            child: Text(l10n.signOut),
           ),
         );
       },
@@ -89,29 +89,28 @@ class _DesktopAccountSection extends ConsumerWidget {
       ? '${npub.substring(0, 10)}…${npub.substring(npub.length - 6)}'
       : npub;
 
-  String _signerSubtitle(String signer, String state) {
+  String _signerSubtitle(AppLocalizations l10n, String signer, String state) {
     if (state == 'ready') {
       return switch (signer) {
-        'local_delegated' =>
-          'Signed in — background signing via a delegated key',
-        'remote_nip46' => 'Signed in — remote signer (NIP-46)',
-        _ => 'Signed in',
+        'local_delegated' => l10n.signedInBackgroundSigning,
+        'remote_nip46' => l10n.signedInRemoteSigner,
+        _ => l10n.signedIn,
       };
     }
-    return 'Signed in, but no background signer is configured — sync stays '
-        'parked. Run "astraea-service auth provision-key" in a terminal.';
+    return l10n.signedInNoBackgroundSigner;
   }
 
   Future<void> _beginLogin(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
     final client = ref.read(dbusCalendarClientProvider);
     final Map<String, dynamic> session;
     try {
       session = await client.beginBrowserLogin();
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Could not start login: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.couldNotStartLogin(e.toString()))),
+        );
       }
       return;
     }
@@ -124,23 +123,20 @@ class _DesktopAccountSection extends ConsumerWidget {
   }
 
   Future<void> _confirmSignOut(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Sign out?'),
-        content: const Text(
-          'This forgets the account on this device only — your events stay '
-          'on the relays. A provisioned signing key, if any, is removed from '
-          'the keyring.',
-        ),
+        title: Text(l10n.signOutTitle),
+        content: Text(l10n.signOutConfirmDesktopBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Sign out'),
+            child: Text(l10n.signOut),
           ),
         ],
       ),
@@ -191,6 +187,7 @@ class _LoginWaitingDialogState extends ConsumerState<_LoginWaitingDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     ref.listen(desktopAuthStatusProvider, (previous, next) {
       if (next.value?['authenticated'] == true) {
         Navigator.of(context).pop();
@@ -198,22 +195,18 @@ class _LoginWaitingDialogState extends ConsumerState<_LoginWaitingDialog> {
     });
 
     return AlertDialog(
-      title: const Text('Sign in with your browser'),
+      title: Text(l10n.signInWithBrowserTitle),
       content: SizedBox(
         width: 360,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: _expired
-              ? const [Text('This login session expired. Try again.')]
-              : const [
-                  Text(
-                    'A browser tab was opened to confirm your Nostr identity '
-                    '(NIP-07). Approve it there — this dialog closes '
-                    'automatically. Your private key is never requested.',
-                  ),
-                  SizedBox(height: 16),
-                  Center(child: CircularProgressIndicator()),
+              ? [Text(l10n.loginSessionExpired)]
+              : [
+                  Text(l10n.loginWaitingBody),
+                  const SizedBox(height: 16),
+                  const Center(child: CircularProgressIndicator()),
                 ],
         ),
       ),
@@ -229,7 +222,7 @@ class _LoginWaitingDialogState extends ConsumerState<_LoginWaitingDialog> {
                 );
               }
             },
-            child: const Text('Open again'),
+            child: Text(l10n.openAgain),
           ),
         TextButton(
           onPressed: () async {
@@ -245,7 +238,7 @@ class _LoginWaitingDialogState extends ConsumerState<_LoginWaitingDialog> {
             }
             if (context.mounted) Navigator.of(context).pop();
           },
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
       ],
     );
@@ -259,23 +252,24 @@ class _DesktopSyncSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final sync = ref.watch(desktopSyncStatusProvider);
     final authenticated =
         ref.watch(desktopAuthStatusProvider).value?['authenticated'] == true;
     final hasRelays = ref.watch(desktopRelaysProvider).value?.isNotEmpty ?? false;
 
     return sync.when(
-      loading: () => const ListTile(
-        leading: SizedBox(
+      loading: () => ListTile(
+        leading: const SizedBox(
           width: 20,
           height: 20,
           child: CircularProgressIndicator(strokeWidth: 2),
         ),
-        title: Text('Loading…'),
+        title: Text(l10n.loading),
       ),
       error: (e, _) => ListTile(
         leading: const Icon(Icons.error_outline),
-        title: Text('Sync status unavailable: $e'),
+        title: Text('${l10n.syncNowTitle}: ${e.toString()}'),
       ),
       data: (data) {
         final state = data['state'] as String? ?? 'idle';
@@ -295,13 +289,13 @@ class _DesktopSyncSection extends ConsumerWidget {
                     ? Icons.sync
                     : (failed > 0 ? Icons.sync_problem : Icons.sync),
               ),
-              title: const Text('Sync now'),
+              title: Text(l10n.syncNowTitle),
               subtitle: Text(
                 !authenticated
-                    ? 'Sign in to sync your encrypted calendar.'
+                    ? l10n.signInToSyncSubtitle
                     : !hasRelays
-                    ? 'Add at least one relay below to synchronize.'
-                    : _subtitle(state, pending, failed, network, lastError),
+                    ? l10n.addRelayToSyncSubtitle
+                    : _subtitle(l10n, state, pending, failed, network, lastError),
               ),
               trailing: state == 'syncing'
                   ? const SizedBox(
@@ -315,7 +309,7 @@ class _DesktopSyncSection extends ConsumerWidget {
             ),
             if (relays != null && relays.isNotEmpty)
               ExpansionTile(
-                title: const Text('Relay status'),
+                title: Text(l10n.relayStatus),
                 children: [
                   for (final relay in relays)
                     ListTile(
@@ -339,27 +333,36 @@ class _DesktopSyncSection extends ConsumerWidget {
   }
 
   String _subtitle(
+    AppLocalizations l10n,
     String state,
     int pending,
     int failed,
     String network,
     String? lastError,
   ) {
-    if (network == 'offline') return 'Offline — will retry automatically.';
-    if (state == 'syncing') return 'Syncing…';
+    if (network == 'offline') return l10n.offlineWillRetry;
+    if (state == 'syncing') return l10n.syncingEllipsis;
     if (lastError != null && lastError.isNotEmpty) return lastError;
     if (pending == 0) {
-      return failed > 0 ? '$failed operation(s) failing' : 'Up to date';
+      return failed > 0 ? l10n.operationsFailingCount(failed) : l10n.upToDate;
     }
-    return '$pending pending${failed > 0 ? ', $failed failing' : ''}';
+    return failed > 0
+        ? l10n.pendingFailingCount(
+            l10n.pendingCount(pending),
+            l10n.operationsFailingCount(failed),
+          )
+        : l10n.pendingCount(pending);
   }
 
   Future<void> _syncNow(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     try {
       await ref.read(dbusCalendarClientProvider).syncNow();
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('Sync unavailable: $e')));
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.syncUnavailable(e.toString()))),
+      );
     }
   }
 }
@@ -371,21 +374,22 @@ class _DesktopRelaySection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final relaysAsync = ref.watch(desktopRelaysProvider);
     final colorScheme = Theme.of(context).colorScheme;
 
     return relaysAsync.when(
-      loading: () => const ListTile(
-        leading: SizedBox(
+      loading: () => ListTile(
+        leading: const SizedBox(
           width: 20,
           height: 20,
           child: CircularProgressIndicator(strokeWidth: 2),
         ),
-        title: Text('Loading…'),
+        title: Text(l10n.loading),
       ),
       error: (e, _) => ListTile(
         leading: const Icon(Icons.error_outline),
-        title: Text('Relays unavailable: $e'),
+        title: Text('${l10n.relaysLabel}: ${e.toString()}'),
       ),
       data: (relays) => ExpansionTile(
         shape: const Border(),
@@ -393,8 +397,8 @@ class _DesktopRelaySection extends ConsumerWidget {
         backgroundColor: colorScheme.surfaceContainerHigh,
         collapsedBackgroundColor: Colors.transparent,
         leading: const Icon(Icons.dns_outlined),
-        title: const Text('Relays'),
-        subtitle: Text('${relays.length} configured'),
+        title: Text(l10n.relaysLabel),
+        subtitle: Text(l10n.relaysConfiguredLabel(relays.length)),
         initiallyExpanded: relays.isEmpty,
         children: [
           for (final url in relays)
@@ -406,7 +410,7 @@ class _DesktopRelaySection extends ConsumerWidget {
               ),
               title: Text(url),
               subtitle: isInsecureRelayUrl(url)
-                  ? const Text('Unencrypted transport')
+                  ? Text(l10n.unencryptedTransport)
                   : null,
               trailing: IconButton(
                 icon: const Icon(Icons.remove_circle_outline),
@@ -417,12 +421,12 @@ class _DesktopRelaySection extends ConsumerWidget {
             ),
           ListTile(
             leading: const Icon(Icons.add),
-            title: const Text('Add relay'),
+            title: Text(l10n.addRelay),
             onTap: () => _addRelay(context, ref, relays),
           ),
           if (AppConstants.defaultRelays.any((r) => !relays.contains(r))) ...[
             const Divider(),
-            const ListTile(dense: true, title: Text('Suggested relays')),
+            ListTile(dense: true, title: Text(l10n.suggestedRelaysTitle)),
             for (final url in AppConstants.defaultRelays)
               if (!relays.contains(url))
                 ListTile(
@@ -430,7 +434,7 @@ class _DesktopRelaySection extends ConsumerWidget {
                   title: Text(Uri.parse(url).host),
                   subtitle: Text(url),
                   trailing: IconButton(
-                    tooltip: 'Add relay',
+                    tooltip: l10n.addRelayTooltip,
                     icon: const Icon(Icons.add_circle_outline),
                     onPressed: () => ref
                         .read(desktopRelaysProvider.notifier)
@@ -448,29 +452,22 @@ class _DesktopRelaySection extends ConsumerWidget {
     WidgetRef ref,
     List<String> relays,
   ) async {
+    final l10n = AppLocalizations.of(context);
     final input = await _promptForRelayUrl(context);
     if (input == null || input.isEmpty) return;
     final url = normalizeRelayUrl(input);
     if (url == null) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Enter a valid wss:// (or ws:// for a private relay) URL.',
-            ),
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.invalidRelayUrl)));
       }
       return;
     }
     if (isInsecureRelayUrl(url) && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'ws:// is unencrypted in transit — only use it for a relay you trust.',
-          ),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.insecureRelayWarning)));
     }
     if (relays.contains(url)) return;
     await ref.read(desktopRelaysProvider.notifier).save([...relays, url]);
@@ -478,27 +475,28 @@ class _DesktopRelaySection extends ConsumerWidget {
 }
 
 Future<String?> _promptForRelayUrl(BuildContext context) async {
+  final l10n = AppLocalizations.of(context);
   final controller = TextEditingController();
   final result = await showDialog<String>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text('Add relay'),
+      title: Text(l10n.addRelay),
       content: TextField(
         controller: controller,
         autofocus: true,
-        decoration: const InputDecoration(
-          hintText: 'wss://relay.example.com',
-          border: OutlineInputBorder(),
+        decoration: InputDecoration(
+          hintText: l10n.customRelayHint,
+          border: const OutlineInputBorder(),
         ),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(ctx).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
           onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
-          child: const Text('Save'),
+          child: Text(l10n.save),
         ),
       ],
     ),

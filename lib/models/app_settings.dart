@@ -18,11 +18,16 @@ class AppSettings {
   /// Master switch for scheduling local reminder notifications.
   final bool notificationsEnabled;
 
+  /// App UI language as an IETF tag ("it", "zh", "pt", …). Null means
+  /// "follow the system language" (the default).
+  final String? locale;
+
   const AppSettings({
     this.relays = const [],
     this.homeRelayUrl,
     this.timezone,
     this.notificationsEnabled = true,
+    this.locale,
   });
 
   /// Every relay we should publish to: the public list plus the home relay
@@ -40,12 +45,15 @@ class AppSettings {
     String? timezone,
     bool clearTimezone = false,
     bool? notificationsEnabled,
+    String? locale,
+    bool clearLocale = false,
   }) {
     return AppSettings(
       relays: relays ?? this.relays,
       homeRelayUrl: clearHomeRelay ? null : (homeRelayUrl ?? this.homeRelayUrl),
       timezone: clearTimezone ? null : (timezone ?? this.timezone),
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
+      locale: clearLocale ? null : (locale ?? this.locale),
     );
   }
 }

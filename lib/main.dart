@@ -2,17 +2,21 @@ import 'dart:async';
 import 'dart:developer' as developer;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
+import 'package:intl/intl.dart' as intl;
 import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
 import 'desktop/desktop_bootstrap_stub.dart'
     if (dart.library.io) 'desktop/desktop_bootstrap.dart'
     as desktop;
+import 'l10n/app_localizations.dart';
 import 'providers/app_entry_provider.dart';
 import 'providers/events_provider.dart';
 import 'providers/service_providers.dart';
+import 'providers/settings_provider.dart';
 import 'providers/theme_provider.dart';
 import 'screens/calendar_screen.dart';
 import 'screens/onboarding_screen.dart';
@@ -117,6 +121,16 @@ class AstraeaApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
+    // Null (loading/error, or no explicit choice saved) means "follow the
+    // system language" — MaterialApp's own default resolution against
+    // supportedLocales, same fallback rule as the timezone setting.
+    final localeTag = ref.watch(settingsProvider).value?.locale;
+    final locale = localeTag == null ? null : Locale(localeTag);
+    // Formatter's DateFormat calls take no explicit locale (mirrors intl's
+    // own convention); this keeps them in step with the resolved app locale,
+    // including the "follow system" case where Flutter itself resolves it.
+    intl.Intl.defaultLocale =
+        (locale ?? View.of(context).platformDispatcher.locale).toLanguageTag();
 
     return MaterialApp(
       title: AppConstants.appName,
@@ -139,6 +153,14 @@ class AstraeaApp extends ConsumerWidget {
         ),
         useMaterial3: true,
       ),
+      locale: locale,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: AppLocalizations.supportedLocales,
       home: desktop.isLinuxDesktop
           // Desktop: astraea:// deep links + desktop chrome. The Android
           // home-widget launch handler stays out of this path entirely.
