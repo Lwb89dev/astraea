@@ -51,6 +51,17 @@
     <control>touch</control>
   </supports>
   <releases>
+    <release version="0.2.0" date="2026-07-27">
+      <description>
+        <p>Attendee invites: invite another Astraea account (by npub, hex
+        public key, or NIP-05) to an event, with accept/decline and desktop
+        notifications. Full app localization into all 27 EU official
+        languages plus Chinese, Japanese and Russian, with a language
+        picker. Desktop Settings now fully wired to the background service
+        (browser login, relays, live sync status). Personal relay support
+        for unencrypted-transport (ws://) home/self-hosted relays.</p>
+      </description>
+    </release>
     <release version="0.1.1" date="2026-07-20">
       <description>
         <p>First Linux desktop release: background service with D-Bus API,
