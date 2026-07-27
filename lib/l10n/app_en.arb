@@ -294,7 +294,7 @@
   "@pendingCount": {
     "placeholders": { "count": { "type": "int" } }
   },
-  "pendingFailingCount": "{pending}, {failing} failing",
+  "pendingFailingCount": "{pending}, {failing}",
   "@pendingFailingCount": {
     "placeholders": {
       "pending": { "type": "String" },
