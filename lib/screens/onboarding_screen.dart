@@ -434,7 +434,10 @@ class _RelayChooser extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(l10n.suggestedRelays, style: Theme.of(context).textTheme.titleMedium),
+        Text(
+          l10n.suggestedRelays,
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
         const SizedBox(height: 4),
         for (final url in AppConstants.defaultRelays)
           ListTile(
@@ -481,7 +484,10 @@ class _RelayChooser extends StatelessWidget {
         ),
         if (settings.relays.isNotEmpty) ...[
           const SizedBox(height: 24),
-          Text(l10n.selectedRelays, style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            l10n.selectedRelays,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
           for (final url in settings.relays)
             ListTile(
               contentPadding: EdgeInsets.zero,

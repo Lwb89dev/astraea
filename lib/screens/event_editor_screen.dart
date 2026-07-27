@@ -333,7 +333,10 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
             ),
           ],
           const Divider(height: 32),
-          Text(l10n.remindersLabel, style: Theme.of(context).textTheme.titleSmall),
+          Text(
+            l10n.remindersLabel,
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,

@@ -107,9 +107,7 @@ class DesktopSyncStatusNotifier extends AsyncNotifier<Map<String, dynamic>> {
   @override
   Future<Map<String, dynamic>> build() async {
     final client = ref.watch(dbusCalendarClientProvider);
-    _signal ??= client.syncStatusChanged().listen(
-      (_) => ref.invalidateSelf(),
-    );
+    _signal ??= client.syncStatusChanged().listen((_) => ref.invalidateSelf());
     ref.onDispose(() {
       _signal?.cancel();
       _signal = null;
@@ -195,9 +193,7 @@ class DesktopPendingInvitationsNotifier
   @override
   Future<List<Map<String, dynamic>>> build() async {
     final client = ref.watch(dbusCalendarClientProvider);
-    _signal ??= client.invitationsChanged().listen(
-      (_) => ref.invalidateSelf(),
-    );
+    _signal ??= client.invitationsChanged().listen((_) => ref.invalidateSelf());
     ref.onDispose(() {
       _signal?.cancel();
       _signal = null;

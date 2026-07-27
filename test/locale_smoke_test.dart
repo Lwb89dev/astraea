@@ -10,7 +10,11 @@ void main() {
     for (final locale in AppLocalizations.supportedLocales) {
       final l10n = lookupAppLocalizations(locale);
       // Plain getters.
-      expect(l10n.appTitle, isNotEmpty, reason: '${locale.languageCode}.appTitle');
+      expect(
+        l10n.appTitle,
+        isNotEmpty,
+        reason: '${locale.languageCode}.appTitle',
+      );
       expect(l10n.cancel, isNotEmpty);
       expect(l10n.settingsTitle, isNotEmpty);
       // Placeholder methods.
@@ -21,14 +25,46 @@ void main() {
       // Plural methods across 0/1/2/5/11/22 to exercise every CLDR category
       // (one/two/few/many/other) that any of the 27 locales might select.
       for (final n in [0, 1, 2, 5, 11, 22]) {
-        expect(l10n.reminderMinutesBefore(n), isNotEmpty, reason: '${locale.languageCode}.reminderMinutesBefore($n)');
-        expect(l10n.reminderHoursBefore(n), isNotEmpty, reason: '${locale.languageCode}.reminderHoursBefore($n)');
-        expect(l10n.reminderDaysBefore(n), isNotEmpty, reason: '${locale.languageCode}.reminderDaysBefore($n)');
-        expect(l10n.relaysConfiguredCount(n), isNotEmpty, reason: '${locale.languageCode}.relaysConfiguredCount($n)');
-        expect(l10n.importedEventCount(n), isNotEmpty, reason: '${locale.languageCode}.importedEventCount($n)');
-        expect(l10n.operationsFailingCount(n), isNotEmpty, reason: '${locale.languageCode}.operationsFailingCount($n)');
-        expect(l10n.pendingCount(n), isNotEmpty, reason: '${locale.languageCode}.pendingCount($n)');
-        expect(l10n.relaysConfiguredLabel(n), isNotEmpty, reason: '${locale.languageCode}.relaysConfiguredLabel($n)');
+        expect(
+          l10n.reminderMinutesBefore(n),
+          isNotEmpty,
+          reason: '${locale.languageCode}.reminderMinutesBefore($n)',
+        );
+        expect(
+          l10n.reminderHoursBefore(n),
+          isNotEmpty,
+          reason: '${locale.languageCode}.reminderHoursBefore($n)',
+        );
+        expect(
+          l10n.reminderDaysBefore(n),
+          isNotEmpty,
+          reason: '${locale.languageCode}.reminderDaysBefore($n)',
+        );
+        expect(
+          l10n.relaysConfiguredCount(n),
+          isNotEmpty,
+          reason: '${locale.languageCode}.relaysConfiguredCount($n)',
+        );
+        expect(
+          l10n.importedEventCount(n),
+          isNotEmpty,
+          reason: '${locale.languageCode}.importedEventCount($n)',
+        );
+        expect(
+          l10n.operationsFailingCount(n),
+          isNotEmpty,
+          reason: '${locale.languageCode}.operationsFailingCount($n)',
+        );
+        expect(
+          l10n.pendingCount(n),
+          isNotEmpty,
+          reason: '${locale.languageCode}.pendingCount($n)',
+        );
+        expect(
+          l10n.relaysConfiguredLabel(n),
+          isNotEmpty,
+          reason: '${locale.languageCode}.relaysConfiguredLabel($n)',
+        );
       }
       expect(l10n.pendingFailingCount('3', '2'), isNotEmpty);
       expect(l10n.lastSyncedLabel('t'), isNotEmpty);

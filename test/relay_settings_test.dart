@@ -47,7 +47,10 @@ void main() {
     expect(normalizeRelayUrl(' WSS://NOS.LOL '), 'wss://nos.lol');
     // ws:// is accepted for personal/self-hosted relays without TLS, but
     // never silently upgraded to wss:// (that would hide a real cert gap).
-    expect(normalizeRelayUrl(' WS://192.168.1.10:7777 '), 'ws://192.168.1.10:7777');
+    expect(
+      normalizeRelayUrl(' WS://192.168.1.10:7777 '),
+      'ws://192.168.1.10:7777',
+    );
     expect(isInsecureRelayUrl('ws://192.168.1.10:7777'), isTrue);
     expect(isInsecureRelayUrl('wss://nos.lol'), isFalse);
     expect(normalizeRelayUrl('https://nos.lol'), isNull);

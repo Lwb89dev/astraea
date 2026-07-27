@@ -31,13 +31,13 @@ pub async fn notify(connection: &Connection, summary: &str, body: &str) {
             "Notify",
             &(
                 APP_NAME,
-                0u32,                                    // replaces_id: always a new notification
-                "x-office-calendar",                     // icon (freedesktop icon-naming-spec)
+                0u32,                // replaces_id: always a new notification
+                "x-office-calendar", // icon (freedesktop icon-naming-spec)
                 summary,
                 body,
-                Vec::<&str>::new(),                       // actions
+                Vec::<&str>::new(), // actions
                 std::collections::HashMap::<&str, zbus::zvariant::Value>::new(), // hints
-                5_000i32,                                  // expire_timeout (ms)
+                5_000i32,           // expire_timeout (ms)
             ),
         )
         .await;
