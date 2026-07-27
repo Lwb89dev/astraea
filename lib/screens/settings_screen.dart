@@ -571,11 +571,13 @@ class _AppearanceSection extends ConsumerWidget {
     AppSettings settings,
   ) async {
     final l10n = AppLocalizations.of(context);
-    final codes = AppLocalizations.supportedLocales
-        .map((l) => l.languageCode)
-        .toList()
-      ..sort((a, b) => (_languageNativeNames[a] ?? a)
-          .compareTo(_languageNativeNames[b] ?? b));
+    final codes =
+        AppLocalizations.supportedLocales.map((l) => l.languageCode).toList()
+          ..sort(
+            (a, b) => (_languageNativeNames[a] ?? a).compareTo(
+              _languageNativeNames[b] ?? b,
+            ),
+          );
 
     final chosen = await showModalBottomSheet<String>(
       context: context,
@@ -674,9 +676,9 @@ class _DataSection extends ConsumerWidget {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l10n.exportFailed(e.toString()))));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.exportFailed(e.toString()))),
+        );
       }
     }
   }
@@ -755,15 +757,15 @@ class _DataSection extends ConsumerWidget {
       }
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.importedEventCount(count))),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.importedEventCount(count))));
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l10n.importFailed(e.toString()))));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.importFailed(e.toString()))),
+        );
       }
     }
   }
@@ -869,7 +871,8 @@ class _RemindersSection extends ConsumerWidget {
           leading: const Icon(Icons.public),
           title: Text(l10n.timezone),
           subtitle: Text(
-            settings.timezone ?? l10n.followDeviceTimezoneWithName(tz.local.name),
+            settings.timezone ??
+                l10n.followDeviceTimezoneWithName(tz.local.name),
           ),
           trailing: const Icon(Icons.chevron_right),
           onTap: () async {
@@ -918,7 +921,9 @@ class _DonationTile extends StatelessWidget {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(l10n.noLightningWalletFound(AppConstants.lightningAddress)),
+          content: Text(
+            l10n.noLightningWalletFound(AppConstants.lightningAddress),
+          ),
           duration: const Duration(seconds: 3),
         ),
       );

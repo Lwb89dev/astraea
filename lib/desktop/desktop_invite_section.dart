@@ -272,10 +272,8 @@ class _PendingInvitationsDialog extends ConsumerWidget {
       content: SizedBox(
         width: 420,
         child: pending.when(
-          loading: () => const Center(
-            heightFactor: 2,
-            child: CircularProgressIndicator(),
-          ),
+          loading: () =>
+              const Center(heightFactor: 2, child: CircularProgressIndicator()),
           error: (e, _) => Text(e.toString()),
           data: (invitations) {
             if (invitations.isEmpty) {

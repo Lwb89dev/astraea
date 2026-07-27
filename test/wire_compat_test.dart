@@ -35,8 +35,11 @@ void main() {
         );
         expect(event.timezone, expect_['timezone']);
         expect(event.isAllDay, expect_['allDay']);
-        expect(event.recurrence.jsonValue, expect_['recurrence'],
-            reason: 'unknown recurrence values must degrade to none');
+        expect(
+          event.recurrence.jsonValue,
+          expect_['recurrence'],
+          reason: 'unknown recurrence values must degrade to none',
+        );
         expect(
           event.recurrenceEnd?.millisecondsSinceEpoch,
           expect_['recurrenceEndMs'],

@@ -73,7 +73,10 @@ class _Sidebar extends ConsumerWidget {
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: Text(l10n.appTitle, style: theme.textTheme.titleLarge),
+                    child: Text(
+                      l10n.appTitle,
+                      style: theme.textTheme.titleLarge,
+                    ),
                   ),
                   desktopPendingInvitationsButton() ?? const SizedBox.shrink(),
                 ],

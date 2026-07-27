@@ -173,9 +173,12 @@ class _LoginWaitingDialogState extends ConsumerState<_LoginWaitingDialog> {
     );
     if (expiresAt != null) {
       final remaining = expiresAt.difference(DateTime.now());
-      _expiryTimer = Timer(remaining.isNegative ? Duration.zero : remaining, () {
-        if (mounted) setState(() => _expired = true);
-      });
+      _expiryTimer = Timer(
+        remaining.isNegative ? Duration.zero : remaining,
+        () {
+          if (mounted) setState(() => _expired = true);
+        },
+      );
     }
   }
 
@@ -256,7 +259,8 @@ class _DesktopSyncSection extends ConsumerWidget {
     final sync = ref.watch(desktopSyncStatusProvider);
     final authenticated =
         ref.watch(desktopAuthStatusProvider).value?['authenticated'] == true;
-    final hasRelays = ref.watch(desktopRelaysProvider).value?.isNotEmpty ?? false;
+    final hasRelays =
+        ref.watch(desktopRelaysProvider).value?.isNotEmpty ?? false;
 
     return sync.when(
       loading: () => ListTile(
@@ -295,7 +299,14 @@ class _DesktopSyncSection extends ConsumerWidget {
                     ? l10n.signInToSyncSubtitle
                     : !hasRelays
                     ? l10n.addRelayToSyncSubtitle
-                    : _subtitle(l10n, state, pending, failed, network, lastError),
+                    : _subtitle(
+                        l10n,
+                        state,
+                        pending,
+                        failed,
+                        network,
+                        lastError,
+                      ),
               ),
               trailing: state == 'syncing'
                   ? const SizedBox(
