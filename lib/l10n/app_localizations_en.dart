@@ -702,7 +702,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String pendingFailingCount(String pending, String failing) {
-    return '$pending, $failing failing';
+    return '$pending, $failing';
   }
 
   @override
