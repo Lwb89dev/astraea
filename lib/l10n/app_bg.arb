@@ -220,5 +220,27 @@
   "relaysConfiguredLabel": "{count, plural, one{1 конфигурирано} other{{count} конфигурирани}}",
   "unencryptedTransport": "Некриптиран пренос",
 
-  "couldNotReachService": "astraea-service не можа да бъде достигнат: {error}"
+  "couldNotReachService": "astraea-service не можа да бъде достигнат: {error}",
+
+  "inviteSectionTitle": "Участници",
+  "inviteButtonLabel": "Покани",
+  "noAttendeesYet": "Все още никой не е поканен",
+  "inviteDialogTitle": "Покани някого",
+  "inviteDialogHint": "npub, име@домейн или публичен ключ",
+  "resolvePersonFailed": "Лицето не можа да бъде намерено: {error}",
+  "confirmNip05Title": "Потвърдете получателя",
+  "confirmNip05Body": "{query} беше преобразувано в {pubkey} чрез NIP-05. Това съответствие се контролира от домейна — уверете се, че е лицето, което очаквате.",
+  "attendeeStatusInvited": "Поканен",
+  "attendeeStatusAccepted": "Приел",
+  "attendeeStatusDeclined": "Отказал",
+  "inviteFailed": "Поканата не можа да бъде изпратена: {error}",
+  "pendingInvitationsTooltip": "Покани",
+  "pendingInvitationsTitle": "Покани",
+  "pendingInvitationsEmpty": "Няма чакащи покани",
+  "invitationFromLabel": "От {pubkey}",
+  "acceptInvitation": "Приемане",
+  "declineInvitation": "Отказ",
+  "respondToInvitationFailed": "Отговорът не можа да бъде изпратен: {error}",
+  "invitationAccepted": "Поканата е приета",
+  "invitationDeclined": "Поканата е отказана"
 }

@@ -220,5 +220,27 @@
   "relaysConfiguredLabel": "{count, plural, one{1 ikkonfigurat} other{{count} ikkonfigurati}}",
   "unencryptedTransport": "Trasport mhux ikkriptat",
 
-  "couldNotReachService": "Ma setax jintlaħaq astraea-service: {error}"
+  "couldNotReachService": "Ma setax jintlaħaq astraea-service: {error}",
+
+  "inviteSectionTitle": "Parteċipanti",
+  "inviteButtonLabel": "Istieden",
+  "noAttendeesYet": "Għadu ħadd ma ġie mistieden",
+  "inviteDialogTitle": "Istieden lil xi ħadd",
+  "inviteDialogHint": "npub, isem@dominju, jew ċavetta pubblika",
+  "resolvePersonFailed": "Ma setax jinstab dak il-persuna: {error}",
+  "confirmNip05Title": "Ikkonferma d-destinatarju",
+  "confirmNip05Body": "{query} ġie riżolt għal {pubkey} permezz ta' NIP-05. Din il-mappa hija kkontrollata mid-dominju — kun żgur li din hija l-persuna mistennija.",
+  "attendeeStatusInvited": "Mistieden",
+  "attendeeStatusAccepted": "Aċċettat",
+  "attendeeStatusDeclined": "Miċħud",
+  "inviteFailed": "Ma setax jintbagħat l-istedina: {error}",
+  "pendingInvitationsTooltip": "Stediniet",
+  "pendingInvitationsTitle": "Stediniet",
+  "pendingInvitationsEmpty": "L-ebda stedina pendenti",
+  "invitationFromLabel": "Minn {pubkey}",
+  "acceptInvitation": "Aċċetta",
+  "declineInvitation": "Iċħad",
+  "respondToInvitationFailed": "Ma setgħetx tintbagħat tweġiba: {error}",
+  "invitationAccepted": "Stedina aċċettata",
+  "invitationDeclined": "Stedina miċħuda"
 }

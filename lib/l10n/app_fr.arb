@@ -220,5 +220,27 @@
   "relaysConfiguredLabel": "{count, plural, one{1 configuré} other{{count} configurés}}",
   "unencryptedTransport": "Transport non chiffré",
 
-  "couldNotReachService": "Impossible de joindre astraea-service : {error}"
+  "couldNotReachService": "Impossible de joindre astraea-service : {error}",
+
+  "inviteSectionTitle": "Participants",
+  "inviteButtonLabel": "Inviter",
+  "noAttendeesYet": "Personne n'a encore été invité",
+  "inviteDialogTitle": "Inviter quelqu'un",
+  "inviteDialogHint": "npub, nom@domaine ou clé publique",
+  "resolvePersonFailed": "Impossible de résoudre cette personne : {error}",
+  "confirmNip05Title": "Confirmer le destinataire",
+  "confirmNip05Body": "{query} a été résolu en {pubkey} via NIP-05. Cette correspondance est contrôlée par le domaine — assurez-vous qu'il s'agit bien de la personne attendue.",
+  "attendeeStatusInvited": "Invité",
+  "attendeeStatusAccepted": "Accepté",
+  "attendeeStatusDeclined": "Refusé",
+  "inviteFailed": "Impossible d'envoyer l'invitation : {error}",
+  "pendingInvitationsTooltip": "Invitations",
+  "pendingInvitationsTitle": "Invitations",
+  "pendingInvitationsEmpty": "Aucune invitation en attente",
+  "invitationFromLabel": "De {pubkey}",
+  "acceptInvitation": "Accepter",
+  "declineInvitation": "Refuser",
+  "respondToInvitationFailed": "Impossible de répondre : {error}",
+  "invitationAccepted": "Invitation acceptée",
+  "invitationDeclined": "Invitation refusée"
 }

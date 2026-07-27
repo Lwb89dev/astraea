@@ -142,6 +142,55 @@ class DbusCalendarClient {
   }
 
   // -------------------------------------------------------------------
+  // Attendee invites (ADR-007, docs/dbus-api.md)
+  // -------------------------------------------------------------------
+
+  /// Resolves an npub, hex pubkey, or NIP-05 identifier to `{pubkeyHex,
+  /// viaNip05}`. Callers must show `viaNip05` results to the user for
+  /// confirmation before calling [inviteAttendee] — a NIP-05 mapping is the
+  /// domain operator's claim, not proof of identity.
+  Future<Map<String, dynamic>> resolvePerson(String query) async {
+    final raw = await _callString(calendarInterface, 'ResolvePerson', [
+      DBusString(query),
+    ]);
+    return Map<String, dynamic>.from(jsonDecode(raw) as Map);
+  }
+
+  Future<void> inviteAttendee(String eventId, String pubkeyHex) async {
+    await _call(calendarInterface, 'InviteAttendee', [
+      DBusString(eventId),
+      DBusString(pubkeyHex),
+    ], null);
+  }
+
+  Future<List<Map<String, dynamic>>> getAttendees(String eventId) async {
+    final raw = await _callString(calendarInterface, 'GetAttendees', [
+      DBusString(eventId),
+    ]);
+    return (jsonDecode(raw) as List<dynamic>)
+        .map((a) => Map<String, dynamic>.from(a as Map))
+        .toList();
+  }
+
+  Future<List<Map<String, dynamic>>> getPendingInvitations() async {
+    final raw = await _callString(
+      calendarInterface,
+      'GetPendingInvitations',
+      [],
+    );
+    return (jsonDecode(raw) as List<dynamic>)
+        .map((i) => Map<String, dynamic>.from(i as Map))
+        .toList();
+  }
+
+  Future<void> respondToInvitation(String invitationId, bool accept) async {
+    await _call(calendarInterface, 'RespondToInvitation', [
+      DBusString(invitationId),
+      DBusBoolean(accept),
+    ], null);
+  }
+
+  // -------------------------------------------------------------------
   // Signals
   // -------------------------------------------------------------------
 
@@ -214,6 +263,16 @@ class DbusCalendarClient {
       sender: busName,
       interface: calendarInterface,
       name: 'SettingsChanged',
+      path: DBusObjectPath(objectPath),
+    ).map((_) {});
+  }
+
+  Stream<void> invitationsChanged() {
+    return DBusSignalStream(
+      _bus,
+      sender: busName,
+      interface: calendarInterface,
+      name: 'InvitationsChanged',
       path: DBusObjectPath(objectPath),
     ).map((_) {});
   }

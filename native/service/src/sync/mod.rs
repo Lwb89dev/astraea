@@ -3,6 +3,7 @@
 //! a trait, `engine` runs pull-merge-push cycles against the store.
 
 pub mod engine;
+pub mod invite;
 pub mod transport;
 pub mod wire;
 

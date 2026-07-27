@@ -220,5 +220,27 @@
   "relaysConfiguredLabel": "{count, plural, one{1 configurat} few{{count} configurate} other{{count} de configurate}}",
   "unencryptedTransport": "Transport necriptat",
 
-  "couldNotReachService": "Nu s-a putut contacta astraea-service: {error}"
+  "couldNotReachService": "Nu s-a putut contacta astraea-service: {error}",
+
+  "inviteSectionTitle": "Participanți",
+  "inviteButtonLabel": "Invită",
+  "noAttendeesYet": "Nimeni nu a fost invitat încă",
+  "inviteDialogTitle": "Invită pe cineva",
+  "inviteDialogHint": "npub, nume@domeniu sau cheie publică",
+  "resolvePersonFailed": "Persoana nu a putut fi găsită: {error}",
+  "confirmNip05Title": "Confirmă destinatarul",
+  "confirmNip05Body": "{query} a fost rezolvat la {pubkey} prin NIP-05. Această corespondență este controlată de domeniu — asigură-te că este persoana așteptată.",
+  "attendeeStatusInvited": "Invitat",
+  "attendeeStatusAccepted": "Acceptat",
+  "attendeeStatusDeclined": "Refuzat",
+  "inviteFailed": "Invitația nu a putut fi trimisă: {error}",
+  "pendingInvitationsTooltip": "Invitații",
+  "pendingInvitationsTitle": "Invitații",
+  "pendingInvitationsEmpty": "Nicio invitație în așteptare",
+  "invitationFromLabel": "De la {pubkey}",
+  "acceptInvitation": "Acceptă",
+  "declineInvitation": "Refuză",
+  "respondToInvitationFailed": "Răspunsul nu a putut fi trimis: {error}",
+  "invitationAccepted": "Invitație acceptată",
+  "invitationDeclined": "Invitație refuzată"
 }

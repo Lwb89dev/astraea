@@ -7,6 +7,7 @@ pub mod bus;
 pub mod daemon;
 pub mod db;
 pub mod model;
+pub mod notify;
 pub mod paths;
 pub mod recurrence;
 pub mod store;

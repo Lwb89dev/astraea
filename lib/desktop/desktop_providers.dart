@@ -186,6 +186,32 @@ final desktopCalendarsProvider =
       DesktopCalendarsNotifier.new,
     );
 
+/// Invitations addressed to me (ADR-007), refreshed on `InvitationsChanged`
+/// — the same signal-driven pattern as [DesktopCalendarsNotifier].
+class DesktopPendingInvitationsNotifier
+    extends AsyncNotifier<List<Map<String, dynamic>>> {
+  StreamSubscription<void>? _signal;
+
+  @override
+  Future<List<Map<String, dynamic>>> build() async {
+    final client = ref.watch(dbusCalendarClientProvider);
+    _signal ??= client.invitationsChanged().listen(
+      (_) => ref.invalidateSelf(),
+    );
+    ref.onDispose(() {
+      _signal?.cancel();
+      _signal = null;
+    });
+    return client.getPendingInvitations();
+  }
+}
+
+final desktopPendingInvitationsProvider =
+    AsyncNotifierProvider<
+      DesktopPendingInvitationsNotifier,
+      List<Map<String, dynamic>>
+    >(DesktopPendingInvitationsNotifier.new);
+
 /// Desktop skips the mobile onboarding: there is no local relay/key setup —
 /// identity and relays belong to the background service (phase 6).
 class _DesktopAppEntryNotifier extends AppEntryNotifier {

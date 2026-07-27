@@ -741,4 +741,77 @@ class AppLocalizationsNl extends AppLocalizations {
   String couldNotReachService(String error) {
     return 'Kon astraea-service niet bereiken: $error';
   }
+
+  @override
+  String get inviteSectionTitle => 'Deelnemers';
+
+  @override
+  String get inviteButtonLabel => 'Uitnodigen';
+
+  @override
+  String get noAttendeesYet => 'Nog niemand uitgenodigd';
+
+  @override
+  String get inviteDialogTitle => 'Iemand uitnodigen';
+
+  @override
+  String get inviteDialogHint => 'npub, naam@domein of publieke sleutel';
+
+  @override
+  String resolvePersonFailed(String error) {
+    return 'Kon die persoon niet vinden: $error';
+  }
+
+  @override
+  String get confirmNip05Title => 'Ontvanger bevestigen';
+
+  @override
+  String confirmNip05Body(String query, String pubkey) {
+    return '$query werd via NIP-05 herleid tot $pubkey. Deze koppeling wordt beheerd door het domein — controleer of dit de verwachte persoon is.';
+  }
+
+  @override
+  String get attendeeStatusInvited => 'Uitgenodigd';
+
+  @override
+  String get attendeeStatusAccepted => 'Geaccepteerd';
+
+  @override
+  String get attendeeStatusDeclined => 'Geweigerd';
+
+  @override
+  String inviteFailed(String error) {
+    return 'Kon de uitnodiging niet versturen: $error';
+  }
+
+  @override
+  String get pendingInvitationsTooltip => 'Uitnodigingen';
+
+  @override
+  String get pendingInvitationsTitle => 'Uitnodigingen';
+
+  @override
+  String get pendingInvitationsEmpty => 'Geen openstaande uitnodigingen';
+
+  @override
+  String invitationFromLabel(String pubkey) {
+    return 'Van $pubkey';
+  }
+
+  @override
+  String get acceptInvitation => 'Accepteren';
+
+  @override
+  String get declineInvitation => 'Weigeren';
+
+  @override
+  String respondToInvitationFailed(String error) {
+    return 'Kon niet reageren: $error';
+  }
+
+  @override
+  String get invitationAccepted => 'Uitnodiging geaccepteerd';
+
+  @override
+  String get invitationDeclined => 'Uitnodiging geweigerd';
 }

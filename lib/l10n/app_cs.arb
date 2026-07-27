@@ -220,5 +220,27 @@
   "relaysConfiguredLabel": "{count, plural, one{1 nakonfigurovaný} few{{count} nakonfigurované} many{{count} nakonfigurovaného} other{{count} nakonfigurovaných}}",
   "unencryptedTransport": "Nešifrovaný přenos",
 
-  "couldNotReachService": "Nepodařilo se spojit se službou astraea-service: {error}"
+  "couldNotReachService": "Nepodařilo se spojit se službou astraea-service: {error}",
+
+  "inviteSectionTitle": "Účastníci",
+  "inviteButtonLabel": "Pozvat",
+  "noAttendeesYet": "Zatím nikdo nebyl pozván",
+  "inviteDialogTitle": "Pozvat někoho",
+  "inviteDialogHint": "npub, jméno@doména nebo veřejný klíč",
+  "resolvePersonFailed": "Osobu se nepodařilo najít: {error}",
+  "confirmNip05Title": "Potvrdit příjemce",
+  "confirmNip05Body": "{query} bylo přeloženo na {pubkey} přes NIP-05. Toto mapování spravuje doména – ujistěte se, že jde o osobu, kterou očekáváte.",
+  "attendeeStatusInvited": "Pozván",
+  "attendeeStatusAccepted": "Přijato",
+  "attendeeStatusDeclined": "Odmítnuto",
+  "inviteFailed": "Pozvánku se nepodařilo odeslat: {error}",
+  "pendingInvitationsTooltip": "Pozvánky",
+  "pendingInvitationsTitle": "Pozvánky",
+  "pendingInvitationsEmpty": "Žádné čekající pozvánky",
+  "invitationFromLabel": "Od {pubkey}",
+  "acceptInvitation": "Přijmout",
+  "declineInvitation": "Odmítnout",
+  "respondToInvitationFailed": "Odpověď se nepodařilo odeslat: {error}",
+  "invitationAccepted": "Pozvánka přijata",
+  "invitationDeclined": "Pozvánka odmítnuta"
 }

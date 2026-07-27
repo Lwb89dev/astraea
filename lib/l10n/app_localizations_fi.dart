@@ -740,4 +740,77 @@ class AppLocalizationsFi extends AppLocalizations {
   String couldNotReachService(String error) {
     return 'astraea-serviceen ei saatu yhteyttä: $error';
   }
+
+  @override
+  String get inviteSectionTitle => 'Osallistujat';
+
+  @override
+  String get inviteButtonLabel => 'Kutsu';
+
+  @override
+  String get noAttendeesYet => 'Ketään ei ole vielä kutsuttu';
+
+  @override
+  String get inviteDialogTitle => 'Kutsu joku';
+
+  @override
+  String get inviteDialogHint => 'npub, nimi@verkkotunnus tai julkinen avain';
+
+  @override
+  String resolvePersonFailed(String error) {
+    return 'Henkilöä ei löytynyt: $error';
+  }
+
+  @override
+  String get confirmNip05Title => 'Vahvista vastaanottaja';
+
+  @override
+  String confirmNip05Body(String query, String pubkey) {
+    return '$query ratkaistiin muotoon $pubkey NIP-05:n kautta. Verkkotunnuksen ylläpitäjä hallitsee tätä vastaavuutta — varmista, että kyseessä on odotettu henkilö.';
+  }
+
+  @override
+  String get attendeeStatusInvited => 'Kutsuttu';
+
+  @override
+  String get attendeeStatusAccepted => 'Hyväksyi';
+
+  @override
+  String get attendeeStatusDeclined => 'Hylkäsi';
+
+  @override
+  String inviteFailed(String error) {
+    return 'Kutsua ei voitu lähettää: $error';
+  }
+
+  @override
+  String get pendingInvitationsTooltip => 'Kutsut';
+
+  @override
+  String get pendingInvitationsTitle => 'Kutsut';
+
+  @override
+  String get pendingInvitationsEmpty => 'Ei odottavia kutsuja';
+
+  @override
+  String invitationFromLabel(String pubkey) {
+    return 'Lähettäjä $pubkey';
+  }
+
+  @override
+  String get acceptInvitation => 'Hyväksy';
+
+  @override
+  String get declineInvitation => 'Hylkää';
+
+  @override
+  String respondToInvitationFailed(String error) {
+    return 'Vastausta ei voitu lähettää: $error';
+  }
+
+  @override
+  String get invitationAccepted => 'Kutsu hyväksytty';
+
+  @override
+  String get invitationDeclined => 'Kutsu hylätty';
 }

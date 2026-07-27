@@ -220,5 +220,27 @@
   "relaysConfiguredLabel": "{count, plural, one{1 konfigureret} other{{count} konfigureret}}",
   "unencryptedTransport": "Ukrypteret transport",
 
-  "couldNotReachService": "Kunne ikke få forbindelse til astraea-service: {error}"
+  "couldNotReachService": "Kunne ikke få forbindelse til astraea-service: {error}",
+
+  "inviteSectionTitle": "Deltagere",
+  "inviteButtonLabel": "Inviter",
+  "noAttendeesYet": "Ingen inviteret endnu",
+  "inviteDialogTitle": "Inviter nogen",
+  "inviteDialogHint": "npub, navn@domæne eller offentlig nøgle",
+  "resolvePersonFailed": "Kunne ikke finde den person: {error}",
+  "confirmNip05Title": "Bekræft modtager",
+  "confirmNip05Body": "{query} blev oversat til {pubkey} via NIP-05. Denne tilknytning styres af domænet — sørg for, at det er den forventede person.",
+  "attendeeStatusInvited": "Inviteret",
+  "attendeeStatusAccepted": "Accepteret",
+  "attendeeStatusDeclined": "Afvist",
+  "inviteFailed": "Kunne ikke sende invitationen: {error}",
+  "pendingInvitationsTooltip": "Invitationer",
+  "pendingInvitationsTitle": "Invitationer",
+  "pendingInvitationsEmpty": "Ingen ventende invitationer",
+  "invitationFromLabel": "Fra {pubkey}",
+  "acceptInvitation": "Accepter",
+  "declineInvitation": "Afvis",
+  "respondToInvitationFailed": "Kunne ikke svare: {error}",
+  "invitationAccepted": "Invitation accepteret",
+  "invitationDeclined": "Invitation afvist"
 }

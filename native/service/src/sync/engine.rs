@@ -21,7 +21,8 @@ use uuid::Uuid;
 use crate::account::signer::{SignerBackend, SignerError};
 use crate::account::AccountManager;
 use crate::model::SCHEMA_VERSION;
-use crate::store::{QueueItem, Store};
+use crate::store::{self, QueueItem, Store};
+use crate::sync::invite;
 use crate::sync::transport::{PublishOutcome, RelayTransport};
 use crate::sync::wire;
 
@@ -40,6 +41,10 @@ const FAILING_THRESHOLD: i64 = 5;
 /// Pull overlap to absorb clock skew between devices.
 const PULL_OVERLAP_SECS: i64 = 3600;
 const CURSOR_KEY: &str = "sync.cursor_s";
+/// Separate from [CURSOR_KEY]: the invite/response stream is `p`-tagged to
+/// me and authored by other people, so it cannot share a cursor with the
+/// self-authored calendar stream without one gating the other.
+const INVITE_CURSOR_KEY: &str = "sync.invite_cursor_s";
 const LAST_SYNC_KEY: &str = "last_sync_at";
 const QUEUE_BATCH: i64 = 50;
 
@@ -183,7 +188,23 @@ impl SyncEngine {
         }
 
         if network == "online" {
+            match self.pull_invites(&identity).await {
+                Ok(()) => {}
+                Err(PullError::Offline(e)) => {
+                    network = "offline";
+                    last_error = Some(e);
+                }
+                Err(PullError::SignerUnavailable) => {
+                    last_error = Some("invite pull skipped: signer holds no decryption key".into());
+                }
+            }
+        }
+
+        if network == "online" {
             if let Some(e) = self.push(&identity, &urls, &mut changed).await {
+                last_error = Some(e);
+            }
+            if let Some(e) = self.push_invites(&identity, &urls).await {
                 last_error = Some(e);
             }
         }
@@ -289,6 +310,154 @@ impl SyncEngine {
                 .await;
         }
         Ok(())
+    }
+
+    // ------------------------------------------------------------------
+    // Attendee invites (ADR-007, docs/nostr-sync.md "Attendee invites")
+    // ------------------------------------------------------------------
+
+    /// Pulls invite/response events addressed to me (`p`-tagged, any
+    /// author — unlike calendar sync, these are not self-authored) and
+    /// applies each to the store. Errors mirror `pull`'s contract exactly.
+    async fn pull_invites(&self, identity: &ActiveIdentity) -> Result<(), PullError> {
+        let cursor: Option<i64> = self
+            .blocking_store(|s| s.get_setting(INVITE_CURSOR_KEY))
+            .await
+            .ok()
+            .flatten()
+            .and_then(|v| v.parse().ok());
+        let mut filter = Filter::new()
+            .kind(Kind::from_u16(wire::CALENDAR_KIND))
+            .pubkey(identity.pubkey)
+            .limit(wire::MAX_PULL_EVENTS);
+        if let Some(cursor) = cursor {
+            let since = (cursor - PULL_OVERLAP_SECS).max(0) as u64;
+            filter = filter.since(Timestamp::from_secs(since));
+        }
+
+        let events = self
+            .transport
+            .fetch(filter, FETCH_TIMEOUT)
+            .await
+            .map_err(|e| PullError::Offline(e.to_string()))?;
+
+        let mut max_seen: i64 = cursor.unwrap_or(0);
+        for event in events.into_iter().take(wire::MAX_PULL_EVENTS) {
+            if event.content.chars().count() > wire::MAX_CONTENT_CHARS {
+                continue;
+            }
+            if event.verify().is_err() {
+                continue;
+            }
+            // Defense in depth: the filter already asked relays to scope by
+            // `p`-tag, but relays are untrusted — re-check locally.
+            if !event.tags.public_keys().any(|pk| *pk == identity.pubkey) {
+                continue;
+            }
+            let sender = event.pubkey;
+            let plaintext = match identity
+                .signer
+                .nip44_decrypt_from(sender, &event.content)
+                .await
+            {
+                Ok(plaintext) => plaintext,
+                Err(SignerError::Unavailable(_)) => return Err(PullError::SignerUnavailable),
+                // Contract: skip payloads that fail to decrypt, never fail.
+                Err(_) => continue,
+            };
+            match invite::parse_message(&plaintext) {
+                Some(invite::InviteMessage::Invite(payload)) => {
+                    self.ingest_invite(sender, payload).await;
+                }
+                Some(invite::InviteMessage::Response(payload)) => {
+                    self.ingest_response(sender, payload).await;
+                }
+                None => {}
+            }
+            max_seen = max_seen.max(event.created_at.as_secs() as i64);
+        }
+
+        if max_seen > 0 {
+            let value = max_seen.to_string();
+            let _ = self
+                .blocking_store(move |s| s.set_setting(INVITE_CURSOR_KEY, &value))
+                .await;
+        }
+        Ok(())
+    }
+
+    /// Records an incoming invitation and notifies the invitee, but only
+    /// the first time this `(event_id, inviter)` pair is seen — a resend
+    /// (the organizer edited the event) updates the row silently.
+    async fn ingest_invite(&self, sender: nostr::PublicKey, payload: invite::InvitePayload) {
+        let inviter_hex = sender.to_hex();
+        let id = store::invitation_id(&payload.event_id, &inviter_hex);
+        let is_new = self
+            .blocking_store({
+                let id = id.clone();
+                move |s| match s.get_invitation(&id) {
+                    Ok(_) => Ok(false),
+                    Err(store::StoreError::NotFound(_)) => Ok(true),
+                    Err(e) => Err(e),
+                }
+            })
+            .await
+            .unwrap_or(false);
+        let title = payload.title.clone();
+        let new_invitation = store::NewInvitation {
+            id,
+            event_id: payload.event_id,
+            inviter_pubkey: inviter_hex,
+            title: payload.title,
+            description: payload.description,
+            location: payload.location,
+            start: payload.start,
+            end: payload.end,
+            timezone: payload.timezone,
+            all_day: payload.all_day,
+        };
+        if self
+            .blocking_store(move |s| s.upsert_invitation(&new_invitation))
+            .await
+            .is_err()
+        {
+            return;
+        }
+        if is_new {
+            self.notify(&title, &format!("{title}: new event invitation"))
+                .await;
+        }
+        self.emit_invitations_changed().await;
+    }
+
+    /// Applies an incoming accept/decline to the attendee I invited, and
+    /// notifies me (the organizer) of the outcome. Silently ignores
+    /// responses from pubkeys that were never actually invited (spoofed or
+    /// stale) — `record_attendee_response` returns `None` in that case.
+    async fn ingest_response(&self, sender: nostr::PublicKey, payload: invite::ResponsePayload) {
+        let responder = sender.to_hex();
+        let status = match payload.status {
+            invite::ResponseStatus::Accepted => store::AttendeeStatus::Accepted,
+            invite::ResponseStatus::Declined => store::AttendeeStatus::Declined,
+        };
+        let event_id = payload.event_id.clone();
+        let updated = self
+            .blocking_store(move |s| s.record_attendee_response(&event_id, &responder, status))
+            .await;
+        let Ok(Some(event_id)) = updated else {
+            return;
+        };
+        let verb = match status {
+            store::AttendeeStatus::Accepted => "accepted",
+            store::AttendeeStatus::Declined => "declined",
+            store::AttendeeStatus::Invited => unreachable!("mapped from ResponseStatus above"),
+        };
+        let title = self
+            .blocking_store(move |s| s.get_event(&event_id).map(|e| e.title))
+            .await
+            .unwrap_or_default();
+        self.notify(&format!("Invitation {verb}"), &title).await;
+        self.emit_invitations_changed().await;
     }
 
     // ------------------------------------------------------------------
@@ -495,6 +664,142 @@ impl SyncEngine {
         }
     }
 
+    /// Drains due invite/response outbox items. Mirrors `push`'s retry
+    /// structure; the only difference is there is no per-event sync_state
+    /// to roll back (an invite is metadata about someone else's copy, not a
+    /// calendar event I own the display state of).
+    async fn push_invites(
+        &self,
+        identity: &ActiveIdentity,
+        configured: &[String],
+    ) -> Option<String> {
+        let items = match self
+            .blocking_store(|s| s.due_invite_outbox_items(QUEUE_BATCH))
+            .await
+        {
+            Ok(items) => items,
+            Err(e) => return Some(e),
+        };
+        let mut last_error = None;
+        for item in items {
+            if let Err(e) = self.push_invite_one(identity, configured, &item).await {
+                let (reason, bump_attempt) = match e {
+                    PushError::Parked(reason) => (reason, false),
+                    PushError::Retry(reason) => (reason, true),
+                    PushError::Drop => {
+                        let _ = self
+                            .blocking_store(move |s| s.invite_outbox_done(item.id))
+                            .await;
+                        continue;
+                    }
+                };
+                let delay = if bump_attempt {
+                    Duration::from_secs(
+                        BACKOFF_BASE_SECS
+                            .saturating_mul(1_i64 << item.attempts.clamp(0, 10))
+                            .min(BACKOFF_CAP_SECS) as u64,
+                    )
+                } else {
+                    SIGNER_DEFER
+                };
+                let next = Utc::now().timestamp_millis() + delay.as_millis() as i64;
+                let _ = self
+                    .blocking_store({
+                        let reason = reason.clone();
+                        move |s| s.invite_outbox_retry(item.id, next, &reason)
+                    })
+                    .await;
+                last_error = Some(reason);
+            }
+        }
+        last_error
+    }
+
+    async fn push_invite_one(
+        &self,
+        identity: &ActiveIdentity,
+        configured: &[String],
+        item: &store::InviteOutboxItem,
+    ) -> Result<(), PushError> {
+        let peer = nostr::PublicKey::from_hex(&item.peer_pubkey).map_err(|_| PushError::Drop)?;
+
+        let signed = match item.kind.as_str() {
+            "invite" => {
+                let event_id = item.event_id.clone();
+                let event = self
+                    .blocking_store(move |s| s.get_event(&event_id))
+                    .await
+                    .map_err(|_| PushError::Drop)?;
+                let payload = invite::InvitePayload::from_event(&event);
+                let plaintext = invite::invite_plaintext(&payload);
+                let ciphertext = self.encrypt_to(identity, peer, &plaintext).await?;
+                let unsigned =
+                    invite::build_invite_unsigned(identity.pubkey, peer, &payload, ciphertext);
+                self.sign(identity, unsigned).await?
+            }
+            "response" => {
+                let id = store::invitation_id(&item.event_id, &item.peer_pubkey);
+                let invitation = self
+                    .blocking_store(move |s| s.get_invitation(&id))
+                    .await
+                    .map_err(|_| PushError::Drop)?;
+                let status = match invitation.status {
+                    store::AttendeeStatus::Accepted => invite::ResponseStatus::Accepted,
+                    store::AttendeeStatus::Declined => invite::ResponseStatus::Declined,
+                    // Not answered yet: nothing to send (should not happen —
+                    // `respond_to_invitation` only queues after answering).
+                    store::AttendeeStatus::Invited => return Err(PushError::Drop),
+                };
+                let payload = invite::ResponsePayload {
+                    event_id: item.event_id.clone(),
+                    status,
+                };
+                let plaintext = invite::response_plaintext(&payload);
+                let ciphertext = self.encrypt_to(identity, peer, &plaintext).await?;
+                let unsigned =
+                    invite::build_response_unsigned(identity.pubkey, peer, &payload, ciphertext);
+                self.sign(identity, unsigned).await?
+            }
+            // Corrupt row (unknown kind): nothing sane to retry.
+            _ => return Err(PushError::Drop),
+        };
+
+        self.publish_to_all(configured, signed)
+            .await
+            .map_err(PushError::Retry)?;
+
+        let item_id = item.id;
+        self.blocking_store(move |s| s.invite_outbox_done(item_id))
+            .await
+            .map_err(PushError::Retry)?;
+        Ok(())
+    }
+
+    async fn encrypt_to(
+        &self,
+        identity: &ActiveIdentity,
+        recipient: nostr::PublicKey,
+        plaintext: &str,
+    ) -> Result<String, PushError> {
+        match identity.signer.nip44_encrypt_to(recipient, plaintext).await {
+            Ok(c) => Ok(c),
+            Err(SignerError::Unavailable(m)) => Err(PushError::Parked(m)),
+            Err(SignerError::Failed(m)) => Err(PushError::Retry(m)),
+        }
+    }
+
+    async fn sign(
+        &self,
+        identity: &ActiveIdentity,
+        unsigned: nostr::UnsignedEvent,
+    ) -> Result<nostr::Event, PushError> {
+        match identity.signer.sign_event(unsigned).await {
+            Ok(s) => Ok(s),
+            Err(SignerError::Unavailable(m)) => Err(PushError::Parked(m)),
+            Err(SignerError::Failed(m)) => Err(PushError::Retry(m)),
+        }
+    }
+
     // ------------------------------------------------------------------
     // Status + signals
     // ------------------------------------------------------------------
@@ -582,6 +887,28 @@ impl SyncEngine {
             .await
         {
             let _ = crate::bus::Calendar1::events_changed(iface.signal_emitter(), ids).await;
+        }
+    }
+
+    async fn emit_invitations_changed(&self) {
+        let Some(connection) = self.connection.get() else {
+            return;
+        };
+        if let Ok(iface) = connection
+            .object_server()
+            .interface::<_, crate::bus::Calendar1>(crate::bus::OBJECT_PATH)
+            .await
+        {
+            let _ = crate::bus::Calendar1::invitations_changed(iface.signal_emitter()).await;
+        }
+    }
+
+    /// Best-effort desktop notification (ADR-007). Never on the critical
+    /// path: a headless box or missing notification daemon must not affect
+    /// sync — `notify::notify` already swallows its own errors.
+    async fn notify(&self, summary: &str, body: &str) {
+        if let Some(connection) = self.connection.get() {
+            crate::notify::notify(connection, summary, body).await;
         }
     }
 

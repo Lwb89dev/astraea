@@ -220,5 +220,27 @@
   "relaysConfiguredLabel": "{count, plural, one{1 skonfigurowany} few{{count} skonfigurowane} many{{count} skonfigurowanych} other{{count} skonfigurowanego}}",
   "unencryptedTransport": "Niezaszyfrowana transmisja",
 
-  "couldNotReachService": "Nie udało się połączyć z astraea-service: {error}"
+  "couldNotReachService": "Nie udało się połączyć z astraea-service: {error}",
+
+  "inviteSectionTitle": "Uczestnicy",
+  "inviteButtonLabel": "Zaproś",
+  "noAttendeesYet": "Nikt jeszcze nie został zaproszony",
+  "inviteDialogTitle": "Zaproś kogoś",
+  "inviteDialogHint": "npub, nazwa@domena lub klucz publiczny",
+  "resolvePersonFailed": "Nie udało się rozpoznać tej osoby: {error}",
+  "confirmNip05Title": "Potwierdź odbiorcę",
+  "confirmNip05Body": "{query} rozpoznano jako {pubkey} za pomocą NIP-05. To mapowanie jest kontrolowane przez domenę — upewnij się, że to oczekiwana osoba.",
+  "attendeeStatusInvited": "Zaproszono",
+  "attendeeStatusAccepted": "Zaakceptowano",
+  "attendeeStatusDeclined": "Odrzucono",
+  "inviteFailed": "Nie udało się wysłać zaproszenia: {error}",
+  "pendingInvitationsTooltip": "Zaproszenia",
+  "pendingInvitationsTitle": "Zaproszenia",
+  "pendingInvitationsEmpty": "Brak oczekujących zaproszeń",
+  "invitationFromLabel": "Od {pubkey}",
+  "acceptInvitation": "Akceptuj",
+  "declineInvitation": "Odrzuć",
+  "respondToInvitationFailed": "Nie udało się wysłać odpowiedzi: {error}",
+  "invitationAccepted": "Zaproszenie zaakceptowane",
+  "invitationDeclined": "Zaproszenie odrzucone"
 }

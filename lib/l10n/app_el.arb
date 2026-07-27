@@ -220,5 +220,27 @@
   "relaysConfiguredLabel": "{count, plural, one{1 ρυθμισμένος} other{{count} ρυθμισμένοι}}",
   "unencryptedTransport": "Μη κρυπτογραφημένη μεταφορά",
 
-  "couldNotReachService": "Δεν ήταν δυνατή η επικοινωνία με το astraea-service: {error}"
+  "couldNotReachService": "Δεν ήταν δυνατή η επικοινωνία με το astraea-service: {error}",
+
+  "inviteSectionTitle": "Συμμετέχοντες",
+  "inviteButtonLabel": "Πρόσκληση",
+  "noAttendeesYet": "Δεν έχει προσκληθεί κανείς ακόμη",
+  "inviteDialogTitle": "Προσκάλεσε κάποιον",
+  "inviteDialogHint": "npub, όνομα@τομέας ή δημόσιο κλειδί",
+  "resolvePersonFailed": "Δεν ήταν δυνατή η εύρεση αυτού του ατόμου: {error}",
+  "confirmNip05Title": "Επιβεβαίωση παραλήπτη",
+  "confirmNip05Body": "Το {query} αντιστοιχίστηκε στο {pubkey} μέσω NIP-05. Αυτή η αντιστοίχιση ελέγχεται από τον τομέα — βεβαιωθείτε ότι πρόκειται για το αναμενόμενο άτομο.",
+  "attendeeStatusInvited": "Προσκλήθηκε",
+  "attendeeStatusAccepted": "Αποδέχθηκε",
+  "attendeeStatusDeclined": "Απέρριψε",
+  "inviteFailed": "Δεν ήταν δυνατή η αποστολή της πρόσκλησης: {error}",
+  "pendingInvitationsTooltip": "Προσκλήσεις",
+  "pendingInvitationsTitle": "Προσκλήσεις",
+  "pendingInvitationsEmpty": "Δεν υπάρχουν εκκρεμείς προσκλήσεις",
+  "invitationFromLabel": "Από {pubkey}",
+  "acceptInvitation": "Αποδοχή",
+  "declineInvitation": "Απόρριψη",
+  "respondToInvitationFailed": "Δεν ήταν δυνατή η αποστολή απάντησης: {error}",
+  "invitationAccepted": "Η πρόσκληση έγινε αποδεκτή",
+  "invitationDeclined": "Η πρόσκληση απορρίφθηκε"
 }

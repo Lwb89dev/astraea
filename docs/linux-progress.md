@@ -255,3 +255,46 @@ All ten phases of the Linux integration brief are complete. Remaining
 follow-ups live in their docs: NIP-46 signer (authentication.md), libcosmic
 panel UI (cosmic-applet.md), real AppStream screenshots (packaging.md),
 distro-matrix runs on real VMs (packaging.md).
+
+## Phase 11 — Attendee invites (ADR-007) ✅ (Linux desktop; Android follow-up)
+
+- [x] `native/service/src/sync/invite.rs`: wire codec for the invite/response
+      message family (kind 30078, `_astraeaInvite` sentinel, deterministic
+      `d` tags distinct from calendar sync's)
+- [x] `native/service/src/account/person.rs`: npub/hex/NIP-05 person
+      resolution, ported from Echoes' lookup triad (SSRF-hardened HTTPS
+      client: no redirects, bounded timeout/size, shape-validated before any
+      network call)
+- [x] `native/service/src/account/signer.rs`: new
+      `nip44_encrypt_to`/`nip44_decrypt_from` — invites are encrypted to a
+      *different* account, unlike calendar sync's self-encryption; every
+      `SignerBackend` implementation updated, including test doubles
+- [x] `native/service/src/store.rs`: `attendees`, `invitations`,
+      `invite_outbox` tables and their CRUD (migration `002_invites.sql`)
+- [x] `native/service/src/sync/engine.rs`: `pull_invites`/`push_invites`
+      wired into the same `run_once` cycle as calendar sync, own incremental
+      cursor, desktop notifications on new invite / on response
+- [x] `native/service/src/bus.rs` +
+      `native/dbus/com.lwb89dev.Astraea.Calendar1.xml`: `ResolvePerson`,
+      `InviteAttendee`, `GetAttendees`, `GetPendingInvitations`,
+      `RespondToInvitation`, `InvitationsChanged` signal
+- [x] Flutter desktop UI: attendee list + invite dialog (with NIP-05
+      confirmation step) in the event editor, pending-invitations button +
+      accept/decline dialog in the sidebar — both Linux-only via the
+      established conditional-import seam
+- [x] Full localization of the new UI strings into all 27 languages
+      (English template + 26 translations, `flutter gen-l10n` verified,
+      `test/locale_smoke_test.dart` exercises every locale)
+- [x] docs/nostr-sync.md "Attendee invites" (normative wire contract) and
+      docs/dbus-api.md updated
+- Verified: `two_party_invite_is_encrypted_end_to_end_and_reaches_acceptance`
+  (native/service/tests/sync_engine.rs) proves the full loop across two
+  independent in-memory accounts sharing one fake relay — invite sent,
+  decrypted and stored by the invitee (who never sees the organizer's
+  internal event), accepted, and the acceptance observed by the organizer —
+  with an explicit assertion that no plaintext title ever appears in
+  anything published to the relay.
+- **Scope note**: this phase is Rust/Linux-desktop only. The Dart/Android
+  implementation of the same wire contract is a documented follow-up
+  (docs/nostr-sync.md) — until it lands, invites are only actionable between
+  two Linux desktop installs.

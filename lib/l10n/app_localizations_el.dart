@@ -746,4 +746,77 @@ class AppLocalizationsEl extends AppLocalizations {
   String couldNotReachService(String error) {
     return 'Δεν ήταν δυνατή η επικοινωνία με το astraea-service: $error';
   }
+
+  @override
+  String get inviteSectionTitle => 'Συμμετέχοντες';
+
+  @override
+  String get inviteButtonLabel => 'Πρόσκληση';
+
+  @override
+  String get noAttendeesYet => 'Δεν έχει προσκληθεί κανείς ακόμη';
+
+  @override
+  String get inviteDialogTitle => 'Προσκάλεσε κάποιον';
+
+  @override
+  String get inviteDialogHint => 'npub, όνομα@τομέας ή δημόσιο κλειδί';
+
+  @override
+  String resolvePersonFailed(String error) {
+    return 'Δεν ήταν δυνατή η εύρεση αυτού του ατόμου: $error';
+  }
+
+  @override
+  String get confirmNip05Title => 'Επιβεβαίωση παραλήπτη';
+
+  @override
+  String confirmNip05Body(String query, String pubkey) {
+    return 'Το $query αντιστοιχίστηκε στο $pubkey μέσω NIP-05. Αυτή η αντιστοίχιση ελέγχεται από τον τομέα — βεβαιωθείτε ότι πρόκειται για το αναμενόμενο άτομο.';
+  }
+
+  @override
+  String get attendeeStatusInvited => 'Προσκλήθηκε';
+
+  @override
+  String get attendeeStatusAccepted => 'Αποδέχθηκε';
+
+  @override
+  String get attendeeStatusDeclined => 'Απέρριψε';
+
+  @override
+  String inviteFailed(String error) {
+    return 'Δεν ήταν δυνατή η αποστολή της πρόσκλησης: $error';
+  }
+
+  @override
+  String get pendingInvitationsTooltip => 'Προσκλήσεις';
+
+  @override
+  String get pendingInvitationsTitle => 'Προσκλήσεις';
+
+  @override
+  String get pendingInvitationsEmpty => 'Δεν υπάρχουν εκκρεμείς προσκλήσεις';
+
+  @override
+  String invitationFromLabel(String pubkey) {
+    return 'Από $pubkey';
+  }
+
+  @override
+  String get acceptInvitation => 'Αποδοχή';
+
+  @override
+  String get declineInvitation => 'Απόρριψη';
+
+  @override
+  String respondToInvitationFailed(String error) {
+    return 'Δεν ήταν δυνατή η αποστολή απάντησης: $error';
+  }
+
+  @override
+  String get invitationAccepted => 'Η πρόσκληση έγινε αποδεκτή';
+
+  @override
+  String get invitationDeclined => 'Η πρόσκληση απορρίφθηκε';
 }

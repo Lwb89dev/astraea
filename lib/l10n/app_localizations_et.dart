@@ -740,4 +740,77 @@ class AppLocalizationsEt extends AppLocalizations {
   String couldNotReachService(String error) {
     return 'astraea-service\'iga ei õnnestunud ühendust luua: $error';
   }
+
+  @override
+  String get inviteSectionTitle => 'Osalejad';
+
+  @override
+  String get inviteButtonLabel => 'Kutsu';
+
+  @override
+  String get noAttendeesYet => 'Kedagi pole veel kutsutud';
+
+  @override
+  String get inviteDialogTitle => 'Kutsu keegi';
+
+  @override
+  String get inviteDialogHint => 'npub, nimi@domeen või avalik võti';
+
+  @override
+  String resolvePersonFailed(String error) {
+    return 'Seda isikut ei õnnestunud tuvastada: $error';
+  }
+
+  @override
+  String get confirmNip05Title => 'Kinnita saaja';
+
+  @override
+  String confirmNip05Body(String query, String pubkey) {
+    return '$query lahendati NIP-05 kaudu väärtuseks $pubkey. Selle seose määrab domeen – veendu, et tegemist on oodatud isikuga.';
+  }
+
+  @override
+  String get attendeeStatusInvited => 'Kutsutud';
+
+  @override
+  String get attendeeStatusAccepted => 'Nõustus';
+
+  @override
+  String get attendeeStatusDeclined => 'Keeldus';
+
+  @override
+  String inviteFailed(String error) {
+    return 'Kutset ei õnnestunud saata: $error';
+  }
+
+  @override
+  String get pendingInvitationsTooltip => 'Kutsed';
+
+  @override
+  String get pendingInvitationsTitle => 'Kutsed';
+
+  @override
+  String get pendingInvitationsEmpty => 'Ootel kutseid pole';
+
+  @override
+  String invitationFromLabel(String pubkey) {
+    return 'Saatja $pubkey';
+  }
+
+  @override
+  String get acceptInvitation => 'Nõustu';
+
+  @override
+  String get declineInvitation => 'Keeldu';
+
+  @override
+  String respondToInvitationFailed(String error) {
+    return 'Vastust ei õnnestunud saata: $error';
+  }
+
+  @override
+  String get invitationAccepted => 'Kutse vastu võetud';
+
+  @override
+  String get invitationDeclined => 'Kutsest keelduti';
 }

@@ -711,4 +711,77 @@ class AppLocalizationsJa extends AppLocalizations {
   String couldNotReachService(String error) {
     return 'astraea-service に接続できませんでした: $error';
   }
+
+  @override
+  String get inviteSectionTitle => '参加者';
+
+  @override
+  String get inviteButtonLabel => '招待';
+
+  @override
+  String get noAttendeesYet => 'まだ誰も招待していません';
+
+  @override
+  String get inviteDialogTitle => '招待する';
+
+  @override
+  String get inviteDialogHint => 'npub、name@domain、または公開鍵';
+
+  @override
+  String resolvePersonFailed(String error) {
+    return 'その相手を解決できませんでした: $error';
+  }
+
+  @override
+  String get confirmNip05Title => '受信者の確認';
+
+  @override
+  String confirmNip05Body(String query, String pubkey) {
+    return '$query は NIP-05 により $pubkey に解決されました。この対応関係はドメイン側が管理しています。想定した相手であることを確認してください。';
+  }
+
+  @override
+  String get attendeeStatusInvited => '招待済み';
+
+  @override
+  String get attendeeStatusAccepted => '承諾済み';
+
+  @override
+  String get attendeeStatusDeclined => '辞退済み';
+
+  @override
+  String inviteFailed(String error) {
+    return '招待を送信できませんでした: $error';
+  }
+
+  @override
+  String get pendingInvitationsTooltip => '招待';
+
+  @override
+  String get pendingInvitationsTitle => '招待';
+
+  @override
+  String get pendingInvitationsEmpty => '保留中の招待はありません';
+
+  @override
+  String invitationFromLabel(String pubkey) {
+    return '送信元: $pubkey';
+  }
+
+  @override
+  String get acceptInvitation => '承諾';
+
+  @override
+  String get declineInvitation => '辞退';
+
+  @override
+  String respondToInvitationFailed(String error) {
+    return '応答を送信できませんでした: $error';
+  }
+
+  @override
+  String get invitationAccepted => '招待を承諾しました';
+
+  @override
+  String get invitationDeclined => '招待を辞退しました';
 }

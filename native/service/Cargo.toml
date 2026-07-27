@@ -32,6 +32,11 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 nostr = { version = "0.44.4", default-features = false, features = ["std", "nip44"] }
 nostr-sdk = { version = "0.44", default-features = false }
 url = "2"
+# NIP-05 resolution only (account/person.rs): a single bounded HTTPS GET to
+# a domain's .well-known/nostr.json. rustls avoids pulling in OpenSSL;
+# no cookies, no redirect-follow (NIP-05 doesn't need it and blind
+# redirect-following is exactly the SSRF-adjacent behavior we don't want).
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
 rand = "0.10.2"
 secret-service = { version = "5.1.0", features = ["rt-tokio-crypto-rust"] }
 async-trait = "0.1.91"

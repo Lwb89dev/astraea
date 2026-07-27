@@ -7,7 +7,7 @@
 //! pending_signature".
 
 use async_trait::async_trait;
-use nostr::{Event, Keys, UnsignedEvent};
+use nostr::{Event, Keys, PublicKey, UnsignedEvent};
 
 use super::secrets::SecretStore;
 
@@ -59,6 +59,24 @@ pub trait SignerBackend: Send + Sync {
     async fn nip44_self_encrypt(&self, plaintext: &str) -> Result<String, SignerError>;
 
     async fn nip44_self_decrypt(&self, ciphertext: &str) -> Result<String, SignerError>;
+
+    /// NIP-44 v2 encryption to a third party (ADR-007 attendee invites):
+    /// ECDH between the account's secret key and `recipient`. Distinct from
+    /// `nip44_self_encrypt` because an invite is, by definition, addressed
+    /// to someone else's key, not the sender's own.
+    async fn nip44_encrypt_to(
+        &self,
+        recipient: PublicKey,
+        plaintext: &str,
+    ) -> Result<String, SignerError>;
+
+    /// NIP-44 v2 decryption of a message from a third party: ECDH between
+    /// the account's secret key and `sender`.
+    async fn nip44_decrypt_from(
+        &self,
+        sender: PublicKey,
+        ciphertext: &str,
+    ) -> Result<String, SignerError>;
 }
 
 /// Shared "no key material here" answer for interactive-only backends.
@@ -92,6 +110,22 @@ impl SignerBackend for ReadOnlySigner {
     }
 
     async fn nip44_self_decrypt(&self, _ciphertext: &str) -> Result<String, SignerError> {
+        Err(nip44_unavailable())
+    }
+
+    async fn nip44_encrypt_to(
+        &self,
+        _recipient: PublicKey,
+        _plaintext: &str,
+    ) -> Result<String, SignerError> {
+        Err(nip44_unavailable())
+    }
+
+    async fn nip44_decrypt_from(
+        &self,
+        _sender: PublicKey,
+        _ciphertext: &str,
+    ) -> Result<String, SignerError> {
         Err(nip44_unavailable())
     }
 }
@@ -129,6 +163,22 @@ impl SignerBackend for BrowserNip07Signer {
     async fn nip44_self_decrypt(&self, _ciphertext: &str) -> Result<String, SignerError> {
         Err(nip44_unavailable())
     }
+
+    async fn nip44_encrypt_to(
+        &self,
+        _recipient: PublicKey,
+        _plaintext: &str,
+    ) -> Result<String, SignerError> {
+        Err(nip44_unavailable())
+    }
+
+    async fn nip44_decrypt_from(
+        &self,
+        _sender: PublicKey,
+        _ciphertext: &str,
+    ) -> Result<String, SignerError> {
+        Err(nip44_unavailable())
+    }
 }
 
 /// NIP-46 (Nostr Connect / bunker) — the right choice for continuous
@@ -161,6 +211,26 @@ impl SignerBackend for RemoteSigner {
     }
 
     async fn nip44_self_decrypt(&self, _ciphertext: &str) -> Result<String, SignerError> {
+        Err(SignerError::Unavailable(
+            "remote signer (NIP-46) is not configured in this build".into(),
+        ))
+    }
+
+    async fn nip44_encrypt_to(
+        &self,
+        _recipient: PublicKey,
+        _plaintext: &str,
+    ) -> Result<String, SignerError> {
+        Err(SignerError::Unavailable(
+            "remote signer (NIP-46) is not configured in this build".into(),
+        ))
+    }
+
+    async fn nip44_decrypt_from(
+        &self,
+        _sender: PublicKey,
+        _ciphertext: &str,
+    ) -> Result<String, SignerError> {
         Err(SignerError::Unavailable(
             "remote signer (NIP-46) is not configured in this build".into(),
         ))
@@ -228,6 +298,31 @@ impl SignerBackend for LocalDelegatedSigner {
     async fn nip44_self_decrypt(&self, ciphertext: &str) -> Result<String, SignerError> {
         let keys = self.keys().await?;
         nostr::nips::nip44::decrypt(keys.secret_key(), &keys.public_key(), ciphertext)
+            .map_err(|e| SignerError::Failed(e.to_string()))
+    }
+
+    async fn nip44_encrypt_to(
+        &self,
+        recipient: PublicKey,
+        plaintext: &str,
+    ) -> Result<String, SignerError> {
+        let keys = self.keys().await?;
+        nostr::nips::nip44::encrypt(
+            keys.secret_key(),
+            &recipient,
+            plaintext,
+            nostr::nips::nip44::Version::V2,
+        )
+        .map_err(|e| SignerError::Failed(e.to_string()))
+    }
+
+    async fn nip44_decrypt_from(
+        &self,
+        sender: PublicKey,
+        ciphertext: &str,
+    ) -> Result<String, SignerError> {
+        let keys = self.keys().await?;
+        nostr::nips::nip44::decrypt(keys.secret_key(), &sender, ciphertext)
             .map_err(|e| SignerError::Failed(e.to_string()))
     }
 }

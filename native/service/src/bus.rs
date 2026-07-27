@@ -9,9 +9,10 @@ use tokio::task::spawn_blocking;
 use zbus::interface;
 use zbus::object_server::SignalEmitter;
 
+use crate::account::person;
 use crate::model::{self, CalendarDraft, CalendarPatch, EventDraft, EventPatch, SCHEMA_VERSION};
 use crate::recurrence;
-use crate::store::{Store, StoreError};
+use crate::store::{Attendee, Invitation, Store, StoreError};
 
 // Note: NOT plain "com.lwb89dev.Astraea" — that is the GApplication id of the
 // desktop app, which registers itself on the session bus for single-instance
@@ -80,6 +81,20 @@ impl From<StoreError> for Error {
             StoreError::Db(m) => Error::Database(m.to_string()),
             StoreError::Sqlite(m) => Error::Database(m.to_string()),
             StoreError::Poisoned => Error::Internal("store lock poisoned".into()),
+        }
+    }
+}
+
+impl From<person::PersonLookupError> for Error {
+    fn from(e: person::PersonLookupError) -> Self {
+        match e {
+            // The caller gave us something that isn't shaped like a person
+            // reference at all — no network call was even attempted.
+            person::PersonLookupError::InvalidKey
+            | person::PersonLookupError::InvalidNip05Shape => Error::InvalidArgument(e.to_string()),
+            // The input was well-formed but resolution didn't land anyone.
+            person::PersonLookupError::Nip05Lookup(_)
+            | person::PersonLookupError::Nip05NotFound => Error::NotFound(e.to_string()),
         }
     }
 }
@@ -489,6 +504,87 @@ impl Calendar1 {
         Ok(merged)
     }
 
+    // ------------------------------------------------------------------
+    // Attendee invites (ADR-007, docs/nostr-sync.md "Attendee invites").
+    // ------------------------------------------------------------------
+
+    /// Resolves an npub, hex pubkey, or NIP-05 identifier (`name@domain`) to
+    /// a pubkey — step one of Echoes' invite flow: the UI shows this result
+    /// for the user to confirm *before* calling InviteAttendee, since a
+    /// NIP-05 claim is the domain operator's word, not proof of identity.
+    async fn resolve_person(&self, query: String) -> Result<String, Error> {
+        self.state.touch();
+        let resolved = person::resolve(&query).await?;
+        to_json(&serde_json::json!({
+            "schemaVersion": SCHEMA_VERSION,
+            "pubkeyHex": resolved.pubkey_hex,
+            "viaNip05": resolved.via_nip05,
+        }))
+    }
+
+    /// Invites `pubkeyHex` (already confirmed via ResolvePerson) to an event
+    /// I own. Idempotent: re-inviting an already-invited pubkey is a no-op
+    /// (see `Store::add_attendee`).
+    async fn invite_attendee(
+        &self,
+        #[zbus(signal_emitter)] emitter: SignalEmitter<'_>,
+        event_id: String,
+        pubkey_hex: String,
+    ) -> Result<(), Error> {
+        self.state.touch();
+        if nostr::PublicKey::from_hex(&pubkey_hex).is_err() {
+            return Err(Error::InvalidArgument("not a valid pubkey".into()));
+        }
+        let store = self.state.store.clone();
+        let id = event_id.clone();
+        // Confirms the event exists (and is mine — invitations table only
+        // holds events I don't yet own) before queuing anything for it.
+        blocking(move || store.get_event(&id)).await?;
+        let store = self.state.store.clone();
+        blocking(move || store.add_attendee(&event_id, &pubkey_hex)).await?;
+        let _ = Calendar1::invitations_changed(&emitter).await;
+        self.state.nudge_sync();
+        Ok(())
+    }
+
+    /// Attendees of an event I own, for the event editor's status list.
+    async fn get_attendees(&self, event_id: String) -> Result<String, Error> {
+        self.state.touch();
+        let store = self.state.store.clone();
+        let attendees = blocking(move || store.attendees_for_event(&event_id)).await?;
+        to_json(&attendees.iter().map(attendee_json).collect::<Vec<_>>())
+    }
+
+    /// Invitations addressed to me that I haven't yet accepted or declined.
+    async fn get_pending_invitations(&self) -> Result<String, Error> {
+        self.state.touch();
+        let store = self.state.store.clone();
+        let pending = blocking(move || store.pending_invitations()).await?;
+        to_json(&pending.iter().map(invitation_json).collect::<Vec<_>>())
+    }
+
+    /// Accepts or declines a pending invitation. Accepting also creates a
+    /// local copy of the event (docs/nostr-sync.md), which is why this can
+    /// also fire EventsChanged.
+    async fn respond_to_invitation(
+        &self,
+        #[zbus(signal_emitter)] emitter: SignalEmitter<'_>,
+        invitation_id: String,
+        accept: bool,
+    ) -> Result<(), Error> {
+        self.state.touch();
+        let store = self.state.store.clone();
+        let id = invitation_id.clone();
+        let created =
+            blocking(move || store.respond_to_invitation(&id, accept, "linux-service")).await?;
+        let _ = Calendar1::invitations_changed(&emitter).await;
+        if let Some(event) = created {
+            let _ = Calendar1::events_changed(&emitter, vec![event.id]).await;
+        }
+        self.state.nudge_sync();
+        Ok(())
+    }
+
     #[zbus(signal)]
     pub async fn events_changed(
         emitter: &SignalEmitter<'_>,
@@ -524,6 +620,13 @@ impl Calendar1 {
         code: String,
         message: String,
     ) -> zbus::Result<()>;
+
+    /// Fired when a pending invitation is added or answered (ADR-007), or
+    /// when one of my events gains/loses an attendee response — the desktop
+    /// UI refetches GetPendingInvitations / attendee lists on receipt rather
+    /// than the signal carrying a payload, mirroring CalendarsChanged.
+    #[zbus(signal)]
+    pub async fn invitations_changed(emitter: &SignalEmitter<'_>) -> zbus::Result<()>;
 }
 
 fn default_settings_json() -> String {
@@ -538,6 +641,33 @@ fn with_schema_version(event: &crate::model::Event) -> Result<serde_json::Value,
         obj.insert("schemaVersion".into(), SCHEMA_VERSION.into());
     }
     Ok(value)
+}
+
+fn attendee_json(a: &Attendee) -> serde_json::Value {
+    serde_json::json!({
+        "pubkeyHex": a.pubkey,
+        "status": a.status.as_str(),
+        "invitedAtMs": a.invited_at_ms,
+        "respondedAtMs": a.responded_at_ms,
+    })
+}
+
+fn invitation_json(inv: &Invitation) -> serde_json::Value {
+    serde_json::json!({
+        "schemaVersion": SCHEMA_VERSION,
+        "invitationId": inv.id,
+        "eventId": inv.event_id,
+        "inviterPubkey": inv.inviter_pubkey,
+        "title": inv.title,
+        "description": inv.description,
+        "location": inv.location,
+        "startTimeUtc": inv.start.to_rfc3339(),
+        "endTimeUtc": inv.end.to_rfc3339(),
+        "timezone": inv.timezone,
+        "isAllDay": inv.all_day,
+        "status": inv.status.as_str(),
+        "receivedAtMs": inv.received_at_ms,
+    })
 }
 
 /// Validates and assembles the astraea:// deep link for OpenDesktop.

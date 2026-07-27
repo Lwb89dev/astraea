@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
 import 'dbus_calendar_client.dart';
+import 'desktop_invite_section.dart';
 import 'desktop_providers.dart';
 
 /// Desktop chrome around the shared calendar UI: a sidebar with the service
@@ -71,7 +72,10 @@ class _Sidebar extends ConsumerWidget {
                     color: theme.colorScheme.primary,
                   ),
                   const SizedBox(width: 10),
-                  Text(l10n.appTitle, style: theme.textTheme.titleLarge),
+                  Expanded(
+                    child: Text(l10n.appTitle, style: theme.textTheme.titleLarge),
+                  ),
+                  desktopPendingInvitationsButton() ?? const SizedBox.shrink(),
                 ],
               ),
             ),

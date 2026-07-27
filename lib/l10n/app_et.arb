@@ -220,5 +220,27 @@
   "relaysConfiguredLabel": "{count, plural, one{1 seadistatud} other{{count} seadistatud}}",
   "unencryptedTransport": "Krüptimata edastus",
 
-  "couldNotReachService": "astraea-service'iga ei õnnestunud ühendust luua: {error}"
+  "couldNotReachService": "astraea-service'iga ei õnnestunud ühendust luua: {error}",
+
+  "inviteSectionTitle": "Osalejad",
+  "inviteButtonLabel": "Kutsu",
+  "noAttendeesYet": "Kedagi pole veel kutsutud",
+  "inviteDialogTitle": "Kutsu keegi",
+  "inviteDialogHint": "npub, nimi@domeen või avalik võti",
+  "resolvePersonFailed": "Seda isikut ei õnnestunud tuvastada: {error}",
+  "confirmNip05Title": "Kinnita saaja",
+  "confirmNip05Body": "{query} lahendati NIP-05 kaudu väärtuseks {pubkey}. Selle seose määrab domeen – veendu, et tegemist on oodatud isikuga.",
+  "attendeeStatusInvited": "Kutsutud",
+  "attendeeStatusAccepted": "Nõustus",
+  "attendeeStatusDeclined": "Keeldus",
+  "inviteFailed": "Kutset ei õnnestunud saata: {error}",
+  "pendingInvitationsTooltip": "Kutsed",
+  "pendingInvitationsTitle": "Kutsed",
+  "pendingInvitationsEmpty": "Ootel kutseid pole",
+  "invitationFromLabel": "Saatja {pubkey}",
+  "acceptInvitation": "Nõustu",
+  "declineInvitation": "Keeldu",
+  "respondToInvitationFailed": "Vastust ei õnnestunud saata: {error}",
+  "invitationAccepted": "Kutse vastu võetud",
+  "invitationDeclined": "Kutsest keelduti"
 }

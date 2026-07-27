@@ -220,5 +220,27 @@
   "relaysConfiguredLabel": "{count, plural, one{1 nakonfigurované} few{{count} nakonfigurované} many{{count} nakonfigurovaného} other{{count} nakonfigurovaných}}",
   "unencryptedTransport": "Nešifrovaný prenos",
 
-  "couldNotReachService": "Nepodarilo sa spojiť so službou astraea-service: {error}"
+  "couldNotReachService": "Nepodarilo sa spojiť so službou astraea-service: {error}",
+
+  "inviteSectionTitle": "Účastníci",
+  "inviteButtonLabel": "Pozvať",
+  "noAttendeesYet": "Zatiaľ nikto nebol pozvaný",
+  "inviteDialogTitle": "Pozvať niekoho",
+  "inviteDialogHint": "npub, meno@doména alebo verejný kľúč",
+  "resolvePersonFailed": "Túto osobu sa nepodarilo nájsť: {error}",
+  "confirmNip05Title": "Potvrďte príjemcu",
+  "confirmNip05Body": "{query} bolo cez NIP-05 preložené na {pubkey}. Toto priradenie spravuje doména — uistite sa, že ide o očakávanú osobu.",
+  "attendeeStatusInvited": "Pozvaný",
+  "attendeeStatusAccepted": "Prijaté",
+  "attendeeStatusDeclined": "Odmietnuté",
+  "inviteFailed": "Pozvánku sa nepodarilo odoslať: {error}",
+  "pendingInvitationsTooltip": "Pozvánky",
+  "pendingInvitationsTitle": "Pozvánky",
+  "pendingInvitationsEmpty": "Žiadne čakajúce pozvánky",
+  "invitationFromLabel": "Od {pubkey}",
+  "acceptInvitation": "Prijať",
+  "declineInvitation": "Odmietnuť",
+  "respondToInvitationFailed": "Odpoveď sa nepodarilo odoslať: {error}",
+  "invitationAccepted": "Pozvánka prijatá",
+  "invitationDeclined": "Pozvánka odmietnutá"
 }

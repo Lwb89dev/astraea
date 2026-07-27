@@ -220,5 +220,27 @@
   "relaysConfiguredLabel": "{count, plural, one{1 konfigurerat} other{{count} konfigurerade}}",
   "unencryptedTransport": "Okrypterad överföring",
 
-  "couldNotReachService": "Det gick inte att nå astraea-service: {error}"
+  "couldNotReachService": "Det gick inte att nå astraea-service: {error}",
+
+  "inviteSectionTitle": "Deltagare",
+  "inviteButtonLabel": "Bjud in",
+  "noAttendeesYet": "Ingen har bjudits in ännu",
+  "inviteDialogTitle": "Bjud in någon",
+  "inviteDialogHint": "npub, namn@domän eller publik nyckel",
+  "resolvePersonFailed": "Kunde inte hitta den personen: {error}",
+  "confirmNip05Title": "Bekräfta mottagare",
+  "confirmNip05Body": "{query} matchades till {pubkey} via NIP-05. Denna koppling styrs av domänen — se till att det är den förväntade personen.",
+  "attendeeStatusInvited": "Inbjuden",
+  "attendeeStatusAccepted": "Accepterad",
+  "attendeeStatusDeclined": "Avböjd",
+  "inviteFailed": "Kunde inte skicka inbjudan: {error}",
+  "pendingInvitationsTooltip": "Inbjudningar",
+  "pendingInvitationsTitle": "Inbjudningar",
+  "pendingInvitationsEmpty": "Inga väntande inbjudningar",
+  "invitationFromLabel": "Från {pubkey}",
+  "acceptInvitation": "Acceptera",
+  "declineInvitation": "Avböj",
+  "respondToInvitationFailed": "Kunde inte svara: {error}",
+  "invitationAccepted": "Inbjudan accepterad",
+  "invitationDeclined": "Inbjudan avböjd"
 }

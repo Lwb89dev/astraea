@@ -220,5 +220,27 @@
   "relaysConfiguredLabel": "{count, plural, one{1 cumraithe} two{{count} chumraithe} few{{count} chumraithe} other{{count} cumraithe}}",
   "unencryptedTransport": "Iompar neamhchriptithe",
 
-  "couldNotReachService": "Níorbh fhéidir teacht ar astraea-service: {error}"
+  "couldNotReachService": "Níorbh fhéidir teacht ar astraea-service: {error}",
+
+  "inviteSectionTitle": "Rannpháirtithe",
+  "inviteButtonLabel": "Tabhair cuireadh",
+  "noAttendeesYet": "Níor tugadh cuireadh d'aon duine fós",
+  "inviteDialogTitle": "Tabhair cuireadh do dhuine",
+  "inviteDialogHint": "npub, ainm@fearann, nó eochair phoiblí",
+  "resolvePersonFailed": "Níorbh fhéidir an duine sin a réiteach: {error}",
+  "confirmNip05Title": "Deimhnigh an faighteoir",
+  "confirmNip05Body": "Réitíodh {query} go {pubkey} trí NIP-05. Is é an fearann a rialaíonn an mapáil seo — bí cinnte gurb é an duine a bhfuiltear ag súil leis.",
+  "attendeeStatusInvited": "Cuireadh tugtha",
+  "attendeeStatusAccepted": "Glactha",
+  "attendeeStatusDeclined": "Diúltaithe",
+  "inviteFailed": "Níorbh fhéidir an cuireadh a sheoladh: {error}",
+  "pendingInvitationsTooltip": "Cuirí",
+  "pendingInvitationsTitle": "Cuirí",
+  "pendingInvitationsEmpty": "Níl aon chuireadh ar feitheamh",
+  "invitationFromLabel": "Ó {pubkey}",
+  "acceptInvitation": "Glac",
+  "declineInvitation": "Diúltaigh",
+  "respondToInvitationFailed": "Níorbh fhéidir freagra a sheoladh: {error}",
+  "invitationAccepted": "Glacadh leis an gcuireadh",
+  "invitationDeclined": "Diúltaíodh don chuireadh"
 }

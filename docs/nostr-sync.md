@@ -141,3 +141,72 @@ Engine behaviour (`native/service/src/sync/engine.rs`, all local-only):
   operations (`pending_signature`) without burning attempts.
 - **Encryption/signing** go through the active `SignerBackend`; the engine
   never touches key material itself.
+
+## Attendee invites (ADR-007)
+
+A distinct message family sharing the calendar event's transport substrate
+(kind 30078, NIP-44, deterministic `d` tag) but never confused with it: every
+invite/response payload carries a `_astraeaInvite` sentinel key, and readers
+try this decode *before* the calendar-sync decode, falling back only on a
+sentinel miss.
+
+**This is the one place calendar sync's self-encryption rule does not
+apply.** Calendar events are NIP-44-encrypted from the account to itself
+(sync across the same person's devices); invites and responses are
+encrypted from one account to a *different* account, using the same ECDH
+primitive keyed on the other party's pubkey (`SignerBackend::nip44_encrypt_to`
+/ `nip44_decrypt_from`, distinct from `nip44_self_encrypt`/`nip44_self_decrypt`
+— native/service/src/account/signer.rs). An implementation that reused
+self-encryption for invites would produce ciphertext only the sender could
+read, silently breaking delivery.
+
+Reference implementation: `native/service/src/sync/invite.rs` (codec),
+`native/service/src/sync/engine.rs` (`pull_invites`/`push_invites`, wired
+into the same `run_once` cycle as calendar sync).
+
+- **Invite** (organizer → invitee), `d` tag `astraea-invite:v1:<eventId>`,
+  `p`-tagged to the invitee:
+  ```json
+  {
+    "_astraeaInvite": "invite",
+    "eventId": "5f0e8f7a-1111-4222-8333-944444444444",
+    "title": "…", "description": "…", "location": "…",
+    "startTimeUtc": "2026-07-20T09:00:00.000Z",
+    "endTimeUtc": "2026-07-20T10:00:00.000Z",
+    "timezone": "Europe/Rome", "isAllDay": false
+  }
+  ```
+  Deliberately a purpose-built subset of the event — never the internal
+  representation wholesale (no `calendarId`, `localRevision`, `syncState`):
+  an invitee is not a member of the organizer's calendar and must not learn
+  its internal bookkeeping.
+- **Response** (invitee → organizer), `d` tag
+  `astraea-invite-response:v1:<eventId>`, `p`-tagged to the organizer:
+  ```json
+  { "_astraeaInvite": "response", "eventId": "5f0e8f7a-…", "status": "accepted" }
+  ```
+  `status` is `accepted` or `declined`.
+- **Pull**: filtered by `p`-tag on the account's own pubkey (not `author`,
+  unlike calendar sync — invites and responses are authored by *other*
+  accounts), own incremental cursor (`app_settings` key
+  `sync.invite_cursor_s`, independent of `sync.cursor_s` so neither stream
+  gates the other). Every pulled event is re-checked locally for the `p`-tag
+  match even though the relay filter already asked for it — relays are
+  untrusted.
+- **Accepting** an invitation creates an independent local copy of the
+  event, owned by the invitee, `sync_state = local_only`. It is a one-time
+  snapshot: the organizer's later edits are not propagated automatically.
+  Live-shared (co-owned) events are an intentionally out-of-scope follow-up.
+- **Declining** creates no local event; only the response is queued.
+- A response naming a pubkey that was never actually invited to that event
+  (spoofed, or stale after the organizer removed the attendee) is silently
+  ignored — `Store::record_attendee_response` returns `None` and no
+  notification fires.
+- Outgoing invites/responses queue in a dedicated `invite_outbox` table
+  (mirrors `sync_queue`'s retry/backoff exactly, but is independent of it —
+  an invite is not a calendar event and has no `sync_state` of its own).
+- **Scope note**: this pass implements the protocol on the Rust/Linux
+  desktop side only. The Dart/Android implementation is a documented
+  follow-up, not silently out of sync with this contract — until it lands,
+  invites sent by a Linux desktop user are only actionable by another Linux
+  desktop user.
