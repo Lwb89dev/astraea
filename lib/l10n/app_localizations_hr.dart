@@ -748,4 +748,77 @@ class AppLocalizationsHr extends AppLocalizations {
   String couldNotReachService(String error) {
     return 'Nije bilo moguće uspostaviti vezu s astraea-service: $error';
   }
+
+  @override
+  String get inviteSectionTitle => 'Sudionici';
+
+  @override
+  String get inviteButtonLabel => 'Pozovi';
+
+  @override
+  String get noAttendeesYet => 'Još nitko nije pozvan';
+
+  @override
+  String get inviteDialogTitle => 'Pozovi nekoga';
+
+  @override
+  String get inviteDialogHint => 'npub, ime@domena ili javni ključ';
+
+  @override
+  String resolvePersonFailed(String error) {
+    return 'Tu osobu nije bilo moguće pronaći: $error';
+  }
+
+  @override
+  String get confirmNip05Title => 'Potvrdi primatelja';
+
+  @override
+  String confirmNip05Body(String query, String pubkey) {
+    return '$query je razriješen na $pubkey putem NIP-05. Ovim mapiranjem upravlja domena — provjerite je li riječ o očekivanoj osobi.';
+  }
+
+  @override
+  String get attendeeStatusInvited => 'Pozvan';
+
+  @override
+  String get attendeeStatusAccepted => 'Prihvaćeno';
+
+  @override
+  String get attendeeStatusDeclined => 'Odbijeno';
+
+  @override
+  String inviteFailed(String error) {
+    return 'Poziv nije moguće poslati: $error';
+  }
+
+  @override
+  String get pendingInvitationsTooltip => 'Pozivi';
+
+  @override
+  String get pendingInvitationsTitle => 'Pozivi';
+
+  @override
+  String get pendingInvitationsEmpty => 'Nema pozivâ na čekanju';
+
+  @override
+  String invitationFromLabel(String pubkey) {
+    return 'Od $pubkey';
+  }
+
+  @override
+  String get acceptInvitation => 'Prihvati';
+
+  @override
+  String get declineInvitation => 'Odbij';
+
+  @override
+  String respondToInvitationFailed(String error) {
+    return 'Odgovor nije moguće poslati: $error';
+  }
+
+  @override
+  String get invitationAccepted => 'Poziv prihvaćen';
+
+  @override
+  String get invitationDeclined => 'Poziv odbijen';
 }

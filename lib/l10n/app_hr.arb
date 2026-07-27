@@ -220,5 +220,27 @@
   "relaysConfiguredLabel": "{count, plural, one{1 konfiguriran} few{{count} konfigurirana} other{{count} konfigurirano}}",
   "unencryptedTransport": "Nešifrirani prijenos",
 
-  "couldNotReachService": "Nije bilo moguće uspostaviti vezu s astraea-service: {error}"
+  "couldNotReachService": "Nije bilo moguće uspostaviti vezu s astraea-service: {error}",
+
+  "inviteSectionTitle": "Sudionici",
+  "inviteButtonLabel": "Pozovi",
+  "noAttendeesYet": "Još nitko nije pozvan",
+  "inviteDialogTitle": "Pozovi nekoga",
+  "inviteDialogHint": "npub, ime@domena ili javni ključ",
+  "resolvePersonFailed": "Tu osobu nije bilo moguće pronaći: {error}",
+  "confirmNip05Title": "Potvrdi primatelja",
+  "confirmNip05Body": "{query} je razriješen na {pubkey} putem NIP-05. Ovim mapiranjem upravlja domena — provjerite je li riječ o očekivanoj osobi.",
+  "attendeeStatusInvited": "Pozvan",
+  "attendeeStatusAccepted": "Prihvaćeno",
+  "attendeeStatusDeclined": "Odbijeno",
+  "inviteFailed": "Poziv nije moguće poslati: {error}",
+  "pendingInvitationsTooltip": "Pozivi",
+  "pendingInvitationsTitle": "Pozivi",
+  "pendingInvitationsEmpty": "Nema pozivâ na čekanju",
+  "invitationFromLabel": "Od {pubkey}",
+  "acceptInvitation": "Prihvati",
+  "declineInvitation": "Odbij",
+  "respondToInvitationFailed": "Odgovor nije moguće poslati: {error}",
+  "invitationAccepted": "Poziv prihvaćen",
+  "invitationDeclined": "Poziv odbijen"
 }

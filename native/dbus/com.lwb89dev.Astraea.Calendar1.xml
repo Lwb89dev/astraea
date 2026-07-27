@@ -88,6 +88,25 @@
       <arg type="s" name="patchJson" direction="in"/>
       <arg type="s" name="settingsJson" direction="out"/>
     </method>
+    <method name="ResolvePerson">
+      <arg type="s" name="query" direction="in"/>
+      <arg type="s" name="personJson" direction="out"/>
+    </method>
+    <method name="InviteAttendee">
+      <arg type="s" name="eventId" direction="in"/>
+      <arg type="s" name="pubkeyHex" direction="in"/>
+    </method>
+    <method name="GetAttendees">
+      <arg type="s" name="eventId" direction="in"/>
+      <arg type="s" name="attendeesJson" direction="out"/>
+    </method>
+    <method name="GetPendingInvitations">
+      <arg type="s" name="invitationsJson" direction="out"/>
+    </method>
+    <method name="RespondToInvitation">
+      <arg type="s" name="invitationId" direction="in"/>
+      <arg type="b" name="accept" direction="in"/>
+    </method>
 
     <signal name="EventsChanged">
       <arg type="as" name="eventIds"/>
@@ -108,5 +127,6 @@
       <arg type="s" name="code"/>
       <arg type="s" name="message"/>
     </signal>
+    <signal name="InvitationsChanged"/>
   </interface>
 </node>

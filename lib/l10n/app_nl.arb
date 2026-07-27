@@ -220,5 +220,27 @@
   "relaysConfiguredLabel": "{count, plural, one{1 geconfigureerd} other{{count} geconfigureerd}}",
   "unencryptedTransport": "Onversleuteld transport",
 
-  "couldNotReachService": "Kon astraea-service niet bereiken: {error}"
+  "couldNotReachService": "Kon astraea-service niet bereiken: {error}",
+
+  "inviteSectionTitle": "Deelnemers",
+  "inviteButtonLabel": "Uitnodigen",
+  "noAttendeesYet": "Nog niemand uitgenodigd",
+  "inviteDialogTitle": "Iemand uitnodigen",
+  "inviteDialogHint": "npub, naam@domein of publieke sleutel",
+  "resolvePersonFailed": "Kon die persoon niet vinden: {error}",
+  "confirmNip05Title": "Ontvanger bevestigen",
+  "confirmNip05Body": "{query} werd via NIP-05 herleid tot {pubkey}. Deze koppeling wordt beheerd door het domein — controleer of dit de verwachte persoon is.",
+  "attendeeStatusInvited": "Uitgenodigd",
+  "attendeeStatusAccepted": "Geaccepteerd",
+  "attendeeStatusDeclined": "Geweigerd",
+  "inviteFailed": "Kon de uitnodiging niet versturen: {error}",
+  "pendingInvitationsTooltip": "Uitnodigingen",
+  "pendingInvitationsTitle": "Uitnodigingen",
+  "pendingInvitationsEmpty": "Geen openstaande uitnodigingen",
+  "invitationFromLabel": "Van {pubkey}",
+  "acceptInvitation": "Accepteren",
+  "declineInvitation": "Weigeren",
+  "respondToInvitationFailed": "Kon niet reageren: {error}",
+  "invitationAccepted": "Uitnodiging geaccepteerd",
+  "invitationDeclined": "Uitnodiging geweigerd"
 }

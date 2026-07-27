@@ -7,7 +7,7 @@ use std::time::Duration;
 
 use astraea_service::account::signer::{ReadOnlySigner, SignerBackend, SignerError, SignerKind};
 use astraea_service::model::SyncState;
-use astraea_service::store::Store;
+use astraea_service::store::{AttendeeStatus, Store};
 use astraea_service::sync::engine::{ActiveIdentity, IdentitySource, SyncEngine};
 use astraea_service::sync::transport::{
     PublishOutcome, RelayHealth, RelayTransport, TransportError,
@@ -57,6 +57,29 @@ impl SignerBackend for TestSigner {
 
     async fn nip44_self_decrypt(&self, ciphertext: &str) -> Result<String, SignerError> {
         nostr::nips::nip44::decrypt(self.keys.secret_key(), &self.keys.public_key(), ciphertext)
+            .map_err(|e| SignerError::Failed(e.to_string()))
+    }
+
+    async fn nip44_encrypt_to(
+        &self,
+        recipient: nostr::PublicKey,
+        plaintext: &str,
+    ) -> Result<String, SignerError> {
+        nostr::nips::nip44::encrypt(
+            self.keys.secret_key(),
+            &recipient,
+            plaintext,
+            nostr::nips::nip44::Version::V2,
+        )
+        .map_err(|e| SignerError::Failed(e.to_string()))
+    }
+
+    async fn nip44_decrypt_from(
+        &self,
+        sender: nostr::PublicKey,
+        ciphertext: &str,
+    ) -> Result<String, SignerError> {
+        nostr::nips::nip44::decrypt(self.keys.secret_key(), &sender, ciphertext)
             .map_err(|e| SignerError::Failed(e.to_string()))
     }
 }
@@ -518,4 +541,86 @@ async fn pull_skips_foreign_and_junk_events() {
     assert!(store
         .get_event("cccccccc-0000-4000-8000-000000000001")
         .is_err());
+}
+
+/// End-to-end proof of ADR-007's invite/accept flow across two independent
+/// accounts sharing one relay: Alice invites Bob to an event she owns, Bob's
+/// engine decrypts and stores the invitation (never touching Alice's actual
+/// calendar event, which he does not own), Bob accepts, and Alice's engine
+/// learns of the acceptance. Every hop is real NIP-44 encryption keyed to
+/// the *other* party — this is the test that would fail if invites were
+/// accidentally sent through `nip44_self_*` instead of `nip44_*_to`/`_from`.
+#[tokio::test]
+async fn two_party_invite_is_encrypted_end_to_end_and_reaches_acceptance() {
+    let alice_keys = Keys::generate();
+    let bob_keys = Keys::generate();
+    let relay = "wss://relay.example".to_string();
+
+    let alice_store = Arc::new(Store::open_in_memory().expect("store"));
+    alice_store.set_relays(&[relay.clone()]).expect("relays");
+    let bob_store = Arc::new(Store::open_in_memory().expect("store"));
+    bob_store.set_relays(&[relay]).expect("relays");
+
+    let transport = Arc::new(FakeRelays::default());
+    let alice_identity = Arc::new(FixedIdentity {
+        pubkey: alice_keys.public_key(),
+        keys: Some(alice_keys.clone()),
+    });
+    let bob_identity = Arc::new(FixedIdentity {
+        pubkey: bob_keys.public_key(),
+        keys: Some(bob_keys.clone()),
+    });
+    let alice_engine = SyncEngine::new(alice_store.clone(), alice_identity, transport.clone());
+    let bob_engine = SyncEngine::new(bob_store.clone(), bob_identity, transport.clone());
+
+    // Alice creates an event and invites Bob to it.
+    let event = create_event(&alice_store, "Team lunch");
+    alice_store
+        .add_attendee(&event.id, &bob_keys.public_key().to_hex())
+        .expect("add attendee");
+
+    // Alice's engine publishes both her calendar event (self-encrypted) and
+    // the invite (encrypted to Bob). Relay any events she published so Bob
+    // can pull them.
+    alice_engine.run_once().await;
+    let published = transport.state.lock().await.published.clone();
+    // Nothing readable by a network observer: every event's content is
+    // ciphertext, never the plaintext title.
+    for e in &published {
+        assert!(!e.content.contains("Team lunch"));
+    }
+    transport.state.lock().await.remote = published;
+
+    // Bob's calendar stays empty — he does not own Alice's event — but he
+    // gains exactly one pending invitation with the decrypted details.
+    bob_engine.run_once().await;
+    assert!(bob_store.get_event(&event.id).is_err());
+    let pending = bob_store.pending_invitations().expect("pending");
+    assert_eq!(pending.len(), 1);
+    assert_eq!(pending[0].title, "Team lunch");
+    assert_eq!(pending[0].inviter_pubkey, alice_keys.public_key().to_hex());
+
+    // Bob accepts: a local copy of the event is created for him...
+    let created = bob_store
+        .respond_to_invitation(&pending[0].id, true, "test")
+        .expect("respond")
+        .expect("accepting creates a local event");
+    assert_eq!(created.title, "Team lunch");
+
+    // ...and his engine publishes the acceptance back to Alice.
+    bob_engine.run_once().await;
+    let published = transport.state.lock().await.published.clone();
+    for e in &published {
+        assert!(!e.content.contains("accepted"));
+    }
+    transport.state.lock().await.remote = published;
+
+    // Alice's engine learns Bob accepted.
+    alice_engine.run_once().await;
+    let attendees = alice_store
+        .attendees_for_event(&event.id)
+        .expect("attendees");
+    assert_eq!(attendees.len(), 1);
+    assert_eq!(attendees[0].pubkey, bob_keys.public_key().to_hex());
+    assert_eq!(attendees[0].status, AttendeeStatus::Accepted);
 }

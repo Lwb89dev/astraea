@@ -220,5 +220,27 @@
   "relaysConfiguredLabel": "{count, plural, one{1 sukonfigūruotas} few{{count} sukonfigūruoti} other{{count} sukonfigūruotų}}",
   "unencryptedTransport": "Nešifruotas perdavimas",
 
-  "couldNotReachService": "Nepavyko susisiekti su astraea-service: {error}"
+  "couldNotReachService": "Nepavyko susisiekti su astraea-service: {error}",
+
+  "inviteSectionTitle": "Dalyviai",
+  "inviteButtonLabel": "Pakviesti",
+  "noAttendeesYet": "Kol kas niekas nepakviestas",
+  "inviteDialogTitle": "Pakviesti asmenį",
+  "inviteDialogHint": "npub, vardas@domenas arba viešasis raktas",
+  "resolvePersonFailed": "Nepavyko rasti šio asmens: {error}",
+  "confirmNip05Title": "Patvirtinkite gavėją",
+  "confirmNip05Body": "{query} per NIP-05 buvo susietas su {pubkey}. Šį susiejimą valdo domenas — įsitikinkite, kad tai laukiamas asmuo.",
+  "attendeeStatusInvited": "Pakviestas",
+  "attendeeStatusAccepted": "Priimta",
+  "attendeeStatusDeclined": "Atmesta",
+  "inviteFailed": "Nepavyko išsiųsti kvietimo: {error}",
+  "pendingInvitationsTooltip": "Kvietimai",
+  "pendingInvitationsTitle": "Kvietimai",
+  "pendingInvitationsEmpty": "Nėra laukiančių kvietimų",
+  "invitationFromLabel": "Nuo {pubkey}",
+  "acceptInvitation": "Priimti",
+  "declineInvitation": "Atmesti",
+  "respondToInvitationFailed": "Nepavyko atsakyti: {error}",
+  "invitationAccepted": "Kvietimas priimtas",
+  "invitationDeclined": "Kvietimas atmestas"
 }

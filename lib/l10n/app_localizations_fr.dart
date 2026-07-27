@@ -741,4 +741,77 @@ class AppLocalizationsFr extends AppLocalizations {
   String couldNotReachService(String error) {
     return 'Impossible de joindre astraea-service : $error';
   }
+
+  @override
+  String get inviteSectionTitle => 'Participants';
+
+  @override
+  String get inviteButtonLabel => 'Inviter';
+
+  @override
+  String get noAttendeesYet => 'Personne n\'a encore été invité';
+
+  @override
+  String get inviteDialogTitle => 'Inviter quelqu\'un';
+
+  @override
+  String get inviteDialogHint => 'npub, nom@domaine ou clé publique';
+
+  @override
+  String resolvePersonFailed(String error) {
+    return 'Impossible de résoudre cette personne : $error';
+  }
+
+  @override
+  String get confirmNip05Title => 'Confirmer le destinataire';
+
+  @override
+  String confirmNip05Body(String query, String pubkey) {
+    return '$query a été résolu en $pubkey via NIP-05. Cette correspondance est contrôlée par le domaine — assurez-vous qu\'il s\'agit bien de la personne attendue.';
+  }
+
+  @override
+  String get attendeeStatusInvited => 'Invité';
+
+  @override
+  String get attendeeStatusAccepted => 'Accepté';
+
+  @override
+  String get attendeeStatusDeclined => 'Refusé';
+
+  @override
+  String inviteFailed(String error) {
+    return 'Impossible d\'envoyer l\'invitation : $error';
+  }
+
+  @override
+  String get pendingInvitationsTooltip => 'Invitations';
+
+  @override
+  String get pendingInvitationsTitle => 'Invitations';
+
+  @override
+  String get pendingInvitationsEmpty => 'Aucune invitation en attente';
+
+  @override
+  String invitationFromLabel(String pubkey) {
+    return 'De $pubkey';
+  }
+
+  @override
+  String get acceptInvitation => 'Accepter';
+
+  @override
+  String get declineInvitation => 'Refuser';
+
+  @override
+  String respondToInvitationFailed(String error) {
+    return 'Impossible de répondre : $error';
+  }
+
+  @override
+  String get invitationAccepted => 'Invitation acceptée';
+
+  @override
+  String get invitationDeclined => 'Invitation refusée';
 }

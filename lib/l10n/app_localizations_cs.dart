@@ -754,4 +754,77 @@ class AppLocalizationsCs extends AppLocalizations {
   String couldNotReachService(String error) {
     return 'Nepodařilo se spojit se službou astraea-service: $error';
   }
+
+  @override
+  String get inviteSectionTitle => 'Účastníci';
+
+  @override
+  String get inviteButtonLabel => 'Pozvat';
+
+  @override
+  String get noAttendeesYet => 'Zatím nikdo nebyl pozván';
+
+  @override
+  String get inviteDialogTitle => 'Pozvat někoho';
+
+  @override
+  String get inviteDialogHint => 'npub, jméno@doména nebo veřejný klíč';
+
+  @override
+  String resolvePersonFailed(String error) {
+    return 'Osobu se nepodařilo najít: $error';
+  }
+
+  @override
+  String get confirmNip05Title => 'Potvrdit příjemce';
+
+  @override
+  String confirmNip05Body(String query, String pubkey) {
+    return '$query bylo přeloženo na $pubkey přes NIP-05. Toto mapování spravuje doména – ujistěte se, že jde o osobu, kterou očekáváte.';
+  }
+
+  @override
+  String get attendeeStatusInvited => 'Pozván';
+
+  @override
+  String get attendeeStatusAccepted => 'Přijato';
+
+  @override
+  String get attendeeStatusDeclined => 'Odmítnuto';
+
+  @override
+  String inviteFailed(String error) {
+    return 'Pozvánku se nepodařilo odeslat: $error';
+  }
+
+  @override
+  String get pendingInvitationsTooltip => 'Pozvánky';
+
+  @override
+  String get pendingInvitationsTitle => 'Pozvánky';
+
+  @override
+  String get pendingInvitationsEmpty => 'Žádné čekající pozvánky';
+
+  @override
+  String invitationFromLabel(String pubkey) {
+    return 'Od $pubkey';
+  }
+
+  @override
+  String get acceptInvitation => 'Přijmout';
+
+  @override
+  String get declineInvitation => 'Odmítnout';
+
+  @override
+  String respondToInvitationFailed(String error) {
+    return 'Odpověď se nepodařilo odeslat: $error';
+  }
+
+  @override
+  String get invitationAccepted => 'Pozvánka přijata';
+
+  @override
+  String get invitationDeclined => 'Pozvánka odmítnuta';
 }

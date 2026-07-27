@@ -747,4 +747,77 @@ class AppLocalizationsLt extends AppLocalizations {
   String couldNotReachService(String error) {
     return 'Nepavyko susisiekti su astraea-service: $error';
   }
+
+  @override
+  String get inviteSectionTitle => 'Dalyviai';
+
+  @override
+  String get inviteButtonLabel => 'Pakviesti';
+
+  @override
+  String get noAttendeesYet => 'Kol kas niekas nepakviestas';
+
+  @override
+  String get inviteDialogTitle => 'Pakviesti asmenį';
+
+  @override
+  String get inviteDialogHint => 'npub, vardas@domenas arba viešasis raktas';
+
+  @override
+  String resolvePersonFailed(String error) {
+    return 'Nepavyko rasti šio asmens: $error';
+  }
+
+  @override
+  String get confirmNip05Title => 'Patvirtinkite gavėją';
+
+  @override
+  String confirmNip05Body(String query, String pubkey) {
+    return '$query per NIP-05 buvo susietas su $pubkey. Šį susiejimą valdo domenas — įsitikinkite, kad tai laukiamas asmuo.';
+  }
+
+  @override
+  String get attendeeStatusInvited => 'Pakviestas';
+
+  @override
+  String get attendeeStatusAccepted => 'Priimta';
+
+  @override
+  String get attendeeStatusDeclined => 'Atmesta';
+
+  @override
+  String inviteFailed(String error) {
+    return 'Nepavyko išsiųsti kvietimo: $error';
+  }
+
+  @override
+  String get pendingInvitationsTooltip => 'Kvietimai';
+
+  @override
+  String get pendingInvitationsTitle => 'Kvietimai';
+
+  @override
+  String get pendingInvitationsEmpty => 'Nėra laukiančių kvietimų';
+
+  @override
+  String invitationFromLabel(String pubkey) {
+    return 'Nuo $pubkey';
+  }
+
+  @override
+  String get acceptInvitation => 'Priimti';
+
+  @override
+  String get declineInvitation => 'Atmesti';
+
+  @override
+  String respondToInvitationFailed(String error) {
+    return 'Nepavyko atsakyti: $error';
+  }
+
+  @override
+  String get invitationAccepted => 'Kvietimas priimtas';
+
+  @override
+  String get invitationDeclined => 'Kvietimas atmestas';
 }

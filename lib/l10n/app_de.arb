@@ -220,5 +220,27 @@
   "relaysConfiguredLabel": "{count, plural, one{1 konfiguriert} other{{count} konfiguriert}}",
   "unencryptedTransport": "Unverschlüsselte Übertragung",
 
-  "couldNotReachService": "astraea-service konnte nicht erreicht werden: {error}"
+  "couldNotReachService": "astraea-service konnte nicht erreicht werden: {error}",
+
+  "inviteSectionTitle": "Teilnehmer",
+  "inviteButtonLabel": "Einladen",
+  "noAttendeesYet": "Noch niemand eingeladen",
+  "inviteDialogTitle": "Jemanden einladen",
+  "inviteDialogHint": "npub, Name@Domain oder öffentlicher Schlüssel",
+  "resolvePersonFailed": "Diese Person konnte nicht aufgelöst werden: {error}",
+  "confirmNip05Title": "Empfänger bestätigen",
+  "confirmNip05Body": "{query} wurde über NIP-05 zu {pubkey} aufgelöst. Diese Zuordnung wird von der Domain kontrolliert – stellen Sie sicher, dass es die erwartete Person ist.",
+  "attendeeStatusInvited": "Eingeladen",
+  "attendeeStatusAccepted": "Angenommen",
+  "attendeeStatusDeclined": "Abgelehnt",
+  "inviteFailed": "Die Einladung konnte nicht gesendet werden: {error}",
+  "pendingInvitationsTooltip": "Einladungen",
+  "pendingInvitationsTitle": "Einladungen",
+  "pendingInvitationsEmpty": "Keine ausstehenden Einladungen",
+  "invitationFromLabel": "Von {pubkey}",
+  "acceptInvitation": "Annehmen",
+  "declineInvitation": "Ablehnen",
+  "respondToInvitationFailed": "Antwort konnte nicht gesendet werden: {error}",
+  "invitationAccepted": "Einladung angenommen",
+  "invitationDeclined": "Einladung abgelehnt"
 }

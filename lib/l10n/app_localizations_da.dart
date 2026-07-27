@@ -738,4 +738,77 @@ class AppLocalizationsDa extends AppLocalizations {
   String couldNotReachService(String error) {
     return 'Kunne ikke få forbindelse til astraea-service: $error';
   }
+
+  @override
+  String get inviteSectionTitle => 'Deltagere';
+
+  @override
+  String get inviteButtonLabel => 'Inviter';
+
+  @override
+  String get noAttendeesYet => 'Ingen inviteret endnu';
+
+  @override
+  String get inviteDialogTitle => 'Inviter nogen';
+
+  @override
+  String get inviteDialogHint => 'npub, navn@domæne eller offentlig nøgle';
+
+  @override
+  String resolvePersonFailed(String error) {
+    return 'Kunne ikke finde den person: $error';
+  }
+
+  @override
+  String get confirmNip05Title => 'Bekræft modtager';
+
+  @override
+  String confirmNip05Body(String query, String pubkey) {
+    return '$query blev oversat til $pubkey via NIP-05. Denne tilknytning styres af domænet — sørg for, at det er den forventede person.';
+  }
+
+  @override
+  String get attendeeStatusInvited => 'Inviteret';
+
+  @override
+  String get attendeeStatusAccepted => 'Accepteret';
+
+  @override
+  String get attendeeStatusDeclined => 'Afvist';
+
+  @override
+  String inviteFailed(String error) {
+    return 'Kunne ikke sende invitationen: $error';
+  }
+
+  @override
+  String get pendingInvitationsTooltip => 'Invitationer';
+
+  @override
+  String get pendingInvitationsTitle => 'Invitationer';
+
+  @override
+  String get pendingInvitationsEmpty => 'Ingen ventende invitationer';
+
+  @override
+  String invitationFromLabel(String pubkey) {
+    return 'Fra $pubkey';
+  }
+
+  @override
+  String get acceptInvitation => 'Accepter';
+
+  @override
+  String get declineInvitation => 'Afvis';
+
+  @override
+  String respondToInvitationFailed(String error) {
+    return 'Kunne ikke svare: $error';
+  }
+
+  @override
+  String get invitationAccepted => 'Invitation accepteret';
+
+  @override
+  String get invitationDeclined => 'Invitation afvist';
 }

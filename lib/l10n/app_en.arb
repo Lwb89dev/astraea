@@ -313,5 +313,45 @@
   "couldNotReachService": "Could not reach astraea-service: {error}",
   "@couldNotReachService": {
     "placeholders": { "error": { "type": "String" } }
-  }
+  },
+
+  "inviteSectionTitle": "Attendees",
+  "inviteButtonLabel": "Invite",
+  "noAttendeesYet": "No one invited yet",
+  "inviteDialogTitle": "Invite someone",
+  "inviteDialogHint": "npub, name@domain, or public key",
+  "resolvePersonFailed": "Could not resolve that person: {error}",
+  "@resolvePersonFailed": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "confirmNip05Title": "Confirm recipient",
+  "confirmNip05Body": "{query} resolved to {pubkey} via NIP-05. This mapping is controlled by the domain — make sure it's who you expect.",
+  "@confirmNip05Body": {
+    "placeholders": {
+      "query": { "type": "String" },
+      "pubkey": { "type": "String" }
+    }
+  },
+  "attendeeStatusInvited": "Invited",
+  "attendeeStatusAccepted": "Accepted",
+  "attendeeStatusDeclined": "Declined",
+  "inviteFailed": "Could not send the invite: {error}",
+  "@inviteFailed": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "pendingInvitationsTooltip": "Invitations",
+  "pendingInvitationsTitle": "Invitations",
+  "pendingInvitationsEmpty": "No pending invitations",
+  "invitationFromLabel": "From {pubkey}",
+  "@invitationFromLabel": {
+    "placeholders": { "pubkey": { "type": "String" } }
+  },
+  "acceptInvitation": "Accept",
+  "declineInvitation": "Decline",
+  "respondToInvitationFailed": "Could not respond: {error}",
+  "@respondToInvitationFailed": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "invitationAccepted": "Invitation accepted",
+  "invitationDeclined": "Invitation declined"
 }

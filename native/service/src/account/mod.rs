@@ -4,6 +4,7 @@
 //! module and re-pointing the bus name.
 
 pub mod login;
+pub mod person;
 pub mod secrets;
 pub mod signer;
 

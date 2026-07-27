@@ -220,5 +220,27 @@
   "relaysConfiguredLabel": "{count, plural, other{{count} 件設定済み}}",
   "unencryptedTransport": "暗号化されていない通信",
 
-  "couldNotReachService": "astraea-service に接続できませんでした: {error}"
+  "couldNotReachService": "astraea-service に接続できませんでした: {error}",
+
+  "inviteSectionTitle": "参加者",
+  "inviteButtonLabel": "招待",
+  "noAttendeesYet": "まだ誰も招待していません",
+  "inviteDialogTitle": "招待する",
+  "inviteDialogHint": "npub、name@domain、または公開鍵",
+  "resolvePersonFailed": "その相手を解決できませんでした: {error}",
+  "confirmNip05Title": "受信者の確認",
+  "confirmNip05Body": "{query} は NIP-05 により {pubkey} に解決されました。この対応関係はドメイン側が管理しています。想定した相手であることを確認してください。",
+  "attendeeStatusInvited": "招待済み",
+  "attendeeStatusAccepted": "承諾済み",
+  "attendeeStatusDeclined": "辞退済み",
+  "inviteFailed": "招待を送信できませんでした: {error}",
+  "pendingInvitationsTooltip": "招待",
+  "pendingInvitationsTitle": "招待",
+  "pendingInvitationsEmpty": "保留中の招待はありません",
+  "invitationFromLabel": "送信元: {pubkey}",
+  "acceptInvitation": "承諾",
+  "declineInvitation": "辞退",
+  "respondToInvitationFailed": "応答を送信できませんでした: {error}",
+  "invitationAccepted": "招待を承諾しました",
+  "invitationDeclined": "招待を辞退しました"
 }

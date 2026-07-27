@@ -741,4 +741,77 @@ class AppLocalizationsPt extends AppLocalizations {
   String couldNotReachService(String error) {
     return 'Não foi possível contactar o astraea-service: $error';
   }
+
+  @override
+  String get inviteSectionTitle => 'Participantes';
+
+  @override
+  String get inviteButtonLabel => 'Convidar';
+
+  @override
+  String get noAttendeesYet => 'Ainda ninguém foi convidado';
+
+  @override
+  String get inviteDialogTitle => 'Convidar alguém';
+
+  @override
+  String get inviteDialogHint => 'npub, nome@domínio ou chave pública';
+
+  @override
+  String resolvePersonFailed(String error) {
+    return 'Não foi possível encontrar essa pessoa: $error';
+  }
+
+  @override
+  String get confirmNip05Title => 'Confirmar destinatário';
+
+  @override
+  String confirmNip05Body(String query, String pubkey) {
+    return '$query foi resolvido para $pubkey através de NIP-05. Este mapeamento é controlado pelo domínio — certifique-se de que é a pessoa esperada.';
+  }
+
+  @override
+  String get attendeeStatusInvited => 'Convidado';
+
+  @override
+  String get attendeeStatusAccepted => 'Aceite';
+
+  @override
+  String get attendeeStatusDeclined => 'Recusado';
+
+  @override
+  String inviteFailed(String error) {
+    return 'Não foi possível enviar o convite: $error';
+  }
+
+  @override
+  String get pendingInvitationsTooltip => 'Convites';
+
+  @override
+  String get pendingInvitationsTitle => 'Convites';
+
+  @override
+  String get pendingInvitationsEmpty => 'Sem convites pendentes';
+
+  @override
+  String invitationFromLabel(String pubkey) {
+    return 'De $pubkey';
+  }
+
+  @override
+  String get acceptInvitation => 'Aceitar';
+
+  @override
+  String get declineInvitation => 'Recusar';
+
+  @override
+  String respondToInvitationFailed(String error) {
+    return 'Não foi possível responder: $error';
+  }
+
+  @override
+  String get invitationAccepted => 'Convite aceite';
+
+  @override
+  String get invitationDeclined => 'Convite recusado';
 }

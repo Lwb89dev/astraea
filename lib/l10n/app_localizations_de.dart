@@ -744,4 +744,78 @@ class AppLocalizationsDe extends AppLocalizations {
   String couldNotReachService(String error) {
     return 'astraea-service konnte nicht erreicht werden: $error';
   }
+
+  @override
+  String get inviteSectionTitle => 'Teilnehmer';
+
+  @override
+  String get inviteButtonLabel => 'Einladen';
+
+  @override
+  String get noAttendeesYet => 'Noch niemand eingeladen';
+
+  @override
+  String get inviteDialogTitle => 'Jemanden einladen';
+
+  @override
+  String get inviteDialogHint =>
+      'npub, Name@Domain oder öffentlicher Schlüssel';
+
+  @override
+  String resolvePersonFailed(String error) {
+    return 'Diese Person konnte nicht aufgelöst werden: $error';
+  }
+
+  @override
+  String get confirmNip05Title => 'Empfänger bestätigen';
+
+  @override
+  String confirmNip05Body(String query, String pubkey) {
+    return '$query wurde über NIP-05 zu $pubkey aufgelöst. Diese Zuordnung wird von der Domain kontrolliert – stellen Sie sicher, dass es die erwartete Person ist.';
+  }
+
+  @override
+  String get attendeeStatusInvited => 'Eingeladen';
+
+  @override
+  String get attendeeStatusAccepted => 'Angenommen';
+
+  @override
+  String get attendeeStatusDeclined => 'Abgelehnt';
+
+  @override
+  String inviteFailed(String error) {
+    return 'Die Einladung konnte nicht gesendet werden: $error';
+  }
+
+  @override
+  String get pendingInvitationsTooltip => 'Einladungen';
+
+  @override
+  String get pendingInvitationsTitle => 'Einladungen';
+
+  @override
+  String get pendingInvitationsEmpty => 'Keine ausstehenden Einladungen';
+
+  @override
+  String invitationFromLabel(String pubkey) {
+    return 'Von $pubkey';
+  }
+
+  @override
+  String get acceptInvitation => 'Annehmen';
+
+  @override
+  String get declineInvitation => 'Ablehnen';
+
+  @override
+  String respondToInvitationFailed(String error) {
+    return 'Antwort konnte nicht gesendet werden: $error';
+  }
+
+  @override
+  String get invitationAccepted => 'Einladung angenommen';
+
+  @override
+  String get invitationDeclined => 'Einladung abgelehnt';
 }

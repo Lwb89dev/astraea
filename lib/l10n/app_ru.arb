@@ -220,5 +220,27 @@
   "relaysConfiguredLabel": "{count, plural, one{настроено {count}} few{настроено {count}} many{настроено {count}} other{настроено {count}}}",
   "unencryptedTransport": "Незашифрованная передача",
 
-  "couldNotReachService": "Не удалось связаться со службой astraea-service: {error}"
+  "couldNotReachService": "Не удалось связаться со службой astraea-service: {error}",
+
+  "inviteSectionTitle": "Участники",
+  "inviteButtonLabel": "Пригласить",
+  "noAttendeesYet": "Пока никто не приглашён",
+  "inviteDialogTitle": "Пригласить кого-то",
+  "inviteDialogHint": "npub, имя@домен или публичный ключ",
+  "resolvePersonFailed": "Не удалось найти этого человека: {error}",
+  "confirmNip05Title": "Подтвердите получателя",
+  "confirmNip05Body": "{query} был сопоставлен с {pubkey} через NIP-05. Это сопоставление контролируется доменом — убедитесь, что это ожидаемый человек.",
+  "attendeeStatusInvited": "Приглашён",
+  "attendeeStatusAccepted": "Принято",
+  "attendeeStatusDeclined": "Отклонено",
+  "inviteFailed": "Не удалось отправить приглашение: {error}",
+  "pendingInvitationsTooltip": "Приглашения",
+  "pendingInvitationsTitle": "Приглашения",
+  "pendingInvitationsEmpty": "Нет ожидающих приглашений",
+  "invitationFromLabel": "От {pubkey}",
+  "acceptInvitation": "Принять",
+  "declineInvitation": "Отклонить",
+  "respondToInvitationFailed": "Не удалось отправить ответ: {error}",
+  "invitationAccepted": "Приглашение принято",
+  "invitationDeclined": "Приглашение отклонено"
 }

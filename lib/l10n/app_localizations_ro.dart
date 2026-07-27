@@ -747,4 +747,77 @@ class AppLocalizationsRo extends AppLocalizations {
   String couldNotReachService(String error) {
     return 'Nu s-a putut contacta astraea-service: $error';
   }
+
+  @override
+  String get inviteSectionTitle => 'Participanți';
+
+  @override
+  String get inviteButtonLabel => 'Invită';
+
+  @override
+  String get noAttendeesYet => 'Nimeni nu a fost invitat încă';
+
+  @override
+  String get inviteDialogTitle => 'Invită pe cineva';
+
+  @override
+  String get inviteDialogHint => 'npub, nume@domeniu sau cheie publică';
+
+  @override
+  String resolvePersonFailed(String error) {
+    return 'Persoana nu a putut fi găsită: $error';
+  }
+
+  @override
+  String get confirmNip05Title => 'Confirmă destinatarul';
+
+  @override
+  String confirmNip05Body(String query, String pubkey) {
+    return '$query a fost rezolvat la $pubkey prin NIP-05. Această corespondență este controlată de domeniu — asigură-te că este persoana așteptată.';
+  }
+
+  @override
+  String get attendeeStatusInvited => 'Invitat';
+
+  @override
+  String get attendeeStatusAccepted => 'Acceptat';
+
+  @override
+  String get attendeeStatusDeclined => 'Refuzat';
+
+  @override
+  String inviteFailed(String error) {
+    return 'Invitația nu a putut fi trimisă: $error';
+  }
+
+  @override
+  String get pendingInvitationsTooltip => 'Invitații';
+
+  @override
+  String get pendingInvitationsTitle => 'Invitații';
+
+  @override
+  String get pendingInvitationsEmpty => 'Nicio invitație în așteptare';
+
+  @override
+  String invitationFromLabel(String pubkey) {
+    return 'De la $pubkey';
+  }
+
+  @override
+  String get acceptInvitation => 'Acceptă';
+
+  @override
+  String get declineInvitation => 'Refuză';
+
+  @override
+  String respondToInvitationFailed(String error) {
+    return 'Răspunsul nu a putut fi trimis: $error';
+  }
+
+  @override
+  String get invitationAccepted => 'Invitație acceptată';
+
+  @override
+  String get invitationDeclined => 'Invitație refuzată';
 }

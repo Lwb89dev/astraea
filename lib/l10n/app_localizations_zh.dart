@@ -701,4 +701,77 @@ class AppLocalizationsZh extends AppLocalizations {
   String couldNotReachService(String error) {
     return '无法连接到 astraea-service：$error';
   }
+
+  @override
+  String get inviteSectionTitle => '参与者';
+
+  @override
+  String get inviteButtonLabel => '邀请';
+
+  @override
+  String get noAttendeesYet => '尚未邀请任何人';
+
+  @override
+  String get inviteDialogTitle => '邀请某人';
+
+  @override
+  String get inviteDialogHint => 'npub、name@domain 或公钥';
+
+  @override
+  String resolvePersonFailed(String error) {
+    return '无法解析该联系人：$error';
+  }
+
+  @override
+  String get confirmNip05Title => '确认收件人';
+
+  @override
+  String confirmNip05Body(String query, String pubkey) {
+    return '通过 NIP-05，$query 已解析为 $pubkey。此映射由该域名控制——请确认这是您预期的联系人。';
+  }
+
+  @override
+  String get attendeeStatusInvited => '已邀请';
+
+  @override
+  String get attendeeStatusAccepted => '已接受';
+
+  @override
+  String get attendeeStatusDeclined => '已拒绝';
+
+  @override
+  String inviteFailed(String error) {
+    return '无法发送邀请：$error';
+  }
+
+  @override
+  String get pendingInvitationsTooltip => '邀请';
+
+  @override
+  String get pendingInvitationsTitle => '邀请';
+
+  @override
+  String get pendingInvitationsEmpty => '没有待处理的邀请';
+
+  @override
+  String invitationFromLabel(String pubkey) {
+    return '来自 $pubkey';
+  }
+
+  @override
+  String get acceptInvitation => '接受';
+
+  @override
+  String get declineInvitation => '拒绝';
+
+  @override
+  String respondToInvitationFailed(String error) {
+    return '无法发送回复：$error';
+  }
+
+  @override
+  String get invitationAccepted => '邀请已接受';
+
+  @override
+  String get invitationDeclined => '邀请已拒绝';
 }

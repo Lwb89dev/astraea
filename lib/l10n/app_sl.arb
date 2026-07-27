@@ -220,5 +220,27 @@
   "relaysConfiguredLabel": "{count, plural, one{1 konfiguriran} two{{count} konfigurirana} few{{count} konfigurirani} other{{count} konfiguriranih}}",
   "unencryptedTransport": "Nešifriran prenos",
 
-  "couldNotReachService": "S astraea-service ni bilo mogoče vzpostaviti povezave: {error}"
+  "couldNotReachService": "S astraea-service ni bilo mogoče vzpostaviti povezave: {error}",
+
+  "inviteSectionTitle": "Udeleženci",
+  "inviteButtonLabel": "Povabi",
+  "noAttendeesYet": "Nihče še ni povabljen",
+  "inviteDialogTitle": "Povabi nekoga",
+  "inviteDialogHint": "npub, ime@domena ali javni ključ",
+  "resolvePersonFailed": "Te osebe ni bilo mogoče najti: {error}",
+  "confirmNip05Title": "Potrdi prejemnika",
+  "confirmNip05Body": "{query} je bil prek NIP-05 razrešen v {pubkey}. To preslikavo nadzoruje domena — prepričajte se, da gre za pričakovano osebo.",
+  "attendeeStatusInvited": "Povabljen",
+  "attendeeStatusAccepted": "Sprejeto",
+  "attendeeStatusDeclined": "Zavrnjeno",
+  "inviteFailed": "Povabila ni bilo mogoče poslati: {error}",
+  "pendingInvitationsTooltip": "Povabila",
+  "pendingInvitationsTitle": "Povabila",
+  "pendingInvitationsEmpty": "Ni čakajočih povabil",
+  "invitationFromLabel": "Od {pubkey}",
+  "acceptInvitation": "Sprejmi",
+  "declineInvitation": "Zavrni",
+  "respondToInvitationFailed": "Odgovora ni bilo mogoče poslati: {error}",
+  "invitationAccepted": "Povabilo sprejeto",
+  "invitationDeclined": "Povabilo zavrnjeno"
 }

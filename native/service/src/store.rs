@@ -33,6 +33,86 @@ pub struct RelayRow {
     pub last_ok_ms: Option<i64>,
 }
 
+/// Lifecycle of one attendee-event relationship (ADR-007). Shared between
+/// the `attendees` table (my events, other people's status) and the
+/// `invitations` table (other people's events, my status).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AttendeeStatus {
+    Invited,
+    Accepted,
+    Declined,
+}
+
+impl AttendeeStatus {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            AttendeeStatus::Invited => "invited",
+            AttendeeStatus::Accepted => "accepted",
+            AttendeeStatus::Declined => "declined",
+        }
+    }
+
+    pub fn parse(s: &str) -> Option<Self> {
+        Some(match s {
+            "invited" | "pending" => AttendeeStatus::Invited,
+            "accepted" => AttendeeStatus::Accepted,
+            "declined" => AttendeeStatus::Declined,
+            _ => return None,
+        })
+    }
+}
+
+/// One row of `attendees`: someone I invited to an event I own.
+#[derive(Debug, Clone)]
+pub struct Attendee {
+    pub event_id: String,
+    pub pubkey: String,
+    pub status: AttendeeStatus,
+    pub invited_at_ms: i64,
+    pub responded_at_ms: Option<i64>,
+}
+
+/// An invitation to someone else's event, addressed to me.
+#[derive(Debug, Clone)]
+pub struct Invitation {
+    pub id: String,
+    pub event_id: String,
+    pub inviter_pubkey: String,
+    pub title: String,
+    pub description: String,
+    pub location: Option<String>,
+    pub start: DateTime<Utc>,
+    pub end: DateTime<Utc>,
+    pub timezone: String,
+    pub all_day: bool,
+    pub status: AttendeeStatus,
+    pub received_at_ms: i64,
+}
+
+/// Deterministic invitation id: the same `(event_id, inviter_pubkey)` pair
+/// always yields the same id, so a resent invite updates its existing row
+/// (see `upsert_invitation`) instead of piling up, and the sync engine can
+/// look an invitation up from an outbox row's `(event_id, peer_pubkey)`
+/// without a separate index.
+pub fn invitation_id(event_id: &str, inviter_pubkey: &str) -> String {
+    format!("{event_id}:{inviter_pubkey}")
+}
+
+/// What the sync engine has to hand `Store::upsert_invitation` after
+/// decrypting and verifying an incoming invite event.
+pub struct NewInvitation {
+    pub id: String,
+    pub event_id: String,
+    pub inviter_pubkey: String,
+    pub title: String,
+    pub description: String,
+    pub location: Option<String>,
+    pub start: DateTime<Utc>,
+    pub end: DateTime<Utc>,
+    pub timezone: String,
+    pub all_day: bool,
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum StoreError {
     #[error("{0}")]
@@ -910,6 +990,288 @@ impl Store {
             Ok(account)
         })
     }
+
+    // ------------------------------------------------------------------
+    // Attendee invites (ADR-007, docs/nostr-sync.md "Attendee invites").
+    // ------------------------------------------------------------------
+
+    /// Adds an attendee row for an event I own, in `invited` state, and
+    /// queues the invite event for publishing. Both happen in one
+    /// transaction: an attendee row without a queued invite would silently
+    /// never reach them.
+    pub fn add_attendee(&self, event_id: &str, pubkey: &str) -> Result<(), StoreError> {
+        self.with_conn(|conn| {
+            conn.execute(
+                "INSERT INTO attendees (event_id, pubkey, status, invited_at_ms)
+                 VALUES (?1, ?2, 'invited', ?3)
+                 ON CONFLICT(event_id, pubkey) DO NOTHING",
+                params![event_id, pubkey, now_ms()],
+            )?;
+            enqueue_invite(conn, "invite", event_id, pubkey)?;
+            Ok(())
+        })
+    }
+
+    /// Due outbox items (invites and responses still to publish).
+    pub fn due_invite_outbox_items(&self, limit: i64) -> Result<Vec<InviteOutboxItem>, StoreError> {
+        self.with_conn(|conn| {
+            let mut stmt = conn.prepare(
+                "SELECT id, kind, event_id, peer_pubkey, attempts FROM invite_outbox
+                 WHERE next_attempt_ms <= ?1 ORDER BY created_at_ms LIMIT ?2",
+            )?;
+            let rows = stmt.query_map(params![now_ms(), limit], |row| {
+                Ok(InviteOutboxItem {
+                    id: row.get(0)?,
+                    kind: row.get(1)?,
+                    event_id: row.get(2)?,
+                    peer_pubkey: row.get(3)?,
+                    attempts: row.get(4)?,
+                })
+            })?;
+            let mut out = Vec::new();
+            for row in rows {
+                out.push(row?);
+            }
+            Ok(out)
+        })
+    }
+
+    pub fn invite_outbox_done(&self, item_id: i64) -> Result<(), StoreError> {
+        self.with_conn(|conn| {
+            conn.execute("DELETE FROM invite_outbox WHERE id = ?1", [item_id])?;
+            Ok(())
+        })
+    }
+
+    pub fn invite_outbox_retry(
+        &self,
+        item_id: i64,
+        next_attempt_ms: i64,
+        error: &str,
+    ) -> Result<(), StoreError> {
+        self.with_conn(|conn| {
+            conn.execute(
+                "UPDATE invite_outbox SET attempts = attempts + 1, next_attempt_ms = ?2,
+                     last_error = ?3 WHERE id = ?1",
+                params![item_id, next_attempt_ms, error],
+            )?;
+            Ok(())
+        })
+    }
+
+    pub fn attendees_for_event(&self, event_id: &str) -> Result<Vec<Attendee>, StoreError> {
+        self.with_conn(|conn| {
+            let mut stmt = conn.prepare(
+                "SELECT event_id, pubkey, status, invited_at_ms, responded_at_ms
+                 FROM attendees WHERE event_id = ?1 ORDER BY invited_at_ms",
+            )?;
+            let rows = stmt.query_map([event_id], attendee_from_row)?;
+            let mut out = Vec::new();
+            for row in rows {
+                out.push(row?);
+            }
+            Ok(out)
+        })
+    }
+
+    /// Updates an attendee's status when their response event arrives.
+    /// Returns the event id so the caller can notify/refresh, or `None` if
+    /// this pubkey was never actually invited to that event (a spoofed or
+    /// stale response — ignored, not an error).
+    pub fn record_attendee_response(
+        &self,
+        event_id: &str,
+        pubkey: &str,
+        status: AttendeeStatus,
+    ) -> Result<Option<String>, StoreError> {
+        self.with_conn(|conn| {
+            let n = conn.execute(
+                "UPDATE attendees SET status = ?3, responded_at_ms = ?4
+                 WHERE event_id = ?1 AND pubkey = ?2",
+                params![event_id, pubkey, status.as_str(), now_ms()],
+            )?;
+            Ok((n > 0).then(|| event_id.to_owned()))
+        })
+    }
+
+    /// Records an incoming invitation addressed to me. Deterministic on
+    /// `(event_id, inviter_pubkey)` via `id` so a re-sent/duplicate invite
+    /// updates the same row instead of piling up.
+    pub fn upsert_invitation(&self, invitation: &NewInvitation) -> Result<(), StoreError> {
+        self.with_conn(|conn| {
+            conn.execute(
+                "INSERT INTO invitations
+                     (id, event_id, inviter_pubkey, title, description, location,
+                      start_utc, end_utc, timezone, all_day, status, received_at_ms)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, 'pending', ?11)
+                 ON CONFLICT(id) DO UPDATE SET
+                     title = excluded.title, description = excluded.description,
+                     location = excluded.location, start_utc = excluded.start_utc,
+                     end_utc = excluded.end_utc, timezone = excluded.timezone,
+                     all_day = excluded.all_day
+                 WHERE invitations.status = 'pending'",
+                params![
+                    invitation.id,
+                    invitation.event_id,
+                    invitation.inviter_pubkey,
+                    invitation.title,
+                    invitation.description,
+                    invitation.location,
+                    invitation.start.to_rfc3339(),
+                    invitation.end.to_rfc3339(),
+                    invitation.timezone,
+                    invitation.all_day as i64,
+                    now_ms(),
+                ],
+            )?;
+            Ok(())
+        })
+    }
+
+    pub fn pending_invitations(&self) -> Result<Vec<Invitation>, StoreError> {
+        self.with_conn(|conn| {
+            let mut stmt = conn.prepare(
+                "SELECT id, event_id, inviter_pubkey, title, description, location,
+                        start_utc, end_utc, timezone, all_day, status, received_at_ms
+                 FROM invitations WHERE status = 'pending' ORDER BY received_at_ms",
+            )?;
+            let rows = stmt.query_map([], invitation_from_row)?;
+            let mut out = Vec::new();
+            for row in rows {
+                out.push(row?);
+            }
+            Ok(out)
+        })
+    }
+
+    pub fn get_invitation(&self, id: &str) -> Result<Invitation, StoreError> {
+        self.with_conn(|conn| {
+            conn.query_row(
+                "SELECT id, event_id, inviter_pubkey, title, description, location,
+                        start_utc, end_utc, timezone, all_day, status, received_at_ms
+                 FROM invitations WHERE id = ?1",
+                [id],
+                invitation_from_row,
+            )
+            .optional()?
+            .ok_or_else(|| StoreError::NotFound(format!("invitation {id}")))
+        })
+    }
+
+    /// Accepts or declines a pending invitation, transactionally:
+    /// accepting also creates an independent local copy of the event (a
+    /// one-time snapshot owned by this account — the organizer's later
+    /// edits are not propagated automatically, since that would need a
+    /// live-shared-event mechanism ADR-007 deliberately did not take on;
+    /// tracked as a follow-up in docs/nostr-sync.md), and either outcome
+    /// queues the response event back to the organizer.
+    pub fn respond_to_invitation(
+        &self,
+        id: &str,
+        accept: bool,
+        source_device: &str,
+    ) -> Result<Option<Event>, StoreError> {
+        self.with_conn(|conn| {
+            let invitation = conn
+                .query_row(
+                    "SELECT id, event_id, inviter_pubkey, title, description, location,
+                            start_utc, end_utc, timezone, all_day, status, received_at_ms
+                     FROM invitations WHERE id = ?1",
+                    [id],
+                    invitation_from_row,
+                )
+                .optional()?
+                .ok_or_else(|| StoreError::NotFound(format!("invitation {id}")))?;
+            if invitation.status != AttendeeStatus::Invited {
+                return Err(StoreError::Invalid(format!(
+                    "invitation {id} already answered"
+                )));
+            }
+
+            let created = if accept {
+                let now = Utc::now();
+                let event = Event {
+                    id: Uuid::new_v4().to_string(),
+                    calendar_id: "default".to_owned(),
+                    nostr_event_id: None,
+                    owner_pubkey: None,
+                    title: invitation.title.clone(),
+                    description: invitation.description.clone(),
+                    location: invitation.location.clone(),
+                    url: None,
+                    start: invitation.start,
+                    end: invitation.end,
+                    timezone: invitation.timezone.clone(),
+                    all_day: invitation.all_day,
+                    recurrence: Recurrence::None,
+                    recurrence_end: None,
+                    reminders: Vec::new(),
+                    status: "confirmed".to_owned(),
+                    visibility: "private".to_owned(),
+                    color: "0xFF2196F3".to_owned(),
+                    created_at: now,
+                    updated_at: now,
+                    deleted_at: None,
+                    local_revision: 1,
+                    remote_revision: None,
+                    sync_state: SyncState::LocalOnly,
+                    source_device: Some(source_device.to_owned()),
+                    metadata: serde_json::Map::new(),
+                };
+                insert_event_row(conn, &event)?;
+                Some(event)
+            } else {
+                None
+            };
+
+            let status = if accept {
+                AttendeeStatus::Accepted
+            } else {
+                AttendeeStatus::Declined
+            };
+            conn.execute(
+                "UPDATE invitations SET status = ?2, responded_at_ms = ?3 WHERE id = ?1",
+                params![id, status.as_str(), now_ms()],
+            )?;
+            enqueue_invite(
+                conn,
+                "response",
+                &invitation.event_id,
+                &invitation.inviter_pubkey,
+            )?;
+            Ok(created)
+        })
+    }
+}
+
+/// One pending outbox item: an invite or response event still to publish.
+#[derive(Debug, Clone)]
+pub struct InviteOutboxItem {
+    pub id: i64,
+    pub kind: String,
+    pub event_id: String,
+    pub peer_pubkey: String,
+    pub attempts: i64,
+}
+
+/// Queues an invite/response event, collapsing duplicates for the same
+/// (kind, event, peer) — mirrors `enqueue` for the calendar sync_queue.
+fn enqueue_invite(
+    conn: &Connection,
+    kind: &str,
+    event_id: &str,
+    peer_pubkey: &str,
+) -> Result<(), StoreError> {
+    conn.execute(
+        "DELETE FROM invite_outbox WHERE kind = ?1 AND event_id = ?2 AND peer_pubkey = ?3",
+        params![kind, event_id, peer_pubkey],
+    )?;
+    conn.execute(
+        "INSERT INTO invite_outbox (kind, event_id, peer_pubkey, created_at_ms)
+         VALUES (?1, ?2, ?3, ?4)",
+        params![kind, event_id, peer_pubkey, now_ms()],
+    )?;
+    Ok(())
 }
 
 #[derive(Debug, Clone)]
@@ -928,6 +1290,48 @@ fn account_from_row(row: &Row<'_>) -> rusqlite::Result<Account> {
         npub: row.get(2)?,
         label: row.get(3)?,
         signer: row.get(4)?,
+    })
+}
+
+fn attendee_from_row(row: &Row<'_>) -> rusqlite::Result<Attendee> {
+    let status: String = row.get(2)?;
+    Ok(Attendee {
+        event_id: row.get(0)?,
+        pubkey: row.get(1)?,
+        status: AttendeeStatus::parse(&status).unwrap_or(AttendeeStatus::Invited),
+        invited_at_ms: row.get(3)?,
+        responded_at_ms: row.get(4)?,
+    })
+}
+
+fn invitation_from_row(row: &Row<'_>) -> rusqlite::Result<Invitation> {
+    let invalid = |i: usize, e: String| {
+        rusqlite::Error::FromSqlConversionFailure(
+            i,
+            rusqlite::types::Type::Text,
+            Box::new(std::io::Error::new(std::io::ErrorKind::InvalidData, e)),
+        )
+    };
+    let start: String = row.get(6)?;
+    let end: String = row.get(7)?;
+    let status: String = row.get(10)?;
+    Ok(Invitation {
+        id: row.get(0)?,
+        event_id: row.get(1)?,
+        inviter_pubkey: row.get(2)?,
+        title: row.get(3)?,
+        description: row.get(4)?,
+        location: row.get(5)?,
+        start: DateTime::parse_from_rfc3339(&start)
+            .map(|d| d.with_timezone(&Utc))
+            .map_err(|e| invalid(6, e.to_string()))?,
+        end: DateTime::parse_from_rfc3339(&end)
+            .map(|d| d.with_timezone(&Utc))
+            .map_err(|e| invalid(7, e.to_string()))?,
+        timezone: row.get(8)?,
+        all_day: row.get::<_, i64>(9)? != 0,
+        status: AttendeeStatus::parse(&status).unwrap_or(AttendeeStatus::Invited),
+        received_at_ms: row.get(11)?,
     })
 }
 
@@ -1225,5 +1629,160 @@ mod tests {
             store.create_event(d, "test"),
             Err(StoreError::NotFound(_))
         ));
+    }
+
+    #[test]
+    fn attendee_invite_and_response_round_trip() {
+        let store = Store::open_in_memory().expect("open");
+        let event = store
+            .create_event(
+                draft("Lunch", utc(2026, 7, 20, 12), utc(2026, 7, 20, 13)),
+                "test",
+            )
+            .expect("create");
+        let bob = "b".repeat(64);
+
+        store.add_attendee(&event.id, &bob).expect("invite");
+        let attendees = store.attendees_for_event(&event.id).expect("list");
+        assert_eq!(attendees.len(), 1);
+        assert_eq!(attendees[0].status, AttendeeStatus::Invited);
+        assert!(attendees[0].responded_at_ms.is_none());
+
+        // Re-inviting the same pubkey is a no-op, not a duplicate row.
+        store.add_attendee(&event.id, &bob).expect("re-invite");
+        assert_eq!(store.attendees_for_event(&event.id).expect("list").len(), 1);
+
+        let updated = store
+            .record_attendee_response(&event.id, &bob, AttendeeStatus::Accepted)
+            .expect("record");
+        assert_eq!(updated, Some(event.id.clone()));
+        let attendees = store.attendees_for_event(&event.id).expect("list");
+        assert_eq!(attendees[0].status, AttendeeStatus::Accepted);
+        assert!(attendees[0].responded_at_ms.is_some());
+
+        // A response from someone never invited is silently ignored.
+        let stranger = "c".repeat(64);
+        let ignored = store
+            .record_attendee_response(&event.id, &stranger, AttendeeStatus::Accepted)
+            .expect("record");
+        assert_eq!(ignored, None);
+    }
+
+    #[test]
+    fn incoming_invitation_lifecycle() {
+        let store = Store::open_in_memory().expect("open");
+        let invitation = NewInvitation {
+            id: "inv-1".into(),
+            event_id: "evt-1".into(),
+            inviter_pubkey: "a".repeat(64),
+            title: "Team lunch".into(),
+            description: String::new(),
+            location: None,
+            start: utc(2026, 7, 20, 12),
+            end: utc(2026, 7, 20, 13),
+            timezone: "Europe/Rome".into(),
+            all_day: false,
+        };
+        store.upsert_invitation(&invitation).expect("upsert");
+
+        let pending = store.pending_invitations().expect("pending");
+        assert_eq!(pending.len(), 1);
+        assert_eq!(pending[0].title, "Team lunch");
+        assert_eq!(pending[0].status, AttendeeStatus::Invited);
+
+        let fetched = store.get_invitation("inv-1").expect("get");
+        assert_eq!(fetched.event_id, "evt-1");
+
+        let created = store
+            .respond_to_invitation("inv-1", true, "test")
+            .expect("accept");
+        let created = created.expect("accepting creates a local event");
+        assert_eq!(created.title, "Team lunch");
+        assert_eq!(
+            store.get_event(&created.id).expect("get event").title,
+            "Team lunch"
+        );
+        assert!(store.pending_invitations().expect("pending").is_empty());
+        assert_eq!(
+            store.get_invitation("inv-1").expect("get").status,
+            AttendeeStatus::Accepted
+        );
+        // Queued a response to the organizer.
+        assert_eq!(store.due_invite_outbox_items(10).expect("outbox").len(), 1);
+
+        // Responding twice is rejected: only a pending invitation can move.
+        assert!(store.respond_to_invitation("inv-1", false, "test").is_err());
+    }
+
+    #[test]
+    fn declining_an_invitation_creates_no_local_event() {
+        let store = Store::open_in_memory().expect("open");
+        store
+            .upsert_invitation(&NewInvitation {
+                id: "inv-2".into(),
+                event_id: "evt-2".into(),
+                inviter_pubkey: "a".repeat(64),
+                title: "Skip this".into(),
+                description: String::new(),
+                location: None,
+                start: utc(2026, 7, 20, 12),
+                end: utc(2026, 7, 20, 13),
+                timezone: "UTC".into(),
+                all_day: false,
+            })
+            .expect("upsert");
+
+        let created = store
+            .respond_to_invitation("inv-2", false, "test")
+            .expect("decline");
+        assert!(created.is_none());
+        assert_eq!(
+            store.get_invitation("inv-2").expect("get").status,
+            AttendeeStatus::Declined
+        );
+        assert_eq!(store.due_invite_outbox_items(10).expect("outbox").len(), 1);
+    }
+
+    #[test]
+    fn inviting_an_attendee_queues_the_invite_event() {
+        let store = Store::open_in_memory().expect("open");
+        let event = store
+            .create_event(
+                draft("Lunch", utc(2026, 7, 20, 12), utc(2026, 7, 20, 13)),
+                "test",
+            )
+            .expect("create");
+        let bob = "b".repeat(64);
+        store.add_attendee(&event.id, &bob).expect("invite");
+
+        let due = store.due_invite_outbox_items(10).expect("outbox");
+        assert_eq!(due.len(), 1);
+        assert_eq!(due[0].kind, "invite");
+        assert_eq!(due[0].event_id, event.id);
+        assert_eq!(due[0].peer_pubkey, bob);
+    }
+
+    #[test]
+    fn resending_a_pending_invitation_updates_it_in_place() {
+        let store = Store::open_in_memory().expect("open");
+        let mut invitation = NewInvitation {
+            id: "inv-1".into(),
+            event_id: "evt-1".into(),
+            inviter_pubkey: "a".repeat(64),
+            title: "Lunch".into(),
+            description: String::new(),
+            location: None,
+            start: utc(2026, 7, 20, 12),
+            end: utc(2026, 7, 20, 13),
+            timezone: "UTC".into(),
+            all_day: false,
+        };
+        store.upsert_invitation(&invitation).expect("first");
+        invitation.title = "Lunch (moved)".into();
+        store.upsert_invitation(&invitation).expect("resend");
+
+        let pending = store.pending_invitations().expect("pending");
+        assert_eq!(pending.len(), 1, "must update, not duplicate");
+        assert_eq!(pending[0].title, "Lunch (moved)");
     }
 }

@@ -743,4 +743,77 @@ class AppLocalizationsLv extends AppLocalizations {
   String couldNotReachService(String error) {
     return 'Neizdevās sasniegt astraea-service: $error';
   }
+
+  @override
+  String get inviteSectionTitle => 'Dalībnieki';
+
+  @override
+  String get inviteButtonLabel => 'Uzaicināt';
+
+  @override
+  String get noAttendeesYet => 'Pagaidām neviens nav uzaicināts';
+
+  @override
+  String get inviteDialogTitle => 'Uzaicināt kādu';
+
+  @override
+  String get inviteDialogHint => 'npub, vārds@domēns vai publiskā atslēga';
+
+  @override
+  String resolvePersonFailed(String error) {
+    return 'Neizdevās atrast šo personu: $error';
+  }
+
+  @override
+  String get confirmNip05Title => 'Apstiprināt saņēmēju';
+
+  @override
+  String confirmNip05Body(String query, String pubkey) {
+    return '$query tika atrisināts uz $pubkey, izmantojot NIP-05. Šo sasaisti kontrolē domēns — pārliecinieties, ka tā ir sagaidītā persona.';
+  }
+
+  @override
+  String get attendeeStatusInvited => 'Uzaicināts';
+
+  @override
+  String get attendeeStatusAccepted => 'Pieņemts';
+
+  @override
+  String get attendeeStatusDeclined => 'Noraidīts';
+
+  @override
+  String inviteFailed(String error) {
+    return 'Neizdevās nosūtīt uzaicinājumu: $error';
+  }
+
+  @override
+  String get pendingInvitationsTooltip => 'Uzaicinājumi';
+
+  @override
+  String get pendingInvitationsTitle => 'Uzaicinājumi';
+
+  @override
+  String get pendingInvitationsEmpty => 'Nav gaidošu uzaicinājumu';
+
+  @override
+  String invitationFromLabel(String pubkey) {
+    return 'No $pubkey';
+  }
+
+  @override
+  String get acceptInvitation => 'Pieņemt';
+
+  @override
+  String get declineInvitation => 'Noraidīt';
+
+  @override
+  String respondToInvitationFailed(String error) {
+    return 'Neizdevās atbildēt: $error';
+  }
+
+  @override
+  String get invitationAccepted => 'Uzaicinājums pieņemts';
+
+  @override
+  String get invitationDeclined => 'Uzaicinājums noraidīts';
 }

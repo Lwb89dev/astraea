@@ -741,4 +741,77 @@ class AppLocalizationsSv extends AppLocalizations {
   String couldNotReachService(String error) {
     return 'Det gick inte att nå astraea-service: $error';
   }
+
+  @override
+  String get inviteSectionTitle => 'Deltagare';
+
+  @override
+  String get inviteButtonLabel => 'Bjud in';
+
+  @override
+  String get noAttendeesYet => 'Ingen har bjudits in ännu';
+
+  @override
+  String get inviteDialogTitle => 'Bjud in någon';
+
+  @override
+  String get inviteDialogHint => 'npub, namn@domän eller publik nyckel';
+
+  @override
+  String resolvePersonFailed(String error) {
+    return 'Kunde inte hitta den personen: $error';
+  }
+
+  @override
+  String get confirmNip05Title => 'Bekräfta mottagare';
+
+  @override
+  String confirmNip05Body(String query, String pubkey) {
+    return '$query matchades till $pubkey via NIP-05. Denna koppling styrs av domänen — se till att det är den förväntade personen.';
+  }
+
+  @override
+  String get attendeeStatusInvited => 'Inbjuden';
+
+  @override
+  String get attendeeStatusAccepted => 'Accepterad';
+
+  @override
+  String get attendeeStatusDeclined => 'Avböjd';
+
+  @override
+  String inviteFailed(String error) {
+    return 'Kunde inte skicka inbjudan: $error';
+  }
+
+  @override
+  String get pendingInvitationsTooltip => 'Inbjudningar';
+
+  @override
+  String get pendingInvitationsTitle => 'Inbjudningar';
+
+  @override
+  String get pendingInvitationsEmpty => 'Inga väntande inbjudningar';
+
+  @override
+  String invitationFromLabel(String pubkey) {
+    return 'Från $pubkey';
+  }
+
+  @override
+  String get acceptInvitation => 'Acceptera';
+
+  @override
+  String get declineInvitation => 'Avböj';
+
+  @override
+  String respondToInvitationFailed(String error) {
+    return 'Kunde inte svara: $error';
+  }
+
+  @override
+  String get invitationAccepted => 'Inbjudan accepterad';
+
+  @override
+  String get invitationDeclined => 'Inbjudan avböjd';
 }

@@ -755,4 +755,77 @@ class AppLocalizationsRu extends AppLocalizations {
   String couldNotReachService(String error) {
     return 'Не удалось связаться со службой astraea-service: $error';
   }
+
+  @override
+  String get inviteSectionTitle => 'Участники';
+
+  @override
+  String get inviteButtonLabel => 'Пригласить';
+
+  @override
+  String get noAttendeesYet => 'Пока никто не приглашён';
+
+  @override
+  String get inviteDialogTitle => 'Пригласить кого-то';
+
+  @override
+  String get inviteDialogHint => 'npub, имя@домен или публичный ключ';
+
+  @override
+  String resolvePersonFailed(String error) {
+    return 'Не удалось найти этого человека: $error';
+  }
+
+  @override
+  String get confirmNip05Title => 'Подтвердите получателя';
+
+  @override
+  String confirmNip05Body(String query, String pubkey) {
+    return '$query был сопоставлен с $pubkey через NIP-05. Это сопоставление контролируется доменом — убедитесь, что это ожидаемый человек.';
+  }
+
+  @override
+  String get attendeeStatusInvited => 'Приглашён';
+
+  @override
+  String get attendeeStatusAccepted => 'Принято';
+
+  @override
+  String get attendeeStatusDeclined => 'Отклонено';
+
+  @override
+  String inviteFailed(String error) {
+    return 'Не удалось отправить приглашение: $error';
+  }
+
+  @override
+  String get pendingInvitationsTooltip => 'Приглашения';
+
+  @override
+  String get pendingInvitationsTitle => 'Приглашения';
+
+  @override
+  String get pendingInvitationsEmpty => 'Нет ожидающих приглашений';
+
+  @override
+  String invitationFromLabel(String pubkey) {
+    return 'От $pubkey';
+  }
+
+  @override
+  String get acceptInvitation => 'Принять';
+
+  @override
+  String get declineInvitation => 'Отклонить';
+
+  @override
+  String respondToInvitationFailed(String error) {
+    return 'Не удалось отправить ответ: $error';
+  }
+
+  @override
+  String get invitationAccepted => 'Приглашение принято';
+
+  @override
+  String get invitationDeclined => 'Приглашение отклонено';
 }

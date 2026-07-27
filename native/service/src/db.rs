@@ -9,7 +9,10 @@ use tracing::{info, warn};
 
 /// Ordered, append-only migration list. Never edit a shipped entry; add a new
 /// one. Version = index + 1.
-const MIGRATIONS: &[&str] = &[include_str!("../migrations/001_init.sql")];
+const MIGRATIONS: &[&str] = &[
+    include_str!("../migrations/001_init.sql"),
+    include_str!("../migrations/002_invites.sql"),
+];
 
 #[derive(Debug, thiserror::Error)]
 pub enum DbError {

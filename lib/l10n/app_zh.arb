@@ -220,5 +220,27 @@
   "relaysConfiguredLabel": "{count, plural, other{已配置 {count} 个}}",
   "unencryptedTransport": "未加密传输",
 
-  "couldNotReachService": "无法连接到 astraea-service：{error}"
+  "couldNotReachService": "无法连接到 astraea-service：{error}",
+
+  "inviteSectionTitle": "参与者",
+  "inviteButtonLabel": "邀请",
+  "noAttendeesYet": "尚未邀请任何人",
+  "inviteDialogTitle": "邀请某人",
+  "inviteDialogHint": "npub、name@domain 或公钥",
+  "resolvePersonFailed": "无法解析该联系人：{error}",
+  "confirmNip05Title": "确认收件人",
+  "confirmNip05Body": "通过 NIP-05，{query} 已解析为 {pubkey}。此映射由该域名控制——请确认这是您预期的联系人。",
+  "attendeeStatusInvited": "已邀请",
+  "attendeeStatusAccepted": "已接受",
+  "attendeeStatusDeclined": "已拒绝",
+  "inviteFailed": "无法发送邀请：{error}",
+  "pendingInvitationsTooltip": "邀请",
+  "pendingInvitationsTitle": "邀请",
+  "pendingInvitationsEmpty": "没有待处理的邀请",
+  "invitationFromLabel": "来自 {pubkey}",
+  "acceptInvitation": "接受",
+  "declineInvitation": "拒绝",
+  "respondToInvitationFailed": "无法发送回复：{error}",
+  "invitationAccepted": "邀请已接受",
+  "invitationDeclined": "邀请已拒绝"
 }

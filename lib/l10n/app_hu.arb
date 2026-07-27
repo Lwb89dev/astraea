@@ -220,5 +220,27 @@
   "relaysConfiguredLabel": "{count, plural, one{1 beállítva} other{{count} beállítva}}",
   "unencryptedTransport": "Titkosítatlan átvitel",
 
-  "couldNotReachService": "Az astraea-service nem érhető el: {error}"
+  "couldNotReachService": "Az astraea-service nem érhető el: {error}",
+
+  "inviteSectionTitle": "Résztvevők",
+  "inviteButtonLabel": "Meghívás",
+  "noAttendeesYet": "Még senkit sem hívtak meg",
+  "inviteDialogTitle": "Valaki meghívása",
+  "inviteDialogHint": "npub, név@domain vagy nyilvános kulcs",
+  "resolvePersonFailed": "Nem sikerült feloldani ezt a személyt: {error}",
+  "confirmNip05Title": "Címzett megerősítése",
+  "confirmNip05Body": "A(z) {query} a NIP-05 alapján erre oldódott fel: {pubkey}. Ezt a hozzárendelést a domain felügyeli – győződjön meg róla, hogy a várt személyről van szó.",
+  "attendeeStatusInvited": "Meghívva",
+  "attendeeStatusAccepted": "Elfogadva",
+  "attendeeStatusDeclined": "Elutasítva",
+  "inviteFailed": "Nem sikerült elküldeni a meghívást: {error}",
+  "pendingInvitationsTooltip": "Meghívások",
+  "pendingInvitationsTitle": "Meghívások",
+  "pendingInvitationsEmpty": "Nincs függőben lévő meghívás",
+  "invitationFromLabel": "Feladó: {pubkey}",
+  "acceptInvitation": "Elfogadás",
+  "declineInvitation": "Elutasítás",
+  "respondToInvitationFailed": "Nem sikerült válaszolni: {error}",
+  "invitationAccepted": "Meghívás elfogadva",
+  "invitationDeclined": "Meghívás elutasítva"
 }

@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:uuid/uuid.dart';
 
+import '../desktop/desktop_invite_section_stub.dart'
+    if (dart.library.io) '../desktop/desktop_invite_section.dart'
+    as desktop_invite;
 import '../l10n/app_localizations.dart';
 import '../models/event_model.dart';
 import '../models/reminder_model.dart';
@@ -395,6 +398,9 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
               border: const OutlineInputBorder(),
             ),
           ),
+          if (widget.existing != null)
+            desktop_invite.desktopInviteSection(widget.existing!.id) ??
+                const SizedBox.shrink(),
           const SizedBox(height: 32),
         ],
       ),

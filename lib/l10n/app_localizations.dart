@@ -1335,6 +1335,132 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not reach astraea-service: {error}'**
   String couldNotReachService(String error);
+
+  /// No description provided for @inviteSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Attendees'**
+  String get inviteSectionTitle;
+
+  /// No description provided for @inviteButtonLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite'**
+  String get inviteButtonLabel;
+
+  /// No description provided for @noAttendeesYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No one invited yet'**
+  String get noAttendeesYet;
+
+  /// No description provided for @inviteDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite someone'**
+  String get inviteDialogTitle;
+
+  /// No description provided for @inviteDialogHint.
+  ///
+  /// In en, this message translates to:
+  /// **'npub, name@domain, or public key'**
+  String get inviteDialogHint;
+
+  /// No description provided for @resolvePersonFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not resolve that person: {error}'**
+  String resolvePersonFailed(String error);
+
+  /// No description provided for @confirmNip05Title.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm recipient'**
+  String get confirmNip05Title;
+
+  /// No description provided for @confirmNip05Body.
+  ///
+  /// In en, this message translates to:
+  /// **'{query} resolved to {pubkey} via NIP-05. This mapping is controlled by the domain — make sure it\'s who you expect.'**
+  String confirmNip05Body(String query, String pubkey);
+
+  /// No description provided for @attendeeStatusInvited.
+  ///
+  /// In en, this message translates to:
+  /// **'Invited'**
+  String get attendeeStatusInvited;
+
+  /// No description provided for @attendeeStatusAccepted.
+  ///
+  /// In en, this message translates to:
+  /// **'Accepted'**
+  String get attendeeStatusAccepted;
+
+  /// No description provided for @attendeeStatusDeclined.
+  ///
+  /// In en, this message translates to:
+  /// **'Declined'**
+  String get attendeeStatusDeclined;
+
+  /// No description provided for @inviteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not send the invite: {error}'**
+  String inviteFailed(String error);
+
+  /// No description provided for @pendingInvitationsTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Invitations'**
+  String get pendingInvitationsTooltip;
+
+  /// No description provided for @pendingInvitationsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Invitations'**
+  String get pendingInvitationsTitle;
+
+  /// No description provided for @pendingInvitationsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No pending invitations'**
+  String get pendingInvitationsEmpty;
+
+  /// No description provided for @invitationFromLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'From {pubkey}'**
+  String invitationFromLabel(String pubkey);
+
+  /// No description provided for @acceptInvitation.
+  ///
+  /// In en, this message translates to:
+  /// **'Accept'**
+  String get acceptInvitation;
+
+  /// No description provided for @declineInvitation.
+  ///
+  /// In en, this message translates to:
+  /// **'Decline'**
+  String get declineInvitation;
+
+  /// No description provided for @respondToInvitationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not respond: {error}'**
+  String respondToInvitationFailed(String error);
+
+  /// No description provided for @invitationAccepted.
+  ///
+  /// In en, this message translates to:
+  /// **'Invitation accepted'**
+  String get invitationAccepted;
+
+  /// No description provided for @invitationDeclined.
+  ///
+  /// In en, this message translates to:
+  /// **'Invitation declined'**
+  String get invitationDeclined;
 }
 
 class _AppLocalizationsDelegate

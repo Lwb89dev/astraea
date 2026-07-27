@@ -54,6 +54,11 @@ and
 | `OpenDesktop` | `(s view, s targetId, s date) → ()` | launches/raises the Flutter app via `astraea://` |
 | `GetSettings` | `() → (s json)` | relays, timezone, notifications, … |
 | `UpdateSettings` | `(s patchJson) → (s json)` | |
+| `ResolvePerson` | `(s query) → (s json)` | ADR-007. `query` is an npub, hex pubkey, or NIP-05 `name@domain`; returns `{pubkeyHex, viaNip05}`. Callers must show `viaNip05` results to the user for confirmation before inviting — a NIP-05 mapping is the domain operator's claim, not proof |
+| `InviteAttendee` | `(s eventId, s pubkeyHex) → ()` | invites a person (already resolved via `ResolvePerson`) to an event I own; idempotent |
+| `GetAttendees` | `(s eventId) → (s json)` | array of `{pubkeyHex, status, invitedAtMs, respondedAtMs}` for an event I own |
+| `GetPendingInvitations` | `() → (s json)` | invitations addressed to me, not yet answered |
+| `RespondToInvitation` | `(s invitationId, b accept) → ()` | accepting also creates a local copy of the event (`EventsChanged` follows) |
 
 Occurrence JSON (elements of the `GetAgenda`/`GetDay`/... result array):
 
@@ -84,6 +89,21 @@ Event draft (accepted by `CreateEvent`; `title`, `start`, `end` required):
 }
 ```
 
+Pending invitation (elements of `GetPendingInvitations`'s result array):
+
+```json
+{
+  "schemaVersion": 1,
+  "invitationId": "5f0e8f7a-…:ab12…",
+  "eventId": "5f0e8f7a-1111-4222-8333-944444444444",
+  "inviterPubkey": "ab12…",
+  "title": "…", "description": "…", "location": "…",
+  "startTimeUtc": "2026-07-20T09:00:00Z", "endTimeUtc": "2026-07-20T10:00:00Z",
+  "timezone": "Europe/Rome", "isAllDay": false,
+  "status": "pending", "receivedAtMs": 1784448000000
+}
+```
+
 ### Signals
 
 | Signal | Signature | Emitted when |
@@ -94,6 +114,7 @@ Event draft (accepted by `CreateEvent`; `title`, `start`, `end` required):
 | `SettingsChanged` | `(s json)` | |
 | `NotificationRaised` | `(s eventId, s title, x fireAt)` | a reminder fired |
 | `ServiceError` | `(s code, s message)` | non-fatal background failure |
+| `InvitationsChanged` | `()` | a pending invitation was added/answered, or one of my events gained an attendee response (ADR-007); refetch `GetPendingInvitations`/`GetAttendees` |
 
 ## com.lwb89dev.NostrAccount1
 

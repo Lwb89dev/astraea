@@ -753,4 +753,77 @@ class AppLocalizationsGa extends AppLocalizations {
   String couldNotReachService(String error) {
     return 'Níorbh fhéidir teacht ar astraea-service: $error';
   }
+
+  @override
+  String get inviteSectionTitle => 'Rannpháirtithe';
+
+  @override
+  String get inviteButtonLabel => 'Tabhair cuireadh';
+
+  @override
+  String get noAttendeesYet => 'Níor tugadh cuireadh d\'aon duine fós';
+
+  @override
+  String get inviteDialogTitle => 'Tabhair cuireadh do dhuine';
+
+  @override
+  String get inviteDialogHint => 'npub, ainm@fearann, nó eochair phoiblí';
+
+  @override
+  String resolvePersonFailed(String error) {
+    return 'Níorbh fhéidir an duine sin a réiteach: $error';
+  }
+
+  @override
+  String get confirmNip05Title => 'Deimhnigh an faighteoir';
+
+  @override
+  String confirmNip05Body(String query, String pubkey) {
+    return 'Réitíodh $query go $pubkey trí NIP-05. Is é an fearann a rialaíonn an mapáil seo — bí cinnte gurb é an duine a bhfuiltear ag súil leis.';
+  }
+
+  @override
+  String get attendeeStatusInvited => 'Cuireadh tugtha';
+
+  @override
+  String get attendeeStatusAccepted => 'Glactha';
+
+  @override
+  String get attendeeStatusDeclined => 'Diúltaithe';
+
+  @override
+  String inviteFailed(String error) {
+    return 'Níorbh fhéidir an cuireadh a sheoladh: $error';
+  }
+
+  @override
+  String get pendingInvitationsTooltip => 'Cuirí';
+
+  @override
+  String get pendingInvitationsTitle => 'Cuirí';
+
+  @override
+  String get pendingInvitationsEmpty => 'Níl aon chuireadh ar feitheamh';
+
+  @override
+  String invitationFromLabel(String pubkey) {
+    return 'Ó $pubkey';
+  }
+
+  @override
+  String get acceptInvitation => 'Glac';
+
+  @override
+  String get declineInvitation => 'Diúltaigh';
+
+  @override
+  String respondToInvitationFailed(String error) {
+    return 'Níorbh fhéidir freagra a sheoladh: $error';
+  }
+
+  @override
+  String get invitationAccepted => 'Glacadh leis an gcuireadh';
+
+  @override
+  String get invitationDeclined => 'Diúltaíodh don chuireadh';
 }

@@ -220,5 +220,27 @@
   "relaysConfiguredLabel": "{count, plural, zero{{count} konfigurēti} one{1 konfigurēts} other{{count} konfigurēti}}",
   "unencryptedTransport": "Nešifrēta pārraide",
 
-  "couldNotReachService": "Neizdevās sasniegt astraea-service: {error}"
+  "couldNotReachService": "Neizdevās sasniegt astraea-service: {error}",
+
+  "inviteSectionTitle": "Dalībnieki",
+  "inviteButtonLabel": "Uzaicināt",
+  "noAttendeesYet": "Pagaidām neviens nav uzaicināts",
+  "inviteDialogTitle": "Uzaicināt kādu",
+  "inviteDialogHint": "npub, vārds@domēns vai publiskā atslēga",
+  "resolvePersonFailed": "Neizdevās atrast šo personu: {error}",
+  "confirmNip05Title": "Apstiprināt saņēmēju",
+  "confirmNip05Body": "{query} tika atrisināts uz {pubkey}, izmantojot NIP-05. Šo sasaisti kontrolē domēns — pārliecinieties, ka tā ir sagaidītā persona.",
+  "attendeeStatusInvited": "Uzaicināts",
+  "attendeeStatusAccepted": "Pieņemts",
+  "attendeeStatusDeclined": "Noraidīts",
+  "inviteFailed": "Neizdevās nosūtīt uzaicinājumu: {error}",
+  "pendingInvitationsTooltip": "Uzaicinājumi",
+  "pendingInvitationsTitle": "Uzaicinājumi",
+  "pendingInvitationsEmpty": "Nav gaidošu uzaicinājumu",
+  "invitationFromLabel": "No {pubkey}",
+  "acceptInvitation": "Pieņemt",
+  "declineInvitation": "Noraidīt",
+  "respondToInvitationFailed": "Neizdevās atbildēt: {error}",
+  "invitationAccepted": "Uzaicinājums pieņemts",
+  "invitationDeclined": "Uzaicinājums noraidīts"
 }

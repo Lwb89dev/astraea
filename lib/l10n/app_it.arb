@@ -220,5 +220,27 @@
   "relaysConfiguredLabel": "{count, plural, one{1 configurato} other{{count} configurati}}",
   "unencryptedTransport": "Trasporto non cifrato",
 
-  "couldNotReachService": "Impossibile raggiungere astraea-service: {error}"
+  "couldNotReachService": "Impossibile raggiungere astraea-service: {error}",
+
+  "inviteSectionTitle": "Partecipanti",
+  "inviteButtonLabel": "Invita",
+  "noAttendeesYet": "Nessuno è stato ancora invitato",
+  "inviteDialogTitle": "Invita qualcuno",
+  "inviteDialogHint": "npub, nome@dominio o chiave pubblica",
+  "resolvePersonFailed": "Impossibile trovare quella persona: {error}",
+  "confirmNip05Title": "Conferma destinatario",
+  "confirmNip05Body": "{query} è stato risolto in {pubkey} tramite NIP-05. Questa corrispondenza è controllata dal dominio: assicurati che sia la persona attesa.",
+  "attendeeStatusInvited": "Invitato",
+  "attendeeStatusAccepted": "Accettato",
+  "attendeeStatusDeclined": "Rifiutato",
+  "inviteFailed": "Impossibile inviare l'invito: {error}",
+  "pendingInvitationsTooltip": "Inviti",
+  "pendingInvitationsTitle": "Inviti",
+  "pendingInvitationsEmpty": "Nessun invito in sospeso",
+  "invitationFromLabel": "Da {pubkey}",
+  "acceptInvitation": "Accetta",
+  "declineInvitation": "Rifiuta",
+  "respondToInvitationFailed": "Impossibile rispondere: {error}",
+  "invitationAccepted": "Invito accettato",
+  "invitationDeclined": "Invito rifiutato"
 }

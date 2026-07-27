@@ -220,5 +220,27 @@
   "relaysConfiguredLabel": "{count, plural, one{1 määritetty} other{{count} määritetty}}",
   "unencryptedTransport": "Salaamaton siirto",
 
-  "couldNotReachService": "astraea-serviceen ei saatu yhteyttä: {error}"
+  "couldNotReachService": "astraea-serviceen ei saatu yhteyttä: {error}",
+
+  "inviteSectionTitle": "Osallistujat",
+  "inviteButtonLabel": "Kutsu",
+  "noAttendeesYet": "Ketään ei ole vielä kutsuttu",
+  "inviteDialogTitle": "Kutsu joku",
+  "inviteDialogHint": "npub, nimi@verkkotunnus tai julkinen avain",
+  "resolvePersonFailed": "Henkilöä ei löytynyt: {error}",
+  "confirmNip05Title": "Vahvista vastaanottaja",
+  "confirmNip05Body": "{query} ratkaistiin muotoon {pubkey} NIP-05:n kautta. Verkkotunnuksen ylläpitäjä hallitsee tätä vastaavuutta — varmista, että kyseessä on odotettu henkilö.",
+  "attendeeStatusInvited": "Kutsuttu",
+  "attendeeStatusAccepted": "Hyväksyi",
+  "attendeeStatusDeclined": "Hylkäsi",
+  "inviteFailed": "Kutsua ei voitu lähettää: {error}",
+  "pendingInvitationsTooltip": "Kutsut",
+  "pendingInvitationsTitle": "Kutsut",
+  "pendingInvitationsEmpty": "Ei odottavia kutsuja",
+  "invitationFromLabel": "Lähettäjä {pubkey}",
+  "acceptInvitation": "Hyväksy",
+  "declineInvitation": "Hylkää",
+  "respondToInvitationFailed": "Vastausta ei voitu lähettää: {error}",
+  "invitationAccepted": "Kutsu hyväksytty",
+  "invitationDeclined": "Kutsu hylätty"
 }

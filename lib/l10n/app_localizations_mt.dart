@@ -742,4 +742,77 @@ class AppLocalizationsMt extends AppLocalizations {
   String couldNotReachService(String error) {
     return 'Ma setax jintlaħaq astraea-service: $error';
   }
+
+  @override
+  String get inviteSectionTitle => 'Parteċipanti';
+
+  @override
+  String get inviteButtonLabel => 'Istieden';
+
+  @override
+  String get noAttendeesYet => 'Għadu ħadd ma ġie mistieden';
+
+  @override
+  String get inviteDialogTitle => 'Istieden lil xi ħadd';
+
+  @override
+  String get inviteDialogHint => 'npub, isem@dominju, jew ċavetta pubblika';
+
+  @override
+  String resolvePersonFailed(String error) {
+    return 'Ma setax jinstab dak il-persuna: $error';
+  }
+
+  @override
+  String get confirmNip05Title => 'Ikkonferma d-destinatarju';
+
+  @override
+  String confirmNip05Body(String query, String pubkey) {
+    return '$query ġie riżolt għal $pubkey permezz ta\' NIP-05. Din il-mappa hija kkontrollata mid-dominju — kun żgur li din hija l-persuna mistennija.';
+  }
+
+  @override
+  String get attendeeStatusInvited => 'Mistieden';
+
+  @override
+  String get attendeeStatusAccepted => 'Aċċettat';
+
+  @override
+  String get attendeeStatusDeclined => 'Miċħud';
+
+  @override
+  String inviteFailed(String error) {
+    return 'Ma setax jintbagħat l-istedina: $error';
+  }
+
+  @override
+  String get pendingInvitationsTooltip => 'Stediniet';
+
+  @override
+  String get pendingInvitationsTitle => 'Stediniet';
+
+  @override
+  String get pendingInvitationsEmpty => 'L-ebda stedina pendenti';
+
+  @override
+  String invitationFromLabel(String pubkey) {
+    return 'Minn $pubkey';
+  }
+
+  @override
+  String get acceptInvitation => 'Aċċetta';
+
+  @override
+  String get declineInvitation => 'Iċħad';
+
+  @override
+  String respondToInvitationFailed(String error) {
+    return 'Ma setgħetx tintbagħat tweġiba: $error';
+  }
+
+  @override
+  String get invitationAccepted => 'Stedina aċċettata';
+
+  @override
+  String get invitationDeclined => 'Stedina miċħuda';
 }

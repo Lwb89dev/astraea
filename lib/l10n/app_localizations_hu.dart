@@ -741,4 +741,77 @@ class AppLocalizationsHu extends AppLocalizations {
   String couldNotReachService(String error) {
     return 'Az astraea-service nem érhető el: $error';
   }
+
+  @override
+  String get inviteSectionTitle => 'Résztvevők';
+
+  @override
+  String get inviteButtonLabel => 'Meghívás';
+
+  @override
+  String get noAttendeesYet => 'Még senkit sem hívtak meg';
+
+  @override
+  String get inviteDialogTitle => 'Valaki meghívása';
+
+  @override
+  String get inviteDialogHint => 'npub, név@domain vagy nyilvános kulcs';
+
+  @override
+  String resolvePersonFailed(String error) {
+    return 'Nem sikerült feloldani ezt a személyt: $error';
+  }
+
+  @override
+  String get confirmNip05Title => 'Címzett megerősítése';
+
+  @override
+  String confirmNip05Body(String query, String pubkey) {
+    return 'A(z) $query a NIP-05 alapján erre oldódott fel: $pubkey. Ezt a hozzárendelést a domain felügyeli – győződjön meg róla, hogy a várt személyről van szó.';
+  }
+
+  @override
+  String get attendeeStatusInvited => 'Meghívva';
+
+  @override
+  String get attendeeStatusAccepted => 'Elfogadva';
+
+  @override
+  String get attendeeStatusDeclined => 'Elutasítva';
+
+  @override
+  String inviteFailed(String error) {
+    return 'Nem sikerült elküldeni a meghívást: $error';
+  }
+
+  @override
+  String get pendingInvitationsTooltip => 'Meghívások';
+
+  @override
+  String get pendingInvitationsTitle => 'Meghívások';
+
+  @override
+  String get pendingInvitationsEmpty => 'Nincs függőben lévő meghívás';
+
+  @override
+  String invitationFromLabel(String pubkey) {
+    return 'Feladó: $pubkey';
+  }
+
+  @override
+  String get acceptInvitation => 'Elfogadás';
+
+  @override
+  String get declineInvitation => 'Elutasítás';
+
+  @override
+  String respondToInvitationFailed(String error) {
+    return 'Nem sikerült válaszolni: $error';
+  }
+
+  @override
+  String get invitationAccepted => 'Meghívás elfogadva';
+
+  @override
+  String get invitationDeclined => 'Meghívás elutasítva';
 }
