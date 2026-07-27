@@ -91,11 +91,12 @@ private class DayAgendaFactory(
 ) : RemoteViewsService.RemoteViewsFactory {
     private var rows: List<WidgetEvent> = emptyList()
     private var scale = 1f
+    private var offset = 0
 
     override fun onCreate() {}
 
     override fun onDataSetChanged() {
-        val offset = AstraeaWidgetData.periodOffset(context, widgetId)
+        offset = AstraeaWidgetData.periodOffset(context, widgetId)
         rows = AstraeaWidgetData.eventsOn(
             AstraeaWidgetData.loadEvents(context),
             AstraeaWidgetData.startOfToday(offset),
@@ -107,7 +108,10 @@ private class DayAgendaFactory(
     override fun getCount() = rows.size
     override fun getLoadingView(): RemoteViews? = null
     override fun getViewTypeCount() = 1
-    override fun getItemId(position: Int) = position.toLong()
+    // Folds the period offset in so a day with the same event count as the
+    // previously shown one is still recognised as a different dataset — see
+    // itemIdFor's doc comment for why plain positional ids aren't enough.
+    override fun getItemId(position: Int) = itemIdFor(offset, position)
     override fun hasStableIds() = true
 
     override fun getViewAt(position: Int): RemoteViews =
@@ -121,11 +125,12 @@ private class WeekAgendaFactory(
 ) : RemoteViewsService.RemoteViewsFactory {
     private var rows: List<WidgetEvent> = emptyList()
     private var scale = 1f
+    private var offset = 0
 
     override fun onCreate() {}
 
     override fun onDataSetChanged() {
-        val offset = AstraeaWidgetData.periodOffset(context, widgetId)
+        offset = AstraeaWidgetData.periodOffset(context, widgetId)
         val start = AstraeaWidgetData.startOfWeek(offset)
         val end = (start.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, 7) }
         rows = AstraeaWidgetData.eventsBetween(AstraeaWidgetData.loadEvents(context), start, end)
@@ -136,7 +141,7 @@ private class WeekAgendaFactory(
     override fun getCount() = rows.size
     override fun getLoadingView(): RemoteViews? = null
     override fun getViewTypeCount() = 1
-    override fun getItemId(position: Int) = position.toLong()
+    override fun getItemId(position: Int) = itemIdFor(offset, position)
     override fun hasStableIds() = true
 
     override fun getViewAt(position: Int): RemoteViews {
@@ -157,6 +162,7 @@ private class MonthGridFactory(
 ) : RemoteViewsService.RemoteViewsFactory {
     private var cells: List<Cell> = emptyList()
     private var scale = 1f
+    private var offset = 0
 
     /** [day] is null for the blank cells before the 1st. */
     private data class Cell(val day: Int?, val isToday: Boolean, val firstEventId: String?)
@@ -166,7 +172,7 @@ private class MonthGridFactory(
     override fun onDataSetChanged() {
         scale = AstraeaWidgetData.widgetScale(context, widgetId, 250f, 180f)
         val events = AstraeaWidgetData.loadEvents(context)
-        val offset = AstraeaWidgetData.periodOffset(context, widgetId)
+        offset = AstraeaWidgetData.periodOffset(context, widgetId)
         val monthStart = AstraeaWidgetData.startOfMonth(offset)
         val today = Calendar.getInstance()
         val isCurrentMonth = monthStart.get(Calendar.MONTH) == today.get(Calendar.MONTH) &&
@@ -204,7 +210,7 @@ private class MonthGridFactory(
     override fun getCount() = cells.size
     override fun getLoadingView(): RemoteViews? = null
     override fun getViewTypeCount() = 1
-    override fun getItemId(position: Int) = position.toLong()
+    override fun getItemId(position: Int) = itemIdFor(offset, position)
     override fun hasStableIds() = true
 
     override fun getViewAt(position: Int): RemoteViews {
@@ -259,3 +265,22 @@ private class MonthGridFactory(
 /** "13:00", or a bullet for an all-day event. */
 private fun formatTime(event: WidgetEvent): String =
     if (event.isAllDay) "•" else SimpleDateFormat("HH:mm", Locale.getDefault()).format(event.startCalendar().time)
+
+/**
+ * Item id for [position] under the given period [offset] (day/week/month
+ * navigation — see [AstraeaWidgetData.periodOffset]).
+ *
+ * `hasStableIds() = true` combined with a plain `position.toLong()` id makes
+ * `RemoteViewsAdapter` (the framework class backing List/GridView in
+ * AppWidgets) treat two different periods with the same item count as the
+ * *same* dataset at the id level, and it can then skip re-binding rows whose
+ * position/id didn't change — this is a well-known collection-widget
+ * staleness class of bug. Two consecutive months very often need the same
+ * number of grid cells (35 for a 5-row month, 42 for a 6-row one), so the
+ * "forward" button would appear to freeze exactly on months that happen to
+ * share a cell count with the one before them — matching the reported "gets
+ * stuck at the current month, or moves once and then gets stuck" symptom.
+ * Folding the offset into the id makes every period change look like a
+ * structurally new dataset, forcing a full re-bind every time.
+ */
+private fun itemIdFor(offset: Int, position: Int): Long = (offset + 200).toLong() * 1000L + position
