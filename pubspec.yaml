@@ -11,6 +11,12 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # App UI localization (24 official EU languages + Chinese, Japanese,
+  # Russian). ARB sources in lib/l10n/, generated AppLocalizations consumed
+  # via flutter gen-l10n (see l10n.yaml and `generate: true` below).
+  flutter_localizations:
+    sdk: flutter
+
   # State management: Riverpod (same choice as Echoes) — AsyncNotifier/
   # AsyncValue model the async relay sync/fetch operations well (explicit
   # loading/error/data states, no nested FutureBuilders).
@@ -117,6 +123,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  generate: true
 
   assets:
     - assets/icon/

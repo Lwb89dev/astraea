@@ -69,6 +69,11 @@ class AppConstants {
   static const String prefsNotificationsEnabledKey =
       'epochs.notifications_enabled';
 
+  /// IETF BCP-47 tag ("it", "pt-BR" is not used here — the supported set is
+  /// flat language codes, see AppLocalizations.supportedLocales). Null/absent
+  /// means "follow the system language".
+  static const String prefsLocaleKey = 'astraea.locale';
+
   /// Last-fetched profile metadata (name/avatar URL) for the signed-in
   /// account, so Settings shows something immediately on launch instead of a
   /// blank state while [ProfileNotifier] re-fetches from the relays.

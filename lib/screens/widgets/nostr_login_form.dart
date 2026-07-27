@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/nostr_service.dart';
 import '../../utils/formatter.dart';
@@ -45,6 +46,7 @@ class _NostrLoginFormState extends ConsumerState<NostrLoginForm> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final authState = ref.watch(authProvider);
     final user = authState.value;
     final isLoading = authState.isLoading;
@@ -56,14 +58,14 @@ class _NostrLoginFormState extends ConsumerState<NostrLoginForm> {
           Card(
             child: ListTile(
               leading: const Icon(Icons.verified_user_outlined),
-              title: const Text('Nostr account connected'),
+              title: Text(l10n.nostrAccountConnected),
               subtitle: Text(Formatter.truncateKey(user.npub)),
             ),
           ),
           const SizedBox(height: 16),
           FilledButton(
             onPressed: widget.onLoggedIn,
-            child: const Text('Continue'),
+            child: Text(l10n.continueLabel),
           ),
         ],
       );
@@ -79,8 +81,8 @@ class _NostrLoginFormState extends ConsumerState<NostrLoginForm> {
               // A parsing exception may contain the key the user entered.
               // Never interpolate it into the UI or logs.
               authState.error is InvalidPrivateKeyException
-                  ? 'That private key is not valid. Check it and try again.'
-                  : 'Could not sign in: ${authState.error}',
+                  ? l10n.invalidPrivateKey
+                  : l10n.couldNotSignIn(authState.error.toString()),
               textAlign: TextAlign.center,
               style: TextStyle(color: theme.colorScheme.error),
             ),
@@ -93,7 +95,7 @@ class _NostrLoginFormState extends ConsumerState<NostrLoginForm> {
                     () => ref.read(authProvider.notifier).loginWithAmber(),
                   ),
             icon: const Icon(Icons.shield_outlined),
-            label: const Text('Sign in with Amber'),
+            label: Text(l10n.signInWithAmber),
           ),
           const SizedBox(height: 12),
         ],
@@ -104,12 +106,11 @@ class _NostrLoginFormState extends ConsumerState<NostrLoginForm> {
                   () => ref.read(authProvider.notifier).generateAccount(),
                 ),
           icon: const Icon(Icons.auto_awesome),
-          label: const Text('Create a new account'),
+          label: Text(l10n.createNewAccount),
         ),
         const SizedBox(height: 8),
         Text(
-          'A generated account can only be recovered with its private key. '
-          'Back it up from Settings after setup.',
+          l10n.generatedAccountWarning,
           textAlign: TextAlign.center,
           style: theme.textTheme.bodySmall?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
@@ -121,7 +122,7 @@ class _NostrLoginFormState extends ConsumerState<NostrLoginForm> {
               ? null
               : () => setState(() => _showImportField = !_showImportField),
           icon: const Icon(Icons.key),
-          label: const Text('Import an existing key'),
+          label: Text(l10n.importExistingKey),
         ),
         if (_showImportField) ...[
           const SizedBox(height: 16),
@@ -133,15 +134,15 @@ class _NostrLoginFormState extends ConsumerState<NostrLoginForm> {
             keyboardType: TextInputType.visiblePassword,
             textInputAction: TextInputAction.done,
             onSubmitted: isLoading ? null : (_) => _import(),
-            decoration: const InputDecoration(
-              labelText: 'nsec or hex private key',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l10n.privateKeyFieldLabel,
+              border: const OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 12),
           FilledButton(
             onPressed: isLoading ? null : _import,
-            child: const Text('Import'),
+            child: Text(l10n.importButton),
           ),
         ],
         if (isLoading) ...[

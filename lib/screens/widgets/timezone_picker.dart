@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:timezone/timezone.dart' as tz;
 
+import '../../l10n/app_localizations.dart';
+
 /// A scrollable, searchable list of IANA timezones, sourced from the timezone
 /// package's own database — the user picks one, they never type it. A typo in a
 /// hand-typed zone name silently falls back to the device zone (see
@@ -100,6 +102,7 @@ class _TimezonePickerSheetState extends State<_TimezonePickerSheet> {
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
+    final l10n = AppLocalizations.of(context);
 
     return Padding(
       padding: EdgeInsets.only(bottom: mediaQuery.viewInsets.bottom),
@@ -112,17 +115,17 @@ class _TimezonePickerSheetState extends State<_TimezonePickerSheet> {
               child: TextField(
                 controller: _searchController,
                 autofocus: false,
-                decoration: const InputDecoration(
-                  prefixIcon: Icon(Icons.search),
-                  hintText: 'Search a city or region',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.search),
+                  hintText: l10n.searchCityRegion,
+                  border: const OutlineInputBorder(),
                 ),
               ),
             ),
             if (widget.allowFollowDevice)
               ListTile(
                 leading: const Icon(Icons.phone_android),
-                title: const Text('Follow device timezone'),
+                title: Text(l10n.followDeviceTimezone),
                 subtitle: Text(tz.local.name),
                 selected: widget.current == null,
                 onTap: () => Navigator.of(context).pop(''),
@@ -130,7 +133,7 @@ class _TimezonePickerSheetState extends State<_TimezonePickerSheet> {
             const Divider(height: 1),
             Expanded(
               child: _filtered.isEmpty
-                  ? const Center(child: Text('No matching timezone.'))
+                  ? Center(child: Text(l10n.noMatchingTimezone))
                   : ListView.builder(
                       itemCount: _filtered.length,
                       itemBuilder: (context, i) {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../l10n/app_localizations.dart';
 import 'dbus_calendar_client.dart';
 import 'desktop_providers.dart';
 
@@ -51,6 +52,7 @@ class _Sidebar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final calendars = ref.watch(desktopCalendarsProvider);
     final theme = Theme.of(context);
 
@@ -69,14 +71,14 @@ class _Sidebar extends ConsumerWidget {
                     color: theme.colorScheme.primary,
                   ),
                   const SizedBox(width: 10),
-                  Text('Astraea', style: theme.textTheme.titleLarge),
+                  Text(l10n.appTitle, style: theme.textTheme.titleLarge),
                 ],
               ),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
               child: Text(
-                'Calendars',
+                l10n.calendarsLabel,
                 style: theme.textTheme.labelLarge?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -88,7 +90,7 @@ class _Sidebar extends ConsumerWidget {
                 error: (e, _) => Padding(
                   padding: const EdgeInsets.all(20),
                   child: Text(
-                    'Calendars unavailable: $e',
+                    l10n.calendarsUnavailable(e.toString()),
                     style: theme.textTheme.bodySmall,
                   ),
                 ),
@@ -130,6 +132,7 @@ class _StatusTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final data = status.value;
     final authenticated = data?['authenticated'] == true;
@@ -156,9 +159,11 @@ class _StatusTile extends ConsumerWidget {
               Expanded(
                 child: Text(
                   status.hasError
-                      ? 'Service unreachable'
-                      : 'Sync: $syncStatus'
-                            '${pending == 0 ? '' : ' ($pending pending)'}',
+                      ? l10n.serviceUnreachable
+                      : l10n.syncStatusLabel(syncStatus) +
+                            (pending == 0
+                                ? ''
+                                : l10n.syncPendingSuffix(pending as int)),
                   style: theme.textTheme.bodySmall,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -177,8 +182,8 @@ class _StatusTile extends ConsumerWidget {
               Expanded(
                 child: Text(
                   authenticated
-                      ? (data?['activeAccount'] as String? ?? 'Signed in')
-                      : 'Local-only mode (no Nostr identity)',
+                      ? (data?['activeAccount'] as String? ?? l10n.signedIn)
+                      : l10n.localOnlyMode,
                   style: theme.textTheme.bodySmall,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -194,16 +199,16 @@ class _StatusTile extends ConsumerWidget {
                 try {
                   await ref.read(dbusCalendarClientProvider).syncNow();
                   messenger.showSnackBar(
-                    const SnackBar(content: Text('Sync started')),
+                    SnackBar(content: Text(l10n.syncStarted)),
                   );
                 } catch (e) {
                   messenger.showSnackBar(
-                    SnackBar(content: Text('Sync unavailable: $e')),
+                    SnackBar(content: Text(l10n.syncUnavailable(e.toString()))),
                   );
                 }
               },
               icon: const Icon(Icons.sync, size: 18),
-              label: const Text('Sync now'),
+              label: Text(l10n.syncNowTooltip),
             ),
           ),
         ],
@@ -223,6 +228,7 @@ class _ServiceUnavailableScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     return Scaffold(
       body: Center(
@@ -240,16 +246,13 @@ class _ServiceUnavailableScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Astraea background service unavailable',
+                  l10n.desktopServiceUnreachableTitle,
                   style: theme.textTheme.headlineSmall,
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'The desktop app talks to astraea-service over D-Bus for '
-                  'storage, sync and notifications, and it could not be '
-                  'reached. If you are running from source, install it '
-                  'with:\n\n./scripts/install-dev.sh',
+                  l10n.desktopServiceUnreachableBody,
                   style: theme.textTheme.bodyMedium,
                   textAlign: TextAlign.center,
                 ),
@@ -265,7 +268,7 @@ class _ServiceUnavailableScreen extends StatelessWidget {
                 FilledButton.icon(
                   onPressed: onRetry,
                   icon: const Icon(Icons.refresh),
-                  label: const Text('Retry'),
+                  label: Text(l10n.retry),
                 ),
               ],
             ),

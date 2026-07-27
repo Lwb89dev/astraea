@@ -332,6 +332,7 @@ class LocalStorageService {
       timezone: prefs.getString(AppConstants.prefsTimezoneKey),
       notificationsEnabled:
           prefs.getBool(AppConstants.prefsNotificationsEnabledKey) ?? true,
+      locale: prefs.getString(AppConstants.prefsLocaleKey),
     );
   }
 
@@ -381,6 +382,12 @@ class LocalStorageService {
       AppConstants.prefsNotificationsEnabledKey,
       settings.notificationsEnabled,
     );
+    final locale = settings.locale;
+    if (locale == null || locale.isEmpty) {
+      await prefs.remove(AppConstants.prefsLocaleKey);
+    } else {
+      await prefs.setString(AppConstants.prefsLocaleKey, locale);
+    }
   }
 
   // ---------------------------------------------------------------------

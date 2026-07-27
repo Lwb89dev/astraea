@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/event_model.dart';
 import '../providers/events_provider.dart';
 import '../utils/event_color.dart';
@@ -17,6 +18,7 @@ class EventDetailsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final events = ref.watch(eventsProvider).value ?? const <Event>[];
     Event? found;
     for (final e in events) {
@@ -28,16 +30,16 @@ class EventDetailsScreen extends ConsumerWidget {
 
     if (found == null) {
       // The event was deleted (e.g. from another action) — pop back out.
-      return const Scaffold(body: Center(child: Text('Event not found.')));
+      return Scaffold(body: Center(child: Text(l10n.eventNotFound)));
     }
     final event = found;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Event'),
+        title: Text(l10n.eventAppBarTitle),
         actions: [
           IconButton(
-            tooltip: 'Edit',
+            tooltip: l10n.editTooltip,
             icon: const Icon(Icons.edit_outlined),
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(
@@ -46,7 +48,7 @@ class EventDetailsScreen extends ConsumerWidget {
             ),
           ),
           IconButton(
-            tooltip: 'Delete',
+            tooltip: l10n.deleteTooltip,
             icon: const Icon(Icons.delete_outline),
             onPressed: () => _confirmDelete(context, ref, event),
           ),
@@ -68,7 +70,7 @@ class EventDetailsScreen extends ConsumerWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  event.title.isEmpty ? '(untitled)' : event.title,
+                  event.title.isEmpty ? l10n.untitledEvent : event.title,
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
               ),
@@ -78,7 +80,9 @@ class EventDetailsScreen extends ConsumerWidget {
           _DetailRow(
             icon: Icons.schedule,
             label: event.isAllDay
-                ? '${Formatter.dayLabel(event.startTimeUtc, event.timezone)} · All day'
+                ? l10n.allDayLabel(
+                    Formatter.dayLabel(event.startTimeUtc, event.timezone),
+                  )
                 : '${Formatter.fullLabel(event.startTimeUtc, event.timezone)}\n'
                       '${Formatter.fullLabel(event.endTimeUtc, event.timezone)}',
           ),
@@ -87,15 +91,17 @@ class EventDetailsScreen extends ConsumerWidget {
             _DetailRow(
               icon: Icons.repeat,
               label: event.recurrenceEnd == null
-                  ? Formatter.recurrenceLabel(event.recurrence)
-                  : '${Formatter.recurrenceLabel(event.recurrence)} · until '
-                        '${Formatter.dayLabel(event.recurrenceEnd!, event.timezone)}',
+                  ? Formatter.recurrenceLabel(l10n, event.recurrence)
+                  : l10n.recurrenceUntilLabel(
+                      Formatter.recurrenceLabel(l10n, event.recurrence),
+                      Formatter.dayLabel(event.recurrenceEnd!, event.timezone),
+                    ),
             ),
           if (event.reminders.isNotEmpty)
             _DetailRow(
               icon: Icons.notifications_outlined,
               label: event.reminders
-                  .map((r) => Formatter.reminderLabel(r.minutesBefore))
+                  .map((r) => Formatter.reminderLabel(l10n, r.minutesBefore))
                   .join(', '),
             ),
           if (event.location != null && event.location!.isNotEmpty)
@@ -121,7 +127,7 @@ class EventDetailsScreen extends ConsumerWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                event.synced ? 'Synced to relays' : 'Not yet synced',
+                event.synced ? l10n.syncedToRelays : l10n.notYetSynced,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
@@ -136,21 +142,20 @@ class EventDetailsScreen extends ConsumerWidget {
     WidgetRef ref,
     Event event,
   ) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete event?'),
-        content: const Text(
-          'This removes the event from this device and requests deletion from the relays.',
-        ),
+        title: Text(l10n.deleteEventTitle),
+        content: Text(l10n.deleteEventBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Delete'),
+            child: Text(l10n.delete),
           ),
         ],
       ),

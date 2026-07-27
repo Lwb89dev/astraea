@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:table_calendar/table_calendar.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/event_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/calendar_view_provider.dart';
@@ -43,16 +44,17 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final view = ref.watch(calendarViewProvider);
     final eventsAsync = ref.watch(eventsProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Astraea'),
+        title: Text(l10n.appTitle),
         actions: [
           _SyncButton(),
           IconButton(
-            tooltip: 'Settings',
+            tooltip: l10n.settingsTooltip,
             icon: const Icon(Icons.settings_outlined),
             onPressed: () => Navigator.of(
               context,
@@ -63,13 +65,13 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openEditor(context, ref, view.selectedDay),
         icon: const Icon(Icons.add),
-        label: const Text('New event'),
+        label: Text(l10n.newEventButton),
       ),
       body: eventsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(
           child: Text(
-            'Could not load events:\n$e',
+            l10n.couldNotLoadEvents(e.toString()),
             textAlign: TextAlign.center,
           ),
         ),
@@ -117,6 +119,7 @@ class _ViewModeSelector extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 480;
@@ -128,26 +131,26 @@ class _ViewModeSelector extends ConsumerWidget {
               ButtonSegment(
                 value: CalendarViewMode.month,
                 icon: const Icon(Icons.calendar_view_month),
-                label: compact ? null : const Text('Month'),
-                tooltip: 'Month',
+                label: compact ? null : Text(l10n.viewMonth),
+                tooltip: l10n.viewMonth,
               ),
               ButtonSegment(
                 value: CalendarViewMode.week,
                 icon: const Icon(Icons.calendar_view_week),
-                label: compact ? null : const Text('Week'),
-                tooltip: 'Week',
+                label: compact ? null : Text(l10n.viewWeek),
+                tooltip: l10n.viewWeek,
               ),
               ButtonSegment(
                 value: CalendarViewMode.day,
                 icon: const Icon(Icons.calendar_view_day),
-                label: compact ? null : const Text('Day'),
-                tooltip: 'Day',
+                label: compact ? null : Text(l10n.viewDay),
+                tooltip: l10n.viewDay,
               ),
               ButtonSegment(
                 value: CalendarViewMode.list,
                 icon: const Icon(Icons.view_agenda_outlined),
-                label: compact ? null : const Text('List'),
-                tooltip: 'List',
+                label: compact ? null : Text(l10n.viewList),
+                tooltip: l10n.viewList,
               ),
             ],
             selected: {mode},
@@ -251,6 +254,7 @@ class _DayAgenda extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final start = DateTime(day.year, day.month, day.day);
     final occurrences = RecurrenceExpander.expandAll(
       events,
@@ -270,7 +274,7 @@ class _DayAgenda extends StatelessWidget {
         ),
         Expanded(
           child: occurrences.isEmpty
-              ? const _EmptyState(message: 'No events on this day.')
+              ? _EmptyState(message: l10n.noEventsToday)
               : ListView.builder(
                   itemCount: occurrences.length,
                   itemBuilder: (_, i) =>
@@ -291,6 +295,7 @@ class _UpcomingList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final now = DateTime.now();
     final from = DateTime(now.year, now.month, now.day);
     final to = from.add(const Duration(days: 60));
@@ -301,9 +306,7 @@ class _UpcomingList extends StatelessWidget {
     );
 
     if (occurrences.isEmpty) {
-      return const _EmptyState(
-        message: 'No upcoming events in the next 60 days.',
-      );
+      return _EmptyState(message: l10n.noUpcomingEvents);
     }
 
     // Group by local day for section headers.
@@ -351,6 +354,7 @@ class _OccurrenceTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final event = occurrence.event;
     return ListTile(
       leading: Container(
@@ -361,13 +365,13 @@ class _OccurrenceTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(3),
         ),
       ),
-      title: Text(event.title.isEmpty ? '(untitled)' : event.title),
+      title: Text(event.title.isEmpty ? l10n.untitledEvent : event.title),
       subtitle: Text(
         // Device-local times, consistent with the local day grouping (store
         // UTC, display local). The event's own timezone is authoring detail,
         // shown in the details screen.
         event.isAllDay
-            ? 'All day'
+            ? l10n.allDay
             : '${Formatter.timeLabelLocal(occurrence.startUtc)}'
                   ' – ${Formatter.timeLabelLocal(occurrence.endUtc)}',
       ),
@@ -408,6 +412,7 @@ class _EmptyState extends StatelessWidget {
 class _SyncButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final sync = ref.watch(syncProvider);
     final user = ref.watch(authProvider).value;
     if (sync.status == SyncStatus.syncing) {
@@ -421,7 +426,9 @@ class _SyncButton extends ConsumerWidget {
       );
     }
     return IconButton(
-      tooltip: user == null ? 'Add a Nostr account to sync' : 'Sync now',
+      tooltip: user == null
+          ? l10n.addAccountToSyncTooltip
+          : l10n.syncNowTooltip,
       icon: const Icon(Icons.sync),
       onPressed: user == null
           ? null
