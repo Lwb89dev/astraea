@@ -39,26 +39,7 @@ async fn main() -> std::process::ExitCode {
 
     let mut applet = AppletState::default();
     match client::connect().await {
-        Ok(proxy) => {
-            if open {
-                if let Err(e) = proxy
-                    .open_desktop("day".into(), String::new(), date.to_string())
-                    .await
-                {
-                    eprintln!("could not open the desktop app: {e}");
-                }
-            }
-            match proxy.get_service_status().await {
-                Ok(status) => applet.apply_status(&status),
-                Err(_) => applet.service_unreachable(),
-            }
-            if applet.service.is_some() {
-                match proxy.get_day(date.to_string(), Vec::new()).await {
-                    Ok(day) => applet.apply_day(date, &day),
-                    Err(e) => eprintln!("agenda unavailable: {e}"),
-                }
-            }
-        }
+        Ok(proxy) => refresh(&proxy, &mut applet, date, open).await,
         Err(_) => applet.service_unreachable(),
     }
 
@@ -81,4 +62,40 @@ async fn main() -> std::process::ExitCode {
         return std::process::ExitCode::FAILURE;
     }
     std::process::ExitCode::SUCCESS
+}
+
+/// Optionally opens the desktop app, then fills `applet` from the live
+/// service — extracted out of `main` so each step stays a flat, single-level
+/// match instead of nesting inside the "we have a proxy" branch.
+async fn refresh(
+    proxy: &client::Calendar1Proxy<'static>,
+    applet: &mut AppletState,
+    date: NaiveDate,
+    open: bool,
+) {
+    if open {
+        open_in_desktop(proxy, date).await;
+    }
+    match proxy.get_service_status().await {
+        Ok(status) => applet.apply_status(&status),
+        Err(_) => applet.service_unreachable(),
+    }
+    // apply_status itself degrades to "unreachable" on malformed JSON, so
+    // this re-checks applet.service rather than trusting the Ok/Err above.
+    if applet.service.is_none() {
+        return;
+    }
+    match proxy.get_day(date.to_string(), Vec::new()).await {
+        Ok(day) => applet.apply_day(date, &day),
+        Err(e) => eprintln!("agenda unavailable: {e}"),
+    }
+}
+
+async fn open_in_desktop(proxy: &client::Calendar1Proxy<'static>, date: NaiveDate) {
+    let result = proxy
+        .open_desktop("day".into(), String::new(), date.to_string())
+        .await;
+    if let Err(e) = result {
+        eprintln!("could not open the desktop app: {e}");
+    }
 }

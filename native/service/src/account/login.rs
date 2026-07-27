@@ -171,27 +171,28 @@ async fn handle_connection(
             Ok(None)
         }
         ("POST", "/callback") => {
-            let verdict = verify_callback(&body, state, challenge);
-            match verdict {
-                Ok(success) => {
-                    let mut guard = outcome.lock().await;
-                    if guard.is_some() {
-                        write_response(&mut stream, 409, "text/plain", "already completed").await?;
-                        return Ok(None);
-                    }
-                    *guard = Some(success.clone());
-                    write_response(&mut stream, 200, "application/json", "{\"ok\":true}").await?;
-                    info!("browser login verified");
-                    Ok(Some(success))
-                }
+            // Flattened with early returns (each failure writes its response
+            // and returns immediately) rather than nesting the success path
+            // inside the Ok arm — keeps every branch at the same depth.
+            let success = match verify_callback(&body, state, challenge) {
+                Ok(success) => success,
                 Err(reason) => {
                     // The reason is safe to return to the local page but is
                     // deliberately generic in logs.
                     warn!("browser login callback rejected");
                     write_response(&mut stream, 400, "text/plain", &reason).await?;
-                    Ok(None)
+                    return Ok(None);
                 }
+            };
+            let mut guard = outcome.lock().await;
+            if guard.is_some() {
+                write_response(&mut stream, 409, "text/plain", "already completed").await?;
+                return Ok(None);
             }
+            *guard = Some(success.clone());
+            write_response(&mut stream, 200, "application/json", "{\"ok\":true}").await?;
+            info!("browser login verified");
+            Ok(Some(success))
         }
         _ => {
             write_response(&mut stream, 404, "text/plain", "not found").await?;
