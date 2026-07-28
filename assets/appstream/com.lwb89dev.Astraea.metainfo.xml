@@ -51,6 +51,19 @@
     <control>touch</control>
   </supports>
   <releases>
+    <release version="0.3.0" date="2026-07-28">
+      <description>
+        <p>Multi-day events now draw as a continuous bar across every day
+        they cover in the month view, instead of a dot on the first day
+        only. Selectable accent color (navy, bitcoin orange, or nostr
+        purple) in Settings &gt; Appearance, applied to the app theme and to
+        home-screen widgets, which can now also be themed individually.
+        More suggested relays for redundancy. A round of security hardening:
+        stricter account isolation during sync, bounded relay/NIP-05
+        response reading, and event saves no longer wait on relay
+        round-trips to complete.</p>
+      </description>
+    </release>
     <release version="0.2.0" date="2026-07-27">
       <description>
         <p>Attendee invites: invite another Astraea account (by npub, hex
