@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy"
-      content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; form-action 'none'; base-uri 'none'">
+      content="default-src 'none'; style-src 'unsafe-inline'; script-src 'self' 'unsafe-inline' chrome-extension: moz-extension:; connect-src 'self'; form-action 'none'; base-uri 'none'">
 <title>Sign in to Astraea</title>
 <style>
   :root { color-scheme: light dark; }
@@ -69,35 +69,57 @@
     return;
   }
 
-  // NIP-07 extensions inject `window.nostr` via a content script, which is
-  // not guaranteed to run before this inline script does — checking once,
-  // synchronously, is a well-known false negative for a genuinely installed
-  // extension (nos2x and others often land it on document_idle). Poll
-  // briefly instead of failing on the very first tick.
-  button.disabled = true;
+  // NIP-07 extensions inject `window.nostr` through a content script. The
+  // injection can happen after this page's script (nos2x commonly does this
+  // at document_idle), so a single check — or a short three-second deadline —
+  // produces a false "not found" even when the extension is installed.
+  function nip07() {
+    var candidate = window.nostr;
+    return candidate && typeof candidate.getPublicKey === 'function' &&
+      typeof candidate.signEvent === 'function' ? candidate : null;
+  }
+
+  function waitForNip07(timeoutMs) {
+    return new Promise(function (resolve, reject) {
+      var deadline = Date.now() + timeoutMs;
+      (function poll() {
+        var candidate = nip07();
+        if (candidate) {
+          resolve(candidate);
+          return;
+        }
+        if (Date.now() >= deadline) {
+          reject(new Error('NIP-07 extension not available yet'));
+          return;
+        }
+        setTimeout(poll, 100);
+      })();
+    });
+  }
+
+  // Keep the action available immediately. Discovery continues in the
+  // background and the click path waits longer, instead of locking the user
+  // out after an arbitrary browser-extension startup deadline.
   statusEl.textContent = 'Looking for a NIP-07 extension…';
-  var waitStarted = Date.now();
-  var waitTimeoutMs = 3000;
-  (function waitForNip07() {
-    if (window.nostr) {
-      statusEl.textContent = '';
-      button.disabled = false;
-      return;
-    }
-    if (Date.now() - waitStarted >= waitTimeoutMs) {
-      fail('No NIP-07 extension found. Install one (e.g. an extension ' +
-           'providing window.nostr), reload this page and try again.');
-      return;
-    }
-    setTimeout(waitForNip07, 100);
-  })();
+  waitForNip07(15000).then(function () {
+    statusEl.textContent = '';
+  }).catch(function () {
+    statusEl.textContent =
+      'NIP-07 not detected yet. Make sure nos2x is enabled for localhost ' +
+      'and click the button to retry.';
+  });
 
   button.addEventListener('click', function () {
     button.disabled = true;
     statusEl.className = 'muted';
     statusEl.textContent = 'Waiting for your NIP-07 extension…';
 
-    window.nostr.getPublicKey().then(function (pubkey) {
+    waitForNip07(30000).then(function (nostr) {
+      return nostr.getPublicKey().then(function (pubkey) {
+        return {nostr: nostr, pubkey: pubkey};
+      });
+    }).then(function (identity) {
+      var pubkey = identity.pubkey;
       document.getElementById('pubkey').textContent =
         'Identity: ' + pubkey;
       var unsigned = {
@@ -106,7 +128,7 @@
         tags: [['challenge', challenge], ['client', 'astraea']],
         content: 'Astraea Linux desktop login'
       };
-      return window.nostr.signEvent(unsigned);
+      return identity.nostr.signEvent(unsigned);
     }).then(function (signed) {
       return fetch('/callback', {
         method: 'POST',

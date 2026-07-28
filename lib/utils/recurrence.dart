@@ -15,6 +15,11 @@ class EventOccurrence {
     required this.endUtc,
   });
 
+  /// Kairos mirrors a task due instant as a zero-length occurrence. Such an
+  /// occurrence belongs to exactly the local day containing [startUtc], not
+  /// to the day before it after subtracting one millisecond from [endUtc].
+  bool get isPoint => startUtc == endUtc;
+
   bool get isRecurringInstance => event.recurrence != RecurrenceType.none;
 }
 

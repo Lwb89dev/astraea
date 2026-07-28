@@ -9,6 +9,7 @@ pub mod db;
 pub mod model;
 pub mod notify;
 pub mod paths;
+pub mod reminders;
 pub mod recurrence;
 pub mod store;
 pub mod sync;

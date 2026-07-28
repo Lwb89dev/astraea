@@ -108,11 +108,10 @@ private class DayAgendaFactory(
     override fun getCount() = rows.size
     override fun getLoadingView(): RemoteViews? = null
     override fun getViewTypeCount() = 1
-    // Folds the period offset in so a day with the same event count as the
-    // previously shown one is still recognised as a different dataset — see
-    // itemIdFor's doc comment for why plain positional ids aren't enough.
-    override fun getItemId(position: Int) = itemIdFor(offset, position)
-    override fun hasStableIds() = true
+    override fun getItemId(position: Int) = position.toLong()
+    // The payload can change without changing the period or item count. Do
+    // not let the launcher reuse a previously bound row in that case.
+    override fun hasStableIds() = false
 
     override fun getViewAt(position: Int): RemoteViews =
         agendaRow(context, rows[position], formatTime(rows[position]), scale)
@@ -141,8 +140,8 @@ private class WeekAgendaFactory(
     override fun getCount() = rows.size
     override fun getLoadingView(): RemoteViews? = null
     override fun getViewTypeCount() = 1
-    override fun getItemId(position: Int) = itemIdFor(offset, position)
-    override fun hasStableIds() = true
+    override fun getItemId(position: Int) = position.toLong()
+    override fun hasStableIds() = false
 
     override fun getViewAt(position: Int): RemoteViews {
         val event = rows[position]
@@ -185,12 +184,12 @@ private class MonthGridFactory(
 
         // First event per day of this month — both the dot and the tap target.
         val firstEventByDay = mutableMapOf<Int, String>()
-        for (event in events) {
-            val c = event.startCalendar()
-            if (c.get(Calendar.MONTH) == monthStart.get(Calendar.MONTH) &&
-                c.get(Calendar.YEAR) == monthStart.get(Calendar.YEAR)
-            ) {
-                firstEventByDay.putIfAbsent(c.get(Calendar.DAY_OF_MONTH), event.id)
+        for (day in 1..daysInMonth) {
+            val dayCalendar = (monthStart.clone() as Calendar).apply {
+                set(Calendar.DAY_OF_MONTH, day)
+            }
+            AstraeaWidgetData.eventsOn(events, dayCalendar).firstOrNull()?.let {
+                firstEventByDay[day] = it.id
             }
         }
 
@@ -212,8 +211,8 @@ private class MonthGridFactory(
     override fun getCount() = cells.size
     override fun getLoadingView(): RemoteViews? = null
     override fun getViewTypeCount() = 1
-    override fun getItemId(position: Int) = itemIdFor(offset, position)
-    override fun hasStableIds() = true
+    override fun getItemId(position: Int) = position.toLong()
+    override fun hasStableIds() = false
 
     override fun getViewAt(position: Int): RemoteViews {
         val cell = cells[position]
@@ -269,22 +268,3 @@ private class MonthGridFactory(
 /** "13:00", or a bullet for an all-day event. */
 private fun formatTime(event: WidgetEvent): String =
     if (event.isAllDay) "•" else SimpleDateFormat("HH:mm", Locale.getDefault()).format(event.startCalendar().time)
-
-/**
- * Item id for [position] under the given period [offset] (day/week/month
- * navigation — see [AstraeaWidgetData.periodOffset]).
- *
- * `hasStableIds() = true` combined with a plain `position.toLong()` id makes
- * `RemoteViewsAdapter` (the framework class backing List/GridView in
- * AppWidgets) treat two different periods with the same item count as the
- * *same* dataset at the id level, and it can then skip re-binding rows whose
- * position/id didn't change — this is a well-known collection-widget
- * staleness class of bug. Two consecutive months very often need the same
- * number of grid cells (35 for a 5-row month, 42 for a 6-row one), so the
- * "forward" button would appear to freeze exactly on months that happen to
- * share a cell count with the one before them — matching the reported "gets
- * stuck at the current month, or moves once and then gets stuck" symptom.
- * Folding the offset into the id makes every period change look like a
- * structurally new dataset, forcing a full re-bind every time.
- */
-private fun itemIdFor(offset: Int, position: Int): Long = (offset + 200).toLong() * 1000L + position

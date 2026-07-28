@@ -240,11 +240,38 @@ object AstraeaWidgetData {
         a.get(Calendar.YEAR) == b.get(Calendar.YEAR) &&
             a.get(Calendar.DAY_OF_YEAR) == b.get(Calendar.DAY_OF_YEAR)
 
-    /** Events starting on the given day, in order. */
+    /**
+     * Events visible on the given day, in order. A multi-day event belongs to
+     * every day it overlaps; a Kairos task (start == end) belongs to the one
+     * day containing its due instant.
+     */
     fun eventsOn(events: List<WidgetEvent>, day: Calendar): List<WidgetEvent> =
-        events.filter { isSameDay(it.startCalendar(), day) }
+        events.filter { event ->
+            val dayStart = (day.clone() as Calendar).apply {
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }
+            val dayEnd = (dayStart.clone() as Calendar).apply {
+                add(Calendar.DAY_OF_YEAR, 1)
+            }
+            if (event.startMillis == event.endMillis) {
+                event.startMillis >= dayStart.timeInMillis &&
+                    event.startMillis < dayEnd.timeInMillis
+            } else {
+                event.endMillis > dayStart.timeInMillis &&
+                    event.startMillis < dayEnd.timeInMillis
+            }
+        }
 
-    /** Events starting within [from, to). */
+    /** Events overlapping [from, to), in chronological order. */
     fun eventsBetween(events: List<WidgetEvent>, from: Calendar, to: Calendar): List<WidgetEvent> =
-        events.filter { it.startMillis >= from.timeInMillis && it.startMillis < to.timeInMillis }
+        events.filter { event ->
+            if (event.startMillis == event.endMillis) {
+                event.startMillis >= from.timeInMillis && event.startMillis < to.timeInMillis
+            } else {
+                event.endMillis > from.timeInMillis && event.startMillis < to.timeInMillis
+            }
+        }
 }

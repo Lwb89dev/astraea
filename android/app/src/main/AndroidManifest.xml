@@ -42,6 +42,18 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Local Kairos → Astraea task hand-off. Kairos sends the JSON in
+                 dev.echoes.astraea.extra.PAYLOAD; Astraea validates it before
+                 persistence. -->
+            <intent-filter>
+                <action android:name="dev.echoes.astraea.action.LOCAL_SYNC" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <!-- Compatibility with the first Astraea local-bridge draft. -->
+            <intent-filter>
+                <action android:name="com.example.astraea.action.IMPORT_KAIROS_TASK" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
         </activity>
         <!-- Per-widget theme picker (AstraeaWidgetConfigActivity): the
              `android:configure` target declared in each *_widget_info.xml
