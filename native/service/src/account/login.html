@@ -68,12 +68,29 @@
     fail('Invalid login link: missing state or challenge.');
     return;
   }
-  if (!window.nostr) {
-    button.disabled = true;
-    fail('No NIP-07 extension found. Install one (e.g. an extension ' +
-         'providing window.nostr), reload this page and try again.');
-    return;
-  }
+
+  // NIP-07 extensions inject `window.nostr` via a content script, which is
+  // not guaranteed to run before this inline script does — checking once,
+  // synchronously, is a well-known false negative for a genuinely installed
+  // extension (nos2x and others often land it on document_idle). Poll
+  // briefly instead of failing on the very first tick.
+  button.disabled = true;
+  statusEl.textContent = 'Looking for a NIP-07 extension…';
+  var waitStarted = Date.now();
+  var waitTimeoutMs = 3000;
+  (function waitForNip07() {
+    if (window.nostr) {
+      statusEl.textContent = '';
+      button.disabled = false;
+      return;
+    }
+    if (Date.now() - waitStarted >= waitTimeoutMs) {
+      fail('No NIP-07 extension found. Install one (e.g. an extension ' +
+           'providing window.nostr), reload this page and try again.');
+      return;
+    }
+    setTimeout(waitForNip07, 100);
+  })();
 
   button.addEventListener('click', function () {
     button.disabled = true;
