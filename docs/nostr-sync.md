@@ -7,6 +7,24 @@ divergence is a bug in whichever side broke the contract.
 Shared JSON fixtures live in `test/fixtures/` and are exercised by both test
 suites.
 
+**This contract has an external producer.** Kairos (sibling task manager,
+same account-key model) publishes kind-30078
+`epochs:<uuid>` events in this exact shape to mirror a dated task onto the
+user's Astraea calendar — see its
+`lib/services/astraea_calendar_mirror.dart`. It writes `id`, `title`,
+`description` (prefixed `"Kairos task"`), `startTimeUtc == endTimeUtc` (a
+task is a point in time, not a span — renders as a zero-length event),
+`timezone: "UTC"`, `isAllDay: false`, `recurrence: null`, `reminders`,
+`color`, `createdAt`/`updatedAt`; it never sets `calendarId`, `url`,
+`nostrEventId` or `syncOwnerPubkey`, and never reads Astraea's events back
+— a one-way mirror, so an edit made to the mirrored event from inside
+Astraea is overwritten the next time the task changes in Kairos. Verified
+compatible field-by-field against `wire::parse_payload` and
+`merge_remote_event` (Rust) as of Astraea 0.3.0 / Kairos's `[Unreleased]`
+CHANGELOG entry; **any breaking change to this JSON shape or to the
+`epochs:` `d`-tag convention breaks Kairos too**, not just Astraea's own
+two clients.
+
 ## Identity and encryption
 
 - Events are **self-encrypted**: NIP-44 v2 with the conversation key derived

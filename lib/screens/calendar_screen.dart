@@ -199,10 +199,19 @@ class _CalendarWithAgenda extends ConsumerWidget {
       // A multi-day occurrence belongs on every calendar day it touches, not
       // just the one it starts on — otherwise the month grid can only ever
       // mark its first day, however long the event runs.
-      var day = _localDay(occurrence.startUtc);
-      final lastDay = _localDay(
+      final startDay = _localDay(occurrence.startUtc);
+      var lastDay = _localDay(
         occurrence.endUtc.subtract(const Duration(milliseconds: 1)),
       );
+      // A zero-duration occurrence (start == end — the Astraea/Kairos
+      // integration mirrors a task's due instant this way) makes end-1ms's
+      // calendar day fall *before* start's whenever that instant lands
+      // exactly on a local midnight, which would otherwise make the
+      // occurrence occupy zero days and vanish from the grid entirely. An
+      // occurrence always touches at least the day it starts on.
+      if (lastDay.isBefore(startDay)) lastDay = startDay;
+
+      var day = startDay;
       if (day.isBefore(rangeStart)) day = rangeStart;
       final cappedLastDay = lastDay.isAfter(rangeEnd)
           ? rangeEnd.subtract(const Duration(days: 1))
