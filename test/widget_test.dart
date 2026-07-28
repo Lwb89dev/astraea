@@ -100,6 +100,48 @@ void main() {
     });
 
     test(
+      'a zero-duration occurrence exactly on a range boundary is not lost',
+      () {
+        // Regression: the Astraea/Kairos integration mirrors a task's due
+        // date as start == end (a point in time). The interval-overlap
+        // test used for ordinary events degenerates to "excluded from
+        // both sides" for a zero-width interval landing exactly on a
+        // query boundary — e.g. a task due at midnight would vanish from
+        // both the day it starts and the day before.
+        final instant = DateTime.utc(2026, 7, 15);
+        final event = Event(
+          id: 'evt-midnight',
+          title: 'Ship the release',
+          description: '',
+          startTimeUtc: instant,
+          endTimeUtc: instant,
+          timezone: 'UTC',
+          createdAt: instant,
+          updatedAt: instant,
+        );
+
+        final onThatDay = RecurrenceExpander.expand(
+          event,
+          rangeStartUtc: instant,
+          rangeEndUtc: instant.add(const Duration(days: 1)),
+        );
+        expect(onThatDay, hasLength(1));
+
+        final theDayBefore = RecurrenceExpander.expand(
+          event,
+          rangeStartUtc: instant.subtract(const Duration(days: 1)),
+          rangeEndUtc: instant,
+        );
+        expect(
+          theDayBefore,
+          isEmpty,
+          reason: 'a point exactly at the exclusive upper bound belongs to '
+              'the next range, not this one',
+        );
+      },
+    );
+
+    test(
       'daily recurrence produces one occurrence per day within the window',
       () {
         final event = _sampleEvent(recurrence: RecurrenceType.daily);
