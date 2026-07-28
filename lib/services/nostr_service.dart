@@ -11,6 +11,7 @@ import '../models/profile.dart';
 import '../models/user_model.dart';
 import '../utils/constants.dart';
 import '../utils/crypto.dart';
+import '../utils/relay_url.dart';
 
 /// Wraps all interaction with the Nostr protocol: key generation/import,
 /// npub/nsec conversion (NIP-19 bech32), login (local key or Amber), event
@@ -625,19 +626,21 @@ class NostrService {
     }
   }
 
+  /// Delegates to [normalizeRelayUrl] — the same check Settings/onboarding
+  /// already use to decide what a user is even allowed to save — instead of
+  /// keeping a second, independent copy of "what's a valid relay URL" here.
+  /// The two had already drifted once (this used to hard-reject `ws://`,
+  /// so a personal/self-hosted relay the user had saved through Settings
+  /// would pass validation there and then fail *every* sync/publish here,
+  /// unconditionally); a shared source of truth is what actually prevents
+  /// that class of bug from coming back.
   void _validateRelayUrls(Iterable<String> relayUrls) {
     for (final raw in relayUrls) {
-      final uri = Uri.tryParse(raw);
-      if (uri == null ||
-          uri.scheme != 'wss' ||
-          uri.host.isEmpty ||
-          uri.userInfo.isNotEmpty ||
-          uri.hasFragment ||
-          raw.length > 2048) {
+      if (normalizeRelayUrl(raw) == null || raw.length > 2048) {
         throw ArgumentError.value(
           raw,
           'relayUrls',
-          'Invalid secure relay URL.',
+          'Invalid relay URL.',
         );
       }
     }

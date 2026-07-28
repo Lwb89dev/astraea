@@ -555,6 +555,24 @@ impl SyncEngine {
             // A later delete superseded this publish.
             return Err(PushError::Drop);
         }
+        // `sync_queue` is global, not scoped to the active account: an event
+        // queued while a *different* account was active (and already
+        // carrying that account's owner_pubkey from a prior publish) must
+        // never be re-signed and re-published under whoever is active now —
+        // that would both misattribute the event and hand its plaintext to
+        // an unrelated identity's key. Mirrors the same check already made
+        // on the Dart/mobile side (EventsNotifier._publish). A brand-new,
+        // never-yet-published event has no owner_pubkey yet and is allowed
+        // through, same as before.
+        if let Some(owner) = &event.owner_pubkey {
+            if owner != &identity.pubkey.to_hex() {
+                warn!(
+                    "dropping queued item for {} owned by a different account",
+                    item.event_id
+                );
+                return Err(PushError::Drop);
+            }
+        }
 
         // Encrypt + sign through the signer; both can be interactive-only.
         let owner = identity.pubkey.to_hex();

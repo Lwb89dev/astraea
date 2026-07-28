@@ -194,8 +194,15 @@ impl SignerBackend for RemoteSigner {
         SignerKind::Remote
     }
 
+    /// `true`, even though NIP-46 is not actually an interactive-per-signature
+    /// backend once implemented: every method below unconditionally reports
+    /// `Unavailable`, so `false` here would make `AccountManager::status_json`
+    /// (its only caller) report `signerState: "ready"` — actively telling the
+    /// user this signer works when nothing it does can ever succeed. `true`
+    /// at least surfaces it as not-currently-usable rather than lying;
+    /// revisit once NIP-46 actually lands (see the struct doc).
     fn is_interactive_only(&self) -> bool {
-        false
+        true
     }
 
     async fn sign_event(&self, _unsigned: UnsignedEvent) -> Result<Event, SignerError> {

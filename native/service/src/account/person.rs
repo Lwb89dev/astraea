@@ -15,6 +15,7 @@
 //! docs/nostr-sync.md "Attendee invites" for the tracked follow-up; npub
 //! and NIP-05 already cover the two ways of naming someone precisely).
 
+use futures_util::StreamExt;
 use nostr::PublicKey;
 use serde::Deserialize;
 
@@ -118,15 +119,21 @@ async fn resolve_nip05(identifier: &str) -> Result<String, PersonLookupError> {
     }
 
     const MAX_BODY_BYTES: usize = 64 * 1024;
-    let bytes = response
-        .bytes()
-        .await
-        .map_err(|e| PersonLookupError::Nip05Lookup(e.to_string()))?;
-    if bytes.len() > MAX_BODY_BYTES {
-        return Err(PersonLookupError::Nip05Lookup("response too large".into()));
+    // Streamed and bounded *while reading*, not after: an attacker-controlled
+    // domain returning a huge or slow-drip body must not get to make this
+    // client buffer all of it first — the client's own overall `.timeout()`
+    // still bounds the wall-clock time, this bounds the memory.
+    let mut body = Vec::new();
+    let mut stream = response.bytes_stream();
+    while let Some(chunk) = stream.next().await {
+        let chunk = chunk.map_err(|e| PersonLookupError::Nip05Lookup(e.to_string()))?;
+        if body.len().saturating_add(chunk.len()) > MAX_BODY_BYTES {
+            return Err(PersonLookupError::Nip05Lookup("response too large".into()));
+        }
+        body.extend_from_slice(&chunk);
     }
     let doc: Nip05Document =
-        serde_json::from_slice(&bytes).map_err(|_| PersonLookupError::Nip05NotFound)?;
+        serde_json::from_slice(&body).map_err(|_| PersonLookupError::Nip05NotFound)?;
 
     let pubkey = doc
         .names

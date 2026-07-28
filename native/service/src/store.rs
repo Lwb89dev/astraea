@@ -902,7 +902,10 @@ impl Store {
     // exclusively in the Secret Service, never in this database)
     // ------------------------------------------------------------------
 
-    /// Inserts (or refreshes) an account and makes it the active one.
+    /// Inserts (or refreshes) an account and makes it the active one — the
+    /// browser-login completion path, so `pubkey` can legitimately be a
+    /// different account than whatever was active before (sign out, sign
+    /// into a different Nostr identity).
     pub fn activate_account(
         &self,
         pubkey: &str,
@@ -911,6 +914,11 @@ impl Store {
     ) -> Result<String, StoreError> {
         self.with_conn(|conn| {
             let now = now_ms();
+            let previous_pubkey: Option<String> = conn
+                .query_row("SELECT pubkey FROM accounts WHERE is_active = 1", [], |r| {
+                    r.get(0)
+                })
+                .optional()?;
             conn.execute("UPDATE accounts SET is_active = 0", [])?;
             conn.execute(
                 "INSERT INTO accounts (id, pubkey, npub, label, signer, is_active, created_at_ms, updated_at_ms)
@@ -920,6 +928,9 @@ impl Store {
                      updated_at_ms = excluded.updated_at_ms",
                 params![Uuid::new_v4().to_string(), pubkey, npub, signer, now],
             )?;
+            if previous_pubkey.as_deref() != Some(pubkey) {
+                reset_pull_cursors(conn)?;
+            }
             let id: String =
                 conn.query_row("SELECT id FROM accounts WHERE pubkey = ?1", [pubkey], |r| r.get(0))?;
             Ok(id)
@@ -982,11 +993,25 @@ impl Store {
                 )
                 .optional()?
                 .ok_or_else(|| StoreError::NotFound(format!("account {account_id}")))?;
+            let was_already_active: bool = conn.query_row(
+                "SELECT is_active FROM accounts WHERE id = ?1",
+                [account_id],
+                |r| r.get(0),
+            )?;
             conn.execute("UPDATE accounts SET is_active = 0", [])?;
             conn.execute(
                 "UPDATE accounts SET is_active = 1 WHERE id = ?1",
                 [account_id],
             )?;
+            // See reset_pull_cursors's doc. `sync_queue` is deliberately not
+            // touched here: push_one() now checks each item's owner_pubkey
+            // against the active identity itself, which is the correct
+            // place to guard a queue that legitimately holds a
+            // never-yet-published (ownerless) event for whichever account
+            // created it.
+            if !was_already_active {
+                reset_pull_cursors(conn)?;
+            }
             Ok(account)
         })
     }
@@ -1472,6 +1497,23 @@ fn event_params(e: &Event) -> Result<Vec<Box<dyn rusqlite::types::ToSql>>, Store
     ])
 }
 
+/// Clears the pull cursors (`sync.cursor_s`, `sync.invite_cursor_s` — see
+/// `sync::engine::CURSOR_KEY`/`INVITE_CURSOR_KEY`). Both are a single global
+/// `app_settings` row, not scoped per account. Left alone across a login or
+/// switch to a *different* account, the next pull would resume from
+/// wherever the *previous* account's sync had gotten to, silently skipping
+/// anything older than that on the new account's own relays. Clearing both
+/// makes the new account's first pull a full resync — the only actually-safe
+/// default. Called from `activate_account` and `switch_account`, only when
+/// the active pubkey is genuinely changing.
+fn reset_pull_cursors(conn: &Connection) -> Result<(), StoreError> {
+    conn.execute(
+        "DELETE FROM app_settings WHERE key IN ('sync.cursor_s', 'sync.invite_cursor_s')",
+        [],
+    )?;
+    Ok(())
+}
+
 /// Queues a sync operation, collapsing duplicates for the same event+op.
 fn enqueue(conn: &Connection, event_id: &str, op: &str) -> Result<(), StoreError> {
     conn.execute(
@@ -1784,5 +1826,110 @@ mod tests {
         let pending = store.pending_invitations().expect("pending");
         assert_eq!(pending.len(), 1, "must update, not duplicate");
         assert_eq!(pending[0].title, "Lunch (moved)");
+    }
+
+    /// Regression for the cross-account leak this session's audit found:
+    /// signing into a different Nostr account must not resume the previous
+    /// account's pull cursor — see reset_pull_cursors's doc.
+    #[test]
+    fn logging_into_a_different_account_resets_the_pull_cursors() {
+        let store = Store::open_in_memory().expect("open");
+        let a = "a".repeat(64);
+        let b = "b".repeat(64);
+        store
+            .activate_account(&a, "npub_a", "local_delegated")
+            .expect("activate a");
+        store
+            .set_setting("sync.cursor_s", "1700000000")
+            .expect("cursor");
+        store
+            .set_setting("sync.invite_cursor_s", "1700000000")
+            .expect("invite cursor");
+
+        store
+            .activate_account(&b, "npub_b", "local_delegated")
+            .expect("activate b");
+
+        assert_eq!(store.get_setting("sync.cursor_s").expect("get"), None);
+        assert_eq!(
+            store.get_setting("sync.invite_cursor_s").expect("get"),
+            None
+        );
+    }
+
+    /// Re-authenticating as the *same* account (e.g. a token refresh) must
+    /// not throw away real sync progress.
+    #[test]
+    fn relogging_into_the_same_account_keeps_the_pull_cursor() {
+        let store = Store::open_in_memory().expect("open");
+        let a = "a".repeat(64);
+        store
+            .activate_account(&a, "npub_a", "local_delegated")
+            .expect("activate");
+        store
+            .set_setting("sync.cursor_s", "1700000000")
+            .expect("cursor");
+
+        store
+            .activate_account(&a, "npub_a", "local_delegated")
+            .expect("re-activate");
+
+        assert_eq!(
+            store.get_setting("sync.cursor_s").expect("get"),
+            Some("1700000000".to_owned()),
+        );
+    }
+
+    /// Same regression as above, via the explicit multi-account switch path
+    /// rather than a fresh browser login.
+    #[test]
+    fn switching_accounts_resets_the_shared_pull_cursors() {
+        let store = Store::open_in_memory().expect("open");
+        let a = "a".repeat(64);
+        let b = "b".repeat(64);
+        let a_id = store
+            .activate_account(&a, "npub_a", "local_delegated")
+            .expect("activate a");
+        // Now that B is active, this cursor value represents B's own sync
+        // progress — A must not inherit it when we switch back.
+        store
+            .activate_account(&b, "npub_b", "local_delegated")
+            .expect("activate b");
+        store
+            .set_setting("sync.cursor_s", "1700000000")
+            .expect("cursor");
+        store
+            .set_setting("sync.invite_cursor_s", "1700000000")
+            .expect("invite cursor");
+
+        store.switch_account(&a_id).expect("switch back to a");
+
+        assert_eq!(store.get_setting("sync.cursor_s").expect("get"), None);
+        assert_eq!(
+            store.get_setting("sync.invite_cursor_s").expect("get"),
+            None
+        );
+    }
+
+    /// Re-selecting the already-active account is a no-op for the cursors —
+    /// otherwise every redundant SwitchAccount call would force a full
+    /// resync for no reason.
+    #[test]
+    fn switching_to_the_already_active_account_keeps_the_cursor() {
+        let store = Store::open_in_memory().expect("open");
+        let a = "a".repeat(64);
+        let a_id = store
+            .activate_account(&a, "npub_a", "local_delegated")
+            .expect("activate");
+        store
+            .set_setting("sync.cursor_s", "1700000000")
+            .expect("cursor");
+
+        store.switch_account(&a_id).expect("switch to self");
+
+        assert_eq!(
+            store.get_setting("sync.cursor_s").expect("get"),
+            Some("1700000000".to_owned()),
+        );
     }
 }
