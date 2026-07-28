@@ -537,9 +537,23 @@ impl Calendar1 {
         }
         let store = self.state.store.clone();
         let id = event_id.clone();
-        // Confirms the event exists (and is mine — invitations table only
-        // holds events I don't yet own) before queuing anything for it.
-        blocking(move || store.get_event(&id)).await?;
+        let event = blocking(move || store.get_event(&id)).await?;
+        // event.owner_pubkey is set once an event has actually been synced
+        // under some account; None means local-only/not-yet-published,
+        // which is unambiguously mine. Reject inviting from an event that's
+        // owned by a *different* account than whichever is active now —
+        // the same cross-account guard push_one() applies before
+        // publishing (engine.rs), applied here too since InviteAttendee is
+        // its own way to act on an event.
+        if let Some(owner) = &event.owner_pubkey {
+            let store = self.state.store.clone();
+            let active = blocking(move || store.active_account()).await?;
+            if active.map(|a| a.pubkey).as_deref() != Some(owner.as_str()) {
+                return Err(Error::InvalidArgument(
+                    "this event does not belong to the active account".into(),
+                ));
+            }
+        }
         let store = self.state.store.clone();
         blocking(move || store.add_attendee(&event_id, &pubkey_hex)).await?;
         let _ = Calendar1::invitations_changed(&emitter).await;

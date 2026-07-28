@@ -19,6 +19,23 @@ pub const SENTINEL_KEY: &str = "_astraeaInvite";
 const TYPE_INVITE: &str = "invite";
 const TYPE_RESPONSE: &str = "response";
 
+/// Field bounds for an incoming invite. An invite is unauthenticated in the
+/// sense that matters here: anyone who knows the invitee's pubkey can
+/// `p`-tag them and have a relay deliver it (see MAX_FETCH_TOTAL_BYTES in
+/// transport.rs for the response-size side of this). The outer envelope
+/// already caps total ciphertext at `wire::MAX_CONTENT_CHARS` (~90 000
+/// chars), but that alone would still let a single field absorb nearly all
+/// of it — these are ordinary calendar-field sizes no legitimate client
+/// would ever exceed, checked before the payload is trusted enough to show
+/// in a notification or store in `invitations`.
+const MAX_TITLE_CHARS: usize = 500;
+const MAX_DESCRIPTION_CHARS: usize = 4_000;
+const MAX_LOCATION_CHARS: usize = 500;
+const MAX_TIMEZONE_CHARS: usize = 100;
+/// A little slack past "no event realistically spans this long", not a
+/// precise calendar limit.
+const MAX_EVENT_DURATION_DAYS: i64 = 5 * 365;
+
 pub fn invite_d_tag(event_id: &str) -> String {
     format!("astraea-invite:v1:{event_id}")
 }
@@ -76,29 +93,41 @@ impl InvitePayload {
         if value.get(SENTINEL_KEY)?.as_str()? != TYPE_INVITE {
             return None;
         }
+        let title = value.get("title").and_then(Value::as_str).unwrap_or("");
+        let description = value
+            .get("description")
+            .and_then(Value::as_str)
+            .unwrap_or("");
+        let location = value.get("location").and_then(Value::as_str);
+        let timezone = value
+            .get("timezone")
+            .and_then(Value::as_str)
+            .unwrap_or("UTC");
+        if title.chars().count() > MAX_TITLE_CHARS
+            || description.chars().count() > MAX_DESCRIPTION_CHARS
+            || location.is_some_and(|l| l.chars().count() > MAX_LOCATION_CHARS)
+            || timezone.chars().count() > MAX_TIMEZONE_CHARS
+        {
+            return None;
+        }
+        let start = parse_iso(value.get("startTimeUtc")?)?;
+        let end = parse_iso(value.get("endTimeUtc")?)?;
+        // Reject a non-positive or implausibly long span rather than let it
+        // reach the invitations table and whatever renders it.
+        let span = end.signed_duration_since(start);
+        if span <= chrono::Duration::zero()
+            || span > chrono::Duration::days(MAX_EVENT_DURATION_DAYS)
+        {
+            return None;
+        }
         Some(Self {
             event_id: value.get("eventId")?.as_str()?.to_owned(),
-            title: value
-                .get("title")
-                .and_then(Value::as_str)
-                .unwrap_or("")
-                .to_owned(),
-            description: value
-                .get("description")
-                .and_then(Value::as_str)
-                .unwrap_or("")
-                .to_owned(),
-            location: value
-                .get("location")
-                .and_then(Value::as_str)
-                .map(str::to_owned),
-            start: parse_iso(value.get("startTimeUtc")?)?,
-            end: parse_iso(value.get("endTimeUtc")?)?,
-            timezone: value
-                .get("timezone")
-                .and_then(Value::as_str)
-                .unwrap_or("UTC")
-                .to_owned(),
+            title: title.to_owned(),
+            description: description.to_owned(),
+            location: location.map(str::to_owned),
+            start,
+            end,
+            timezone: timezone.to_owned(),
             all_day: value
                 .get("isAllDay")
                 .and_then(Value::as_bool)
@@ -286,5 +315,40 @@ mod tests {
         assert_eq!(invite_d_tag(id), "astraea-invite:v1:evt-1");
         assert_eq!(response_d_tag(id), "astraea-invite-response:v1:evt-1");
         assert_ne!(invite_d_tag(id), response_d_tag(id));
+    }
+
+    /// Regression for this session's audit: an invite is reachable by
+    /// anyone who knows the invitee's pubkey, so its fields must be bounded
+    /// before it's trusted enough to reach a notification or the
+    /// invitations table.
+    #[test]
+    fn oversized_or_implausible_invite_fields_are_rejected() {
+        let mut invite = sample_invite();
+        invite.title = "x".repeat(MAX_TITLE_CHARS + 1);
+        assert!(
+            parse_message(&invite_plaintext(&invite)).is_none(),
+            "oversized title must be rejected"
+        );
+
+        let mut invite = sample_invite();
+        invite.description = "x".repeat(MAX_DESCRIPTION_CHARS + 1);
+        assert!(
+            parse_message(&invite_plaintext(&invite)).is_none(),
+            "oversized description must be rejected"
+        );
+
+        let mut invite = sample_invite();
+        invite.end = invite.start; // zero-length span
+        assert!(
+            parse_message(&invite_plaintext(&invite)).is_none(),
+            "a non-positive duration must be rejected"
+        );
+
+        let mut invite = sample_invite();
+        invite.end = invite.start + chrono::Duration::days(MAX_EVENT_DURATION_DAYS + 1);
+        assert!(
+            parse_message(&invite_plaintext(&invite)).is_none(),
+            "an implausibly long duration must be rejected"
+        );
     }
 }

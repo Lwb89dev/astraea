@@ -5,7 +5,22 @@
 use std::time::Duration;
 
 use async_trait::async_trait;
+use futures_util::StreamExt;
 use nostr::{Event, Filter};
+
+use crate::sync::wire;
+
+/// Hard cap on how much relay-response content one `fetch` call will hold in
+/// memory, independent of the `Filter::limit` count hint (which a relay can
+/// simply ignore — NIP-01 doesn't require honouring it). Applied while
+/// *streaming* the response, not after collecting it: a relay (malicious, or
+/// just relaying spam addressed to the account — attendee invites are exactly
+/// this shape, kind 30078 events anyone can `p`-tag at a victim's pubkey) that
+/// tries to hand back gigabytes of oversized events can only ever cost this
+/// much memory before the fetch stops reading, whatever it keeps sending
+/// after that is simply never received. 20 MiB comfortably covers even a very
+/// large legitimate calendar's sync/invite traffic.
+const MAX_FETCH_TOTAL_BYTES: usize = 20 * 1024 * 1024;
 
 /// Relay URL rules from the wire contract: `wss://` or `ws://`, no userinfo,
 /// no fragment, at most this many characters.
@@ -130,12 +145,35 @@ impl RelayTransport for NostrSdkTransport {
     }
 
     async fn fetch(&self, filter: Filter, timeout: Duration) -> Result<Vec<Event>, TransportError> {
-        let events = self
+        // Streamed rather than `fetch_events` (which buffers the entire
+        // response before returning it): see MAX_FETCH_TOTAL_BYTES.
+        let mut stream = self
             .client
-            .fetch_events(filter, timeout)
+            .stream_events(filter, timeout)
             .await
             .map_err(|e| TransportError::Failed(e.to_string()))?;
-        Ok(events.into_iter().collect())
+
+        let mut events = Vec::new();
+        let mut total_bytes: usize = 0;
+        while let Some(event) = stream.next().await {
+            if events.len() >= wire::MAX_PULL_EVENTS {
+                break;
+            }
+            let size = event.content.len();
+            // An individually oversized event is dropped, not counted
+            // against the budget — the same "skip, never fail the whole
+            // fetch" contract screen_envelope already enforces downstream,
+            // just applied before the bytes are even kept around.
+            if size > wire::MAX_CONTENT_CHARS {
+                continue;
+            }
+            if total_bytes.saturating_add(size) > MAX_FETCH_TOTAL_BYTES {
+                break;
+            }
+            total_bytes += size;
+            events.push(event);
+        }
+        Ok(events)
     }
 
     async fn health(&self) -> Vec<RelayHealth> {

@@ -624,3 +624,41 @@ async fn two_party_invite_is_encrypted_end_to_end_and_reaches_acceptance() {
     assert_eq!(attendees[0].pubkey, bob_keys.public_key().to_hex());
     assert_eq!(attendees[0].status, AttendeeStatus::Accepted);
 }
+
+/// Regression for the cross-account leak this session's audit found:
+/// `sync_queue` is global, not scoped to whichever account is active. An
+/// event already owned by a *different* account (e.g. queued for a retry
+/// while account A was active, then the service switched to account B) must
+/// never be signed and re-published under the now-active identity — that
+/// would both misattribute the event to the wrong account and hand its
+/// plaintext to a key that was never meant to read it.
+#[tokio::test]
+async fn push_refuses_to_republish_an_event_owned_by_a_different_account() {
+    let (store, engine, transport, _keys) = setup(Some(Keys::generate()));
+    let event = create_event(&store, "Someone else's event");
+
+    // Simulate the event having already been published once under a
+    // *different* account, whose owner_pubkey is still on the row — exactly
+    // what a queued retry would look like after an account switch.
+    let other_account = Keys::generate();
+    store
+        .mark_event_published(
+            &event.id,
+            "d".repeat(64).as_str(),
+            &other_account.public_key().to_hex(),
+            false,
+        )
+        .expect("mark published under a different account");
+
+    engine.run_once().await;
+
+    assert!(
+        transport.state.lock().await.published.is_empty(),
+        "must never publish an event owned by another account"
+    );
+    assert_eq!(
+        store.pending_operations().expect("pending"),
+        0,
+        "the dangerous queue item must be dropped, not retried forever"
+    );
+}

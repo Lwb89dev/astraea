@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer' as developer;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,7 +22,16 @@ class EventsNotifier extends AsyncNotifier<List<Event>> {
   }
 
   /// Creates or updates an event: local save → reschedule reminders →
-  /// best-effort relay publish → refresh state.
+  /// refresh (so the UI reflects the save immediately) → best-effort relay
+  /// publish in the background.
+  ///
+  /// The publish is deliberately *not* awaited here: relay round-trips can
+  /// take up to [AppConstants.syncEoseTimeout] each, and offline-first means
+  /// the local save (already durable at this point) is what "saved"
+  /// actually means — waiting on the network besides would make every save
+  /// feel exactly as slow as the flakiest configured relay, for no benefit,
+  /// since a publish failure already just leaves the event unsynced for the
+  /// next sync cycle to retry.
   Future<void> upsert(Event event) async {
     developer.log(
       'EventsNotifier.upsert called: ${event.id}',
@@ -34,12 +44,13 @@ class EventsNotifier extends AsyncNotifier<List<Event>> {
     final stamped = event.copyWith(synced: false, updatedAt: updatedAt);
     await ref.read(localStorageServiceProvider).saveEvent(stamped);
     await ref.read(notificationServiceProvider).scheduleForEvent(stamped);
-    await _publish(stamped);
     await _refresh();
+    unawaited(_publishInBackground(stamped));
   }
 
-  /// Deletes an event: cancels its reminders, writes a local tombstone, and
-  /// best-effort publishes a NIP-09 deletion.
+  /// Deletes an event: cancels its reminders, writes a local tombstone,
+  /// refreshes, then best-effort publishes a NIP-09 deletion in the
+  /// background — see [upsert]'s doc for why publishing isn't awaited here.
   Future<void> delete(Event event) async {
     developer.log(
       'EventsNotifier.delete called: ${event.id}',
@@ -53,7 +64,11 @@ class EventsNotifier extends AsyncNotifier<List<Event>> {
     );
     await ref.read(localStorageServiceProvider).saveEvent(tombstone);
     await ref.read(notificationServiceProvider).cancelForEvent(event.id);
+    await _refresh();
+    unawaited(_publishDeletionInBackground(tombstone));
+  }
 
+  Future<void> _publishDeletionInBackground(Event tombstone) async {
     final auth = ref.read(authProvider).value;
     final settings = ref.read(settingsProvider).value;
     final owner = tombstone.syncOwnerPubkey;
@@ -68,7 +83,7 @@ class EventsNotifier extends AsyncNotifier<List<Event>> {
         // Offline (or local-only with no account) / relay error: the local
         // tombstone stays unsynced and the next sync cycle retries it.
         developer.log(
-          'Deletion publish failed for ${event.id}: $e',
+          'Deletion publish failed for ${tombstone.id}: $e',
           name: 'EventsNotifier',
         );
       }
@@ -103,6 +118,11 @@ class EventsNotifier extends AsyncNotifier<List<Event>> {
       await notifications.scheduleForEvent(event);
     }
     return written;
+  }
+
+  Future<void> _publishInBackground(Event event) async {
+    await _publish(event);
+    await _refresh();
   }
 
   Future<void> _publish(Event event) async {
