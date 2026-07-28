@@ -242,5 +242,10 @@
   "declineInvitation": "Refuză",
   "respondToInvitationFailed": "Răspunsul nu a putut fi trimis: {error}",
   "invitationAccepted": "Invitație acceptată",
-  "invitationDeclined": "Invitație refuzată"
+  "invitationDeclined": "Invitație refuzată",
+
+  "accentColorLabel": "Culoare de accent",
+  "accentNavy": "Bleumarin",
+  "accentBitcoin": "Portocaliu Bitcoin",
+  "accentNostr": "Violet Nostr"
 }

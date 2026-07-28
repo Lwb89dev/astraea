@@ -242,5 +242,10 @@
   "declineInvitation": "Отклонить",
   "respondToInvitationFailed": "Не удалось отправить ответ: {error}",
   "invitationAccepted": "Приглашение принято",
-  "invitationDeclined": "Приглашение отклонено"
+  "invitationDeclined": "Приглашение отклонено",
+
+  "accentColorLabel": "Акцентный цвет",
+  "accentNavy": "Тёмно-синий",
+  "accentBitcoin": "Оранжевый Bitcoin",
+  "accentNostr": "Фиолетовый Nostr"
 }

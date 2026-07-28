@@ -242,5 +242,10 @@
   "declineInvitation": "Avböj",
   "respondToInvitationFailed": "Kunde inte svara: {error}",
   "invitationAccepted": "Inbjudan accepterad",
-  "invitationDeclined": "Inbjudan avböjd"
+  "invitationDeclined": "Inbjudan avböjd",
+
+  "accentColorLabel": "Accentfärg",
+  "accentNavy": "Marinblå",
+  "accentBitcoin": "Bitcoin-orange",
+  "accentNostr": "Nostr-lila"
 }

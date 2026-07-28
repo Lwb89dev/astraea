@@ -505,6 +505,18 @@ class AppLocalizationsHr extends AppLocalizations {
   String get systemLanguage => 'Jezik sustava';
 
   @override
+  String get accentColorLabel => 'Boja isticanja';
+
+  @override
+  String get accentNavy => 'Mornarsko plava';
+
+  @override
+  String get accentBitcoin => 'Bitcoin narančasta';
+
+  @override
+  String get accentNostr => 'Nostr ljubičasta';
+
+  @override
   String get exportEvents => 'Izvezi događaje';
 
   @override

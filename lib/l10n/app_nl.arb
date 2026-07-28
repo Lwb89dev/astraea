@@ -242,5 +242,10 @@
   "declineInvitation": "Weigeren",
   "respondToInvitationFailed": "Kon niet reageren: {error}",
   "invitationAccepted": "Uitnodiging geaccepteerd",
-  "invitationDeclined": "Uitnodiging geweigerd"
+  "invitationDeclined": "Uitnodiging geweigerd",
+
+  "accentColorLabel": "Accentkleur",
+  "accentNavy": "Marineblauw",
+  "accentBitcoin": "Bitcoin-oranje",
+  "accentNostr": "Nostr-paars"
 }

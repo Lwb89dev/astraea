@@ -486,6 +486,18 @@ class AppLocalizationsJa extends AppLocalizations {
   String get systemLanguage => 'システム言語';
 
   @override
+  String get accentColorLabel => 'アクセントカラー';
+
+  @override
+  String get accentNavy => 'ネイビーブルー';
+
+  @override
+  String get accentBitcoin => 'ビットコインオレンジ';
+
+  @override
+  String get accentNostr => 'Nostrパープル';
+
+  @override
   String get exportEvents => '予定をエクスポート';
 
   @override

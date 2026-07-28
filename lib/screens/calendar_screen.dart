@@ -7,7 +7,9 @@ import '../models/event_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/calendar_view_provider.dart';
 import '../providers/events_provider.dart';
+import '../providers/settings_provider.dart';
 import '../providers/sync_provider.dart';
+import '../utils/app_accent.dart';
 import '../utils/event_color.dart';
 import '../utils/formatter.dart';
 import '../utils/recurrence.dart';
@@ -194,10 +196,21 @@ class _CalendarWithAgenda extends ConsumerWidget {
       rangeStartUtc: rangeStart.toUtc(),
       rangeEndUtc: rangeEnd.toUtc(),
     )) {
-      final local = occurrence.startUtc.toLocal();
-      byDay
-          .putIfAbsent((local.year, local.month, local.day), () => [])
-          .add(occurrence);
+      // A multi-day occurrence belongs on every calendar day it touches, not
+      // just the one it starts on — otherwise the month grid can only ever
+      // mark its first day, however long the event runs.
+      var day = _localDay(occurrence.startUtc);
+      final lastDay = _localDay(
+        occurrence.endUtc.subtract(const Duration(milliseconds: 1)),
+      );
+      if (day.isBefore(rangeStart)) day = rangeStart;
+      final cappedLastDay = lastDay.isAfter(rangeEnd)
+          ? rangeEnd.subtract(const Duration(days: 1))
+          : lastDay;
+      while (!day.isAfter(cappedLastDay)) {
+        byDay.putIfAbsent((day.year, day.month, day.day), () => []).add(occurrence);
+        day = day.add(const Duration(days: 1));
+      }
     }
     return byDay;
   }
@@ -206,6 +219,9 @@ class _CalendarWithAgenda extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final notifier = ref.read(calendarViewProvider.notifier);
     final occurrences = _visibleOccurrences();
+    final accent = AppAccent.fromPrefsValue(
+      ref.watch(settingsProvider).value?.accent,
+    );
     return Column(
       children: [
         TableCalendar<EventOccurrence>(
@@ -229,16 +245,137 @@ class _CalendarWithAgenda extends ConsumerWidget {
               notifier.selectDay(selected, focusedDay: focused),
           onPageChanged: notifier.setFocusedDay,
           calendarStyle: CalendarStyle(
-            markerDecoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary,
+            todayDecoration: BoxDecoration(
+              color: accent.dayBackground,
               shape: BoxShape.circle,
             ),
+            todayTextStyle: TextStyle(color: accent.onIndicator),
+            selectedDecoration: BoxDecoration(
+              color: accent.indicator,
+              shape: BoxShape.circle,
+            ),
+            selectedTextStyle: TextStyle(color: accent.onIndicator),
+          ),
+          calendarBuilders: const CalendarBuilders<EventOccurrence>(
+            markerBuilder: _buildDayMarkers,
           ),
         ),
         const Divider(height: 1),
         Expanded(
           child: _DayAgenda(day: view.selectedDay, events: events),
         ),
+      ],
+    );
+  }
+}
+
+/// Midnight, local time, for [utc] converted to local — the calendar day it
+/// falls on.
+DateTime _localDay(DateTime utc) {
+  final local = utc.toLocal();
+  return DateTime(local.year, local.month, local.day);
+}
+
+/// Whether [occurrence] fits entirely within one calendar day — the line
+/// between "gets a dot" and "gets a continuous bar" in the month grid.
+bool _isMultiDayOccurrence(EventOccurrence occurrence) {
+  final lastTouchedDay = _localDay(
+    occurrence.endUtc.subtract(const Duration(milliseconds: 1)),
+  );
+  return lastTouchedDay.isAfter(_localDay(occurrence.startUtc));
+}
+
+/// Custom month-grid marker (see `eventLoader`/`_visibleOccurrences` above,
+/// which spans a multi-day occurrence across every day it covers): a
+/// multi-day event draws as a continuous bar rather than a single dot,
+/// flush with the cell edges so consecutive days' segments visually
+/// connect, rounded only where the event actually starts or ends. Capped at
+/// 2 bars plus a row of dots for same-day events, so a busy cell never
+/// overflows.
+Widget? _buildDayMarkers(
+  BuildContext context,
+  DateTime day,
+  List<EventOccurrence> events,
+) {
+  if (events.isEmpty) return null;
+  final multiDay = events.where(_isMultiDayOccurrence).take(2).toList();
+  final singleDay = events.where((o) => !_isMultiDayOccurrence(o)).toList();
+
+  final rows = <Widget>[
+    for (final occurrence in multiDay)
+      _MultiDayBar(day: day, occurrence: occurrence),
+    if (singleDay.isNotEmpty && multiDay.length < 2)
+      _SingleDayDots(occurrences: singleDay, maxCount: 3 - multiDay.length),
+  ];
+  if (rows.isEmpty) return null;
+
+  return Positioned(
+    left: 0,
+    right: 0,
+    bottom: 3,
+    child: Column(mainAxisSize: MainAxisSize.min, children: rows),
+  );
+}
+
+/// One segment of a multi-day event's bar for [day]. Deliberately unmargined
+/// on any side that isn't the event's true start/end, so the segments in
+/// consecutive day cells sit flush and read as one continuous line.
+class _MultiDayBar extends StatelessWidget {
+  const _MultiDayBar({required this.day, required this.occurrence});
+
+  final DateTime day;
+  final EventOccurrence occurrence;
+
+  @override
+  Widget build(BuildContext context) {
+    final isFirstDay = isSameDay(_localDay(occurrence.startUtc), day);
+    final isLastDay = isSameDay(
+      _localDay(occurrence.endUtc.subtract(const Duration(milliseconds: 1))),
+      day,
+    );
+    const cap = Radius.circular(3);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 1),
+      child: Container(
+        height: 5,
+        margin: EdgeInsets.only(
+          left: isFirstDay ? 3 : 0,
+          right: isLastDay ? 3 : 0,
+        ),
+        decoration: BoxDecoration(
+          color: parseEventColor(occurrence.event.color),
+          borderRadius: BorderRadius.horizontal(
+            left: isFirstDay ? cap : Radius.zero,
+            right: isLastDay ? cap : Radius.zero,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SingleDayDots extends StatelessWidget {
+  const _SingleDayDots({required this.occurrences, required this.maxCount});
+
+  final List<EventOccurrence> occurrences;
+  final int maxCount;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (final occurrence in occurrences.take(maxCount))
+          Container(
+            width: 6,
+            height: 6,
+            margin: const EdgeInsets.symmetric(horizontal: 1),
+            decoration: BoxDecoration(
+              color: parseEventColor(occurrence.event.color),
+              shape: BoxShape.circle,
+            ),
+          ),
       ],
     );
   }

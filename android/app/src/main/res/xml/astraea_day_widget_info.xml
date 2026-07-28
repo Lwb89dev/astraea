@@ -19,4 +19,5 @@
     android:widgetCategory="home_screen"
     android:description="@string/astraea_widget_day_label"
     android:initialLayout="@layout/astraea_widget_list"
-    android:updatePeriodMillis="1800000" />
+    android:updatePeriodMillis="1800000"
+    android:configure="com.example.astraea.AstraeaWidgetConfigActivity" />

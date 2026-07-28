@@ -242,5 +242,10 @@
   "declineInvitation": "Noraidīt",
   "respondToInvitationFailed": "Neizdevās atbildēt: {error}",
   "invitationAccepted": "Uzaicinājums pieņemts",
-  "invitationDeclined": "Uzaicinājums noraidīts"
+  "invitationDeclined": "Uzaicinājums noraidīts",
+
+  "accentColorLabel": "Akcenta krāsa",
+  "accentNavy": "Tumši zils",
+  "accentBitcoin": "Bitcoin oranžs",
+  "accentNostr": "Nostr violets"
 }

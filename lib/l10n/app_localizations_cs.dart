@@ -508,6 +508,18 @@ class AppLocalizationsCs extends AppLocalizations {
   String get systemLanguage => 'Jazyk systému';
 
   @override
+  String get accentColorLabel => 'Barva zvýraznění';
+
+  @override
+  String get accentNavy => 'Tmavě modrá';
+
+  @override
+  String get accentBitcoin => 'Bitcoinová oranžová';
+
+  @override
+  String get accentNostr => 'Nostr fialová';
+
+  @override
   String get exportEvents => 'Exportovat události';
 
   @override

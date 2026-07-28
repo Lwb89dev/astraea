@@ -24,6 +24,7 @@ import '../providers/settings_provider.dart';
 import '../providers/sync_provider.dart';
 import '../providers/theme_provider.dart';
 import '../services/local_storage_service.dart';
+import '../utils/app_accent.dart';
 import '../utils/constants.dart';
 import '../utils/formatter.dart';
 import '../utils/relay_url.dart';
@@ -437,7 +438,7 @@ class _RelaySection extends ConsumerWidget {
                 );
               },
             ),
-            if (AppConstants.defaultRelays.any(
+            if (AppConstants.suggestedRelays.any(
               (relay) => !settings.relays.contains(relay),
             )) ...[
               const Divider(),
@@ -446,7 +447,7 @@ class _RelaySection extends ConsumerWidget {
                 title: Text(l10n.suggestedRelaysTitle),
                 subtitle: Text(l10n.addOnlyRelaysYouWant),
               ),
-              for (final url in AppConstants.defaultRelays)
+              for (final url in AppConstants.suggestedRelays)
                 if (!settings.relays.contains(url))
                   ListTile(
                     leading: const Icon(Icons.dns_outlined),
@@ -561,8 +562,55 @@ class _AppearanceSection extends ConsumerWidget {
           trailing: const Icon(Icons.chevron_right),
           onTap: () => _pickLanguage(context, ref, settings),
         ),
+        ListTile(
+          leading: CircleAvatar(
+            radius: 12,
+            backgroundColor: AppAccent.fromPrefsValue(settings.accent).seed,
+          ),
+          title: Text(l10n.accentColorLabel),
+          subtitle: Text(
+            AppAccent.fromPrefsValue(settings.accent).label(l10n),
+          ),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => _pickAccent(context, ref, settings),
+        ),
       ],
     );
+  }
+
+  Future<void> _pickAccent(
+    BuildContext context,
+    WidgetRef ref,
+    AppSettings settings,
+  ) async {
+    final l10n = AppLocalizations.of(context);
+    final current = AppAccent.fromPrefsValue(settings.accent);
+    final chosen = await showModalBottomSheet<AppAccent>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final accent in AppAccent.values)
+              ListTile(
+                leading: CircleAvatar(
+                  radius: 12,
+                  backgroundColor: accent.seed,
+                ),
+                title: Text(accent.label(l10n)),
+                selected: accent == current,
+                trailing: accent == current ? const Icon(Icons.check) : null,
+                onTap: () => Navigator.of(ctx).pop(accent),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (chosen == null || chosen == current) return;
+    await ref
+        .read(settingsProvider.notifier)
+        .save(settings.copyWith(accent: chosen.prefsValue));
   }
 
   Future<void> _pickLanguage(

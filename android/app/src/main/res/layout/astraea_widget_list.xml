@@ -29,7 +29,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:drawableStart="@drawable/astraea_widget_dot"
+            android:drawableStart="@drawable/astraea_widget_header_bullet"
             android:drawablePadding="6dp"
             android:ellipsize="end"
             android:maxLines="1"

@@ -504,6 +504,18 @@ class AppLocalizationsLt extends AppLocalizations {
   String get systemLanguage => 'Sistemos kalba';
 
   @override
+  String get accentColorLabel => 'Akcentinė spalva';
+
+  @override
+  String get accentNavy => 'Tamsiai mėlyna';
+
+  @override
+  String get accentBitcoin => 'Bitkoino oranžinė';
+
+  @override
+  String get accentNostr => 'Nostr violetinė';
+
+  @override
   String get exportEvents => 'Eksportuoti įvykius';
 
   @override

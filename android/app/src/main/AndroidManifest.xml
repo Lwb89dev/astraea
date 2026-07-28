@@ -43,6 +43,22 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- Per-widget theme picker (AstraeaWidgetConfigActivity): the
+             `android:configure` target declared in each *_widget_info.xml
+             below. Launched by the OS both right after a widget is placed
+             and, on most launchers, from that widget's long-press "Widget
+             settings" action — see the class doc for why one activity
+             covers both. The APPWIDGET_CONFIGURE intent-filter is the
+             documented way a host identifies a configure activity, even
+             though this app always launches it by explicit component. -->
+        <activity
+            android:name=".AstraeaWidgetConfigActivity"
+            android:exported="true"
+            android:theme="@android:style/Theme.DeviceDefault.Dialog.Alert">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
         <!-- flutter_local_notifications: delivers a scheduled reminder, and
              restores all pending ones after a reboot (Android clears alarms on
              boot). Without the boot receiver every reminder would silently be

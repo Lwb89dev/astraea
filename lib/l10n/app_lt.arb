@@ -242,5 +242,10 @@
   "declineInvitation": "Atmesti",
   "respondToInvitationFailed": "Nepavyko atsakyti: {error}",
   "invitationAccepted": "Kvietimas priimtas",
-  "invitationDeclined": "Kvietimas atmestas"
+  "invitationDeclined": "Kvietimas atmestas",
+
+  "accentColorLabel": "Akcentinė spalva",
+  "accentNavy": "Tamsiai mėlyna",
+  "accentBitcoin": "Bitkoino oranžinė",
+  "accentNostr": "Nostr violetinė"
 }

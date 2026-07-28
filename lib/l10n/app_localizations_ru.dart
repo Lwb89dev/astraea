@@ -509,6 +509,18 @@ class AppLocalizationsRu extends AppLocalizations {
   String get systemLanguage => 'Язык системы';
 
   @override
+  String get accentColorLabel => 'Акцентный цвет';
+
+  @override
+  String get accentNavy => 'Тёмно-синий';
+
+  @override
+  String get accentBitcoin => 'Оранжевый Bitcoin';
+
+  @override
+  String get accentNostr => 'Фиолетовый Nostr';
+
+  @override
   String get exportEvents => 'Экспорт событий';
 
   @override

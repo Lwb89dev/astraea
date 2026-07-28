@@ -242,5 +242,10 @@
   "declineInvitation": "Zavrni",
   "respondToInvitationFailed": "Odgovora ni bilo mogoče poslati: {error}",
   "invitationAccepted": "Povabilo sprejeto",
-  "invitationDeclined": "Povabilo zavrnjeno"
+  "invitationDeclined": "Povabilo zavrnjeno",
+
+  "accentColorLabel": "Barva poudarka",
+  "accentNavy": "Mornarsko modra",
+  "accentBitcoin": "Bitcoin oranžna",
+  "accentNostr": "Nostr vijolična"
 }

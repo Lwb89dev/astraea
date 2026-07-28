@@ -333,6 +333,7 @@ class LocalStorageService {
       notificationsEnabled:
           prefs.getBool(AppConstants.prefsNotificationsEnabledKey) ?? true,
       locale: prefs.getString(AppConstants.prefsLocaleKey),
+      accent: prefs.getString(AppConstants.prefsAccentKey),
     );
   }
 
@@ -387,6 +388,12 @@ class LocalStorageService {
       await prefs.remove(AppConstants.prefsLocaleKey);
     } else {
       await prefs.setString(AppConstants.prefsLocaleKey, locale);
+    }
+    final accent = settings.accent;
+    if (accent == null || accent.isEmpty) {
+      await prefs.remove(AppConstants.prefsAccentKey);
+    } else {
+      await prefs.setString(AppConstants.prefsAccentKey, accent);
     }
   }
 

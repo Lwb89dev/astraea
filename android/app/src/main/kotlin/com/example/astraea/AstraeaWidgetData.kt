@@ -28,6 +28,53 @@ data class WidgetEvent(
     fun startCalendar(): Calendar = Calendar.getInstance().apply { timeInMillis = startMillis }
 }
 
+/**
+ * Per-widget-instance theme (ADR-free — a small, self-contained native
+ * feature): chosen at creation via [AstraeaWidgetConfigActivity] and
+ * changeable afterwards through most launchers' long-press "Widget
+ * settings" action, which the OS re-launches the same configure Activity
+ * for. Deliberately independent from the Flutter app's own Settings >
+ * Appearance accent — this is the *widget's* accent, not the app's.
+ *
+ * [dayBackground]/[dot]/[addBackground] mirror the app-side two-tone
+ * pairing (a lighter tint for a highlighted day's background, the brand's
+ * own saturated tone for the event indicator) with hand-picked drawables
+ * instead of the Dart `AppAccent` enum, since RemoteViews can only apply a
+ * color by swapping to a pre-baked drawable resource, not by computing one
+ * at runtime.
+ */
+enum class WidgetAccent(val prefsValue: String, val labelRes: Int) {
+    NAVY("navy", R.string.astraea_widget_theme_navy),
+    BITCOIN("bitcoin", R.string.astraea_widget_theme_bitcoin),
+    NOSTR("nostr", R.string.astraea_widget_theme_nostr);
+
+    val dayBackground: Int
+        get() = when (this) {
+            NAVY -> R.drawable.astraea_widget_today
+            BITCOIN -> R.drawable.astraea_widget_today_bitcoin
+            NOSTR -> R.drawable.astraea_widget_today_nostr
+        }
+
+    val dot: Int
+        get() = when (this) {
+            NAVY -> R.drawable.astraea_widget_dot
+            BITCOIN -> R.drawable.astraea_widget_dot_bitcoin
+            NOSTR -> R.drawable.astraea_widget_dot_nostr
+        }
+
+    val addBackground: Int
+        get() = when (this) {
+            NAVY -> R.drawable.astraea_widget_add_background
+            BITCOIN -> R.drawable.astraea_widget_add_background_bitcoin
+            NOSTR -> R.drawable.astraea_widget_add_background_nostr
+        }
+
+    companion object {
+        fun fromPrefsValue(value: String?): WidgetAccent =
+            entries.firstOrNull { it.prefsValue == value } ?: NAVY
+    }
+}
+
 object AstraeaWidgetData {
     // Stable bridge keys: changing these would discard cached widget state on
     // upgrades from the former Epochs identity.
@@ -61,6 +108,7 @@ object AstraeaWidgetData {
         context.getSharedPreferences(STATE_PREFS, Context.MODE_PRIVATE)
             .edit()
             .remove("offset_$widgetId")
+            .remove("accent_$widgetId")
             .apply()
     }
 
@@ -92,10 +140,42 @@ object AstraeaWidgetData {
         context.getSharedPreferences(STATE_PREFS, Context.MODE_PRIVATE)
             .getInt("offset_$widgetId", 0)
 
-    fun changePeriodOffset(context: Context, widgetId: Int, delta: Int) {
+    /**
+     * [minOffset]/[maxOffset] must match the calling widget's own
+     * [AstraeaWidgetProvider.maxPastOffset]/[AstraeaWidgetProvider.maxFutureOffset]
+     * — bounding navigation to Flutter's cache window (HomeWidgetService),
+     * not a generic constant, since day/week/month each interpret this
+     * offset in a different unit.
+     */
+    fun changePeriodOffset(context: Context, widgetId: Int, delta: Int, minOffset: Int, maxOffset: Int) {
         val prefs = context.getSharedPreferences(STATE_PREFS, Context.MODE_PRIVATE)
         val current = prefs.getInt("offset_$widgetId", 0)
-        prefs.edit().putInt("offset_$widgetId", (current + delta).coerceIn(-120, 120)).apply()
+        prefs.edit().putInt("offset_$widgetId", (current + delta).coerceIn(minOffset, maxOffset)).apply()
+    }
+
+    /** This widget instance's theme (see [WidgetAccent]); NAVY until chosen. */
+    fun widgetAccent(context: Context, widgetId: Int): WidgetAccent =
+        WidgetAccent.fromPrefsValue(
+            context.getSharedPreferences(STATE_PREFS, Context.MODE_PRIVATE)
+                .getString("accent_$widgetId", null),
+        )
+
+    /**
+     * Whether a theme has ever actually been chosen for this widget, as
+     * opposed to [widgetAccent] merely falling back to NAVY. Distinguishes
+     * "this is the first-placement configure launch" from "some launcher
+     * re-launched the configure activity to reconfigure an existing widget"
+     * — see [AstraeaWidgetConfigActivity].
+     */
+    fun hasExplicitWidgetAccent(context: Context, widgetId: Int): Boolean =
+        context.getSharedPreferences(STATE_PREFS, Context.MODE_PRIVATE)
+            .contains("accent_$widgetId")
+
+    fun setWidgetAccent(context: Context, widgetId: Int, accent: WidgetAccent) {
+        context.getSharedPreferences(STATE_PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putString("accent_$widgetId", accent.prefsValue)
+            .apply()
     }
 
     /**

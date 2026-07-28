@@ -502,6 +502,18 @@ class AppLocalizationsNl extends AppLocalizations {
   String get systemLanguage => 'Systeemtaal';
 
   @override
+  String get accentColorLabel => 'Accentkleur';
+
+  @override
+  String get accentNavy => 'Marineblauw';
+
+  @override
+  String get accentBitcoin => 'Bitcoin-oranje';
+
+  @override
+  String get accentNostr => 'Nostr-paars';
+
+  @override
   String get exportEvents => 'Afspraken exporteren';
 
   @override

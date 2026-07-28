@@ -242,5 +242,10 @@
   "declineInvitation": "Rechazar",
   "respondToInvitationFailed": "No se pudo responder: {error}",
   "invitationAccepted": "Invitación aceptada",
-  "invitationDeclined": "Invitación rechazada"
+  "invitationDeclined": "Invitación rechazada",
+
+  "accentColorLabel": "Color de acento",
+  "accentNavy": "Azul marino",
+  "accentBitcoin": "Naranja Bitcoin",
+  "accentNostr": "Morado Nostr"
 }

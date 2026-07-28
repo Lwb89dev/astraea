@@ -503,6 +503,18 @@ class AppLocalizationsFr extends AppLocalizations {
   String get systemLanguage => 'Langue du système';
 
   @override
+  String get accentColorLabel => 'Couleur d\'accent';
+
+  @override
+  String get accentNavy => 'Bleu marine';
+
+  @override
+  String get accentBitcoin => 'Orange Bitcoin';
+
+  @override
+  String get accentNostr => 'Violet Nostr';
+
+  @override
   String get exportEvents => 'Exporter les événements';
 
   @override

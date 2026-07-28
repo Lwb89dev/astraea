@@ -242,5 +242,10 @@
   "declineInvitation": "Απόρριψη",
   "respondToInvitationFailed": "Δεν ήταν δυνατή η αποστολή απάντησης: {error}",
   "invitationAccepted": "Η πρόσκληση έγινε αποδεκτή",
-  "invitationDeclined": "Η πρόσκληση απορρίφθηκε"
+  "invitationDeclined": "Η πρόσκληση απορρίφθηκε",
+
+  "accentColorLabel": "Χρώμα έμφασης",
+  "accentNavy": "Σκούρο μπλε",
+  "accentBitcoin": "Πορτοκαλί Bitcoin",
+  "accentNostr": "Μοβ Nostr"
 }

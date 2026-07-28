@@ -501,6 +501,18 @@ class AppLocalizationsDa extends AppLocalizations {
   String get systemLanguage => 'Systemsprog';
 
   @override
+  String get accentColorLabel => 'Accentfarve';
+
+  @override
+  String get accentNavy => 'Marineblu00e5';
+
+  @override
+  String get accentBitcoin => 'Bitcoin-orange';
+
+  @override
+  String get accentNostr => 'Nostr-lilla';
+
+  @override
   String get exportEvents => 'Eksporter begivenheder';
 
   @override

@@ -242,5 +242,10 @@
   "declineInvitation": "Hylkää",
   "respondToInvitationFailed": "Vastausta ei voitu lähettää: {error}",
   "invitationAccepted": "Kutsu hyväksytty",
-  "invitationDeclined": "Kutsu hylätty"
+  "invitationDeclined": "Kutsu hylätty",
+
+  "accentColorLabel": "Korostusväri",
+  "accentNavy": "Laivastonsininen",
+  "accentBitcoin": "Bitcoin-oranssi",
+  "accentNostr": "Nostr-violetti"
 }

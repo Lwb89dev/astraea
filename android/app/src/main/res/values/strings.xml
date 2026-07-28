@@ -9,6 +9,14 @@
     <string name="astraea_widget_week_label">Astraea — weekly agenda</string>
     <string name="astraea_widget_month_label">Astraea — monthly agenda</string>
 
+    <!-- Per-widget theme picker (AstraeaWidgetConfigActivity): shown when a
+         widget is first placed, and reachable afterwards from most launchers'
+         long-press "Widget settings" action. -->
+    <string name="astraea_widget_choose_theme">Widget theme</string>
+    <string name="astraea_widget_theme_navy">Navy blue</string>
+    <string name="astraea_widget_theme_bitcoin">Bitcoin orange</string>
+    <string name="astraea_widget_theme_nostr">Nostr purple</string>
+
     <!-- Month grid weekday strip. Single letters so seven fit at widget width;
          the grid always starts on Monday (see MonthGridFactory). -->
     <string name="astraea_weekday_mon">M</string>

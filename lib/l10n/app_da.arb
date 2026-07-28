@@ -242,5 +242,10 @@
   "declineInvitation": "Afvis",
   "respondToInvitationFailed": "Kunne ikke svare: {error}",
   "invitationAccepted": "Invitation accepteret",
-  "invitationDeclined": "Invitation afvist"
+  "invitationDeclined": "Invitation afvist",
+
+  "accentColorLabel": "Accentfarve",
+  "accentNavy": "Marineblu00e5",
+  "accentBitcoin": "Bitcoin-orange",
+  "accentNostr": "Nostr-lilla"
 }

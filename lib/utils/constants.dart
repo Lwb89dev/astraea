@@ -32,12 +32,27 @@ class AppConstants {
   // Default relays
   // ---------------------------------------------------------------------
 
-  /// Public relays suggested during onboarding. They are deliberately not
-  /// selected on the user's behalf: choosing a relay reveals the user's IP
-  /// address and Nostr public key to its operator.
+  /// The implicit relay set for installations that chose relays before this
+  /// list existed (see [LocalStorageService.loadSettings]) — must stay
+  /// exactly what it always was, or an in-place app update would silently
+  /// start talking to relay operators the user never actually chose.
   static const List<String> defaultRelays = [
     'wss://nos.lol',
     'wss://relay.damus.io',
+  ];
+
+  /// Public relays suggested during onboarding and in Settings. They are
+  /// deliberately not selected on the user's behalf — each is only added if
+  /// the user taps it — since choosing a relay reveals the user's IP address
+  /// and Nostr public key to its operator. A longer list than
+  /// [defaultRelays] on purpose: redundancy against any one of them being
+  /// slow or temporarily unreachable.
+  static const List<String> suggestedRelays = [
+    ...defaultRelays,
+    'wss://relay.primal.net',
+    'wss://relay.nostr.band',
+    'wss://nostr.mom',
+    'wss://relay.snort.social',
   ];
 
   /// Well-known metadata-oriented relays always queried (in addition to the
@@ -73,6 +88,9 @@ class AppConstants {
   /// flat language codes, see AppLocalizations.supportedLocales). Null/absent
   /// means "follow the system language".
   static const String prefsLocaleKey = 'astraea.locale';
+
+  /// [AppAccent.prefsValue]. Null/absent means the default (navy).
+  static const String prefsAccentKey = 'astraea.accent';
 
   /// Last-fetched profile metadata (name/avatar URL) for the signed-in
   /// account, so Settings shows something immediately on launch instead of a

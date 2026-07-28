@@ -502,6 +502,18 @@ class AppLocalizationsEt extends AppLocalizations {
   String get systemLanguage => 'Süsteemi keel';
 
   @override
+  String get accentColorLabel => 'Aktsendivärv';
+
+  @override
+  String get accentNavy => 'Meresinine';
+
+  @override
+  String get accentBitcoin => 'Bitcoini oranž';
+
+  @override
+  String get accentNostr => 'Nostri lilla';
+
+  @override
   String get exportEvents => 'Ekspordi sündmused';
 
   @override

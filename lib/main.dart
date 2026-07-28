@@ -21,6 +21,7 @@ import 'providers/theme_provider.dart';
 import 'screens/calendar_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/widgets/widget_launch_handler.dart';
+import 'utils/app_accent.dart';
 import 'utils/constants.dart';
 
 Future<void> main(List<String> args) async {
@@ -111,9 +112,6 @@ class AstraeaApp extends ConsumerWidget {
   /// astraea:// deep link from the GTK runner.
   final List<String> launchArgs;
 
-  /// Brand seed color for both light and dark schemes.
-  static const _brandSeed = Color(0xFF3F51B5);
-
   /// Lets [WidgetLaunchHandler] push a screen for a home-widget tap, which can
   /// arrive before any screen's context exists.
   static final _navigatorKey = GlobalKey<NavigatorState>();
@@ -121,6 +119,9 @@ class AstraeaApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
+    final accent = AppAccent.fromPrefsValue(
+      ref.watch(settingsProvider).value?.accent,
+    );
     // Null (loading/error, or no explicit choice saved) means "follow the
     // system language" — MaterialApp's own default resolution against
     // supportedLocales, same fallback rule as the timezone setting.
@@ -141,14 +142,14 @@ class AstraeaApp extends ConsumerWidget {
       themeMode: themeMode,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: _brandSeed,
+          seedColor: accent.seed,
           brightness: Brightness.light,
         ),
         useMaterial3: true,
       ),
       darkTheme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: _brandSeed,
+          seedColor: accent.seed,
           brightness: Brightness.dark,
         ),
         useMaterial3: true,

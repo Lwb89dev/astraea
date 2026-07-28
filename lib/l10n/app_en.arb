@@ -201,6 +201,10 @@
   "darkThemeDefault": "Astraea uses the dark theme by default",
   "languageLabel": "Language",
   "systemLanguage": "System language",
+  "accentColorLabel": "Accent color",
+  "accentNavy": "Navy blue",
+  "accentBitcoin": "Bitcoin orange",
+  "accentNostr": "Nostr purple",
 
   "exportEvents": "Export events",
   "exportEventsSubtitle": "Save a .ics file — optionally password-encrypted",

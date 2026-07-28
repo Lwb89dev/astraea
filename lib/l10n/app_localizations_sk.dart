@@ -507,6 +507,18 @@ class AppLocalizationsSk extends AppLocalizations {
   String get systemLanguage => 'Jazyk systému';
 
   @override
+  String get accentColorLabel => 'Zvýrazňujúca farba';
+
+  @override
+  String get accentNavy => 'Tmavomodrá';
+
+  @override
+  String get accentBitcoin => 'Bitcoinová oranžová';
+
+  @override
+  String get accentNostr => 'Nostr fialová';
+
+  @override
   String get exportEvents => 'Exportovať udalosti';
 
   @override

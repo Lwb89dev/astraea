@@ -242,5 +242,10 @@
   "declineInvitation": "辞退",
   "respondToInvitationFailed": "応答を送信できませんでした: {error}",
   "invitationAccepted": "招待を承諾しました",
-  "invitationDeclined": "招待を辞退しました"
+  "invitationDeclined": "招待を辞退しました",
+
+  "accentColorLabel": "アクセントカラー",
+  "accentNavy": "ネイビーブルー",
+  "accentBitcoin": "ビットコインオレンジ",
+  "accentNostr": "Nostrパープル"
 }

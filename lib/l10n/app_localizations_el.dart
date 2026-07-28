@@ -505,6 +505,18 @@ class AppLocalizationsEl extends AppLocalizations {
   String get systemLanguage => 'Γλώσσα συστήματος';
 
   @override
+  String get accentColorLabel => 'Χρώμα έμφασης';
+
+  @override
+  String get accentNavy => 'Σκούρο μπλε';
+
+  @override
+  String get accentBitcoin => 'Πορτοκαλί Bitcoin';
+
+  @override
+  String get accentNostr => 'Μοβ Nostr';
+
+  @override
   String get exportEvents => 'Εξαγωγή συμβάντων';
 
   @override

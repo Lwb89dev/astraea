@@ -242,5 +242,10 @@
   "declineInvitation": "Отказ",
   "respondToInvitationFailed": "Отговорът не можа да бъде изпратен: {error}",
   "invitationAccepted": "Поканата е приета",
-  "invitationDeclined": "Поканата е отказана"
+  "invitationDeclined": "Поканата е отказана",
+
+  "accentColorLabel": "Акцентен цвят",
+  "accentNavy": "Тъмносиньо",
+  "accentBitcoin": "Биткойн оранжево",
+  "accentNostr": "Ностр лилаво"
 }
