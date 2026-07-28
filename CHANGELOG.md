@@ -11,6 +11,38 @@ All notable changes to Astraea are documented here. The format follows
 - Final Android application ID and production signing setup.
 - Dedicated production hardening for additional platforms.
 
+## [0.3.1] - 2026-07-28
+
+### Added
+
+- Local Kairos → Astraea task bridge on Android and Linux, alongside the
+  existing encrypted Nostr mirror.
+- Versioned Kairos hand-off contract with idempotent upserts, deletions and
+  notification preferences.
+- Linux per-user Unix-socket integration for task delivery, with deep-link
+  fallback for desktop integrations.
+- Linux service-owned reminder scheduler with freedesktop notifications.
+
+### Fixed
+
+- Android day, week and month widgets now refresh their cached data reliably
+  and include overlapping and zero-duration events such as Kairos tasks.
+- Calendar day boundaries now remain correct across daylight-saving changes.
+- Kairos tasks are shown on the correct day and receive a due notification by
+  default when no reminder is supplied.
+- NIP-07 login on Linux no longer reports a false missing-extension error when
+  nos2x injects `window.nostr` late or through its browser-extension origin.
+- NIP-07 login discovery remains retryable instead of locking the page after
+  a short startup timeout.
+
+### Security
+
+- Local Kairos payloads are size-limited, version-checked and validated before
+  persistence; the Linux transport is restricted to the per-user runtime
+  socket.
+- NIP-07 continues to sign the one-time challenge in the browser; Astraea
+  never receives or requests the private key.
+
 ## [0.1.1] - 2026-07-19
 
 ### Fixed

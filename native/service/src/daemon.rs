@@ -54,6 +54,7 @@ pub async fn run(store: Store) -> anyhow::Result<()> {
     // activated service reconciles with the relays without waiting a tick.
     engine.nudge();
     tokio::spawn(engine.run_loop());
+    tokio::spawn(crate::reminders::run(store.clone(), connection.clone()));
     info!(
         bus = BUS_NAME,
         path = OBJECT_PATH,
@@ -94,6 +95,15 @@ async fn should_idle_exit(state: &AppState) -> bool {
     let last = state.last_activity_ms.load(Ordering::Relaxed);
     let idle_ms = Utc::now().timestamp_millis() - last;
     if idle_ms < IDLE_EXIT.as_millis() as i64 {
+        return false;
+    }
+    let store = state.store.clone();
+    let has_reminder = tokio::task::spawn_blocking(move || {
+        crate::reminders::has_upcoming_reminder(&store, Utc::now())
+    })
+    .await
+    .unwrap_or(true);
+    if has_reminder {
         return false;
     }
     // Never exit while local changes still need publishing.

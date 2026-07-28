@@ -181,13 +181,21 @@ class _CalendarWithAgenda extends ConsumerWidget {
     if (view.mode == CalendarViewMode.week) {
       final day = DateTime(focused.year, focused.month, focused.day);
       rangeStart = day.subtract(Duration(days: day.weekday % 7));
-      rangeEnd = rangeStart.add(const Duration(days: 7));
+      rangeEnd = DateTime(
+        rangeStart.year,
+        rangeStart.month,
+        rangeStart.day + 7,
+      );
     } else {
       final first = DateTime(focused.year, focused.month);
       rangeStart = first.subtract(Duration(days: first.weekday % 7));
       // Six complete calendar rows cover every month layout TableCalendar can
       // request, including leading and trailing days from adjacent months.
-      rangeEnd = rangeStart.add(const Duration(days: 42));
+      rangeEnd = DateTime(
+        rangeStart.year,
+        rangeStart.month,
+        rangeStart.day + 42,
+      );
     }
 
     final byDay = <(int, int, int), List<EventOccurrence>>{};
@@ -200,9 +208,7 @@ class _CalendarWithAgenda extends ConsumerWidget {
       // just the one it starts on — otherwise the month grid can only ever
       // mark its first day, however long the event runs.
       final startDay = _localDay(occurrence.startUtc);
-      var lastDay = _localDay(
-        occurrence.endUtc.subtract(const Duration(milliseconds: 1)),
-      );
+      var lastDay = _lastTouchedLocalDay(occurrence);
       // A zero-duration occurrence (start == end — the Astraea/Kairos
       // integration mirrors a task's due instant this way) makes end-1ms's
       // calendar day fall *before* start's whenever that instant lands
@@ -217,7 +223,9 @@ class _CalendarWithAgenda extends ConsumerWidget {
           ? rangeEnd.subtract(const Duration(days: 1))
           : lastDay;
       while (!day.isAfter(cappedLastDay)) {
-        byDay.putIfAbsent((day.year, day.month, day.day), () => []).add(occurrence);
+        byDay
+            .putIfAbsent((day.year, day.month, day.day), () => [])
+            .add(occurrence);
         day = day.add(const Duration(days: 1));
       }
     }
@@ -288,11 +296,18 @@ DateTime _localDay(DateTime utc) {
 /// Whether [occurrence] fits entirely within one calendar day — the line
 /// between "gets a dot" and "gets a continuous bar" in the month grid.
 bool _isMultiDayOccurrence(EventOccurrence occurrence) {
-  final lastTouchedDay = _localDay(
-    occurrence.endUtc.subtract(const Duration(milliseconds: 1)),
-  );
+  final lastTouchedDay = _lastTouchedLocalDay(occurrence);
   return lastTouchedDay.isAfter(_localDay(occurrence.startUtc));
 }
+
+/// Returns the last local calendar day touched by an occurrence. A point
+/// occurrence (the representation used by Kairos tasks) touches its start day
+/// even though there is no positive-width interval to subtract from.
+DateTime _lastTouchedLocalDay(EventOccurrence occurrence) => _localDay(
+  occurrence.isPoint
+      ? occurrence.startUtc
+      : occurrence.endUtc.subtract(const Duration(milliseconds: 1)),
+);
 
 /// Custom month-grid marker (see `eventLoader`/`_visibleOccurrences` above,
 /// which spans a multi-day occurrence across every day it covers): a
@@ -405,7 +420,9 @@ class _DayAgenda extends StatelessWidget {
     final occurrences = RecurrenceExpander.expandAll(
       events,
       rangeStartUtc: start.toUtc(),
-      rangeEndUtc: start.add(const Duration(days: 1)).toUtc(),
+      // Construct the next wall-clock midnight instead of adding 24 hours;
+      // a DST transition can make a local calendar day 23 or 25 hours long.
+      rangeEndUtc: DateTime(start.year, start.month, start.day + 1).toUtc(),
     );
 
     return Column(
@@ -444,7 +461,7 @@ class _UpcomingList extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final now = DateTime.now();
     final from = DateTime(now.year, now.month, now.day);
-    final to = from.add(const Duration(days: 60));
+    final to = DateTime(from.year, from.month, from.day + 60);
     final occurrences = RecurrenceExpander.expandAll(
       events,
       rangeStartUtc: from.toUtc(),

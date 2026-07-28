@@ -54,14 +54,21 @@ class HomeWidgetService {
     );
     try {
       final now = DateTime.now();
-      // Start from the beginning of the current month so the month grid has
-      // every day, even when the app is opened mid-month.
-      final currentMonth = DateTime(now.year, now.month, 1);
-      final from = currentMonth.subtract(_windowBefore);
+      // Anchor the cache to today, not to the first of the month. This keeps
+      // the native day widget's full backward window available even near a
+      // month boundary, and still gives the month widget all of its visible
+      // leading/trailing days.
+      final today = DateTime(now.year, now.month, now.day);
+      final from = today.subtract(_windowBefore);
       final occurrences = RecurrenceExpander.expandAll(
         events,
         rangeStartUtc: from.toUtc(),
-        rangeEndUtc: currentMonth.add(_windowAfter).toUtc(),
+        // Include the complete last local day in the half-open range.
+        rangeEndUtc: DateTime(
+          today.year,
+          today.month,
+          today.day + _windowAfter.inDays + 1,
+        ).toUtc(),
       );
 
       final payload = jsonEncode([
@@ -78,7 +85,13 @@ class HomeWidgetService {
           },
       ]);
 
-      await HomeWidget.saveWidgetData<String>(_eventsKey, payload);
+      final saved = await HomeWidget.saveWidgetData<String>(
+        _eventsKey,
+        payload,
+      );
+      if (saved != true) {
+        throw StateError('HomeWidget data could not be saved.');
+      }
       await HomeWidget.updateWidget(qualifiedAndroidName: dayProvider);
       await HomeWidget.updateWidget(qualifiedAndroidName: weekProvider);
       await HomeWidget.updateWidget(qualifiedAndroidName: monthProvider);

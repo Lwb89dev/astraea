@@ -4,6 +4,7 @@ import 'dart:developer' as developer;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/event_model.dart';
+import '../services/kairos_local_service.dart';
 import '../utils/event_timestamp.dart';
 import 'auth_provider.dart';
 import 'service_providers.dart';
@@ -46,6 +47,76 @@ class EventsNotifier extends AsyncNotifier<List<Event>> {
     await ref.read(notificationServiceProvider).scheduleForEvent(stamped);
     await _refresh();
     unawaited(_publishInBackground(stamped));
+  }
+
+  /// Imports one task handed over by Kairos on the same device. This path is
+  /// separate from [upsert]: Kairos already owns the Nostr mirror, so Astraea
+  /// must not republish the local hand-off as a second event.
+  Future<Event> importKairosTask(String raw) async {
+    final message = KairosLocalService.decode(raw);
+    final incoming = message.event;
+    final storage = ref.read(localStorageServiceProvider);
+    final current = (await storage.loadEvents())
+        .where((event) => event.id == incoming.id)
+        .firstOrNull;
+
+    if (message.operation == 'delete') {
+      if (current == null || incoming.updatedAt.isAfter(current.updatedAt)) {
+        final tombstone = (current ?? incoming).copyWith(
+          deleted: true,
+          synced: true,
+          updatedAt: incoming.updatedAt,
+        );
+        await storage.saveEvent(tombstone);
+        await ref.read(notificationServiceProvider).cancelForEvent(incoming.id);
+        await _refresh();
+        return tombstone;
+      }
+      await ref.read(notificationServiceProvider).cancelForEvent(incoming.id);
+      return current;
+    }
+
+    if (current == null || incoming.updatedAt.isAfter(current.updatedAt)) {
+      final imported = current == null
+          ? incoming
+          : incoming.copyWith(
+              synced: true,
+              deleted: false,
+              // Preserve the Nostr coordinate if this task was already
+              // received through a relay; the local hand-off only changes
+              // the task fields.
+              nostrEventId: current.nostrEventId,
+              syncOwnerPubkey: current.syncOwnerPubkey,
+            );
+      final persisted = message.showNotification
+          ? imported
+          : imported.copyWith(reminders: const []);
+      await storage.saveEvent(persisted);
+      if (message.showNotification) {
+        await ref.read(notificationServiceProvider).scheduleForEvent(persisted);
+      } else {
+        await ref
+            .read(notificationServiceProvider)
+            .cancelForEvent(persisted.id);
+      }
+      await _refresh();
+      return persisted;
+    }
+
+    // Re-delivery is harmless but restores a missing OS alarm after a reboot
+    // or permission change.
+    if (message.showNotification) {
+      await ref.read(notificationServiceProvider).scheduleForEvent(current);
+    } else {
+      await ref.read(notificationServiceProvider).cancelForEvent(current.id);
+      if (current.reminders.isNotEmpty) {
+        final withoutReminder = current.copyWith(reminders: const []);
+        await storage.saveEvent(withoutReminder);
+        await _refresh();
+        return withoutReminder;
+      }
+    }
+    return current;
   }
 
   /// Deletes an event: cancels its reminders, writes a local tombstone,

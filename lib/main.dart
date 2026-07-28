@@ -12,6 +12,9 @@ import 'package:timezone/timezone.dart' as tz;
 import 'desktop/desktop_bootstrap_stub.dart'
     if (dart.library.io) 'desktop/desktop_bootstrap.dart'
     as desktop;
+import 'desktop/kairos_local_socket_server_stub.dart'
+    if (dart.library.io) 'desktop/kairos_local_socket_server.dart'
+    as kairos_socket;
 import 'l10n/app_localizations.dart';
 import 'providers/app_entry_provider.dart';
 import 'providers/events_provider.dart';
@@ -20,6 +23,7 @@ import 'providers/settings_provider.dart';
 import 'providers/theme_provider.dart';
 import 'screens/calendar_screen.dart';
 import 'screens/onboarding_screen.dart';
+import 'screens/widgets/kairos_task_handler.dart';
 import 'screens/widgets/widget_launch_handler.dart';
 import 'utils/app_accent.dart';
 import 'utils/constants.dart';
@@ -59,6 +63,31 @@ Future<void> main(List<String> args) async {
       child: AstraeaApp(launchArgs: args),
     ),
   );
+
+  if (desktop.isLinuxDesktop) {
+    final socketServer = await kairos_socket.KairosLocalSocketServer.start((
+      raw,
+    ) async {
+      try {
+        await container.read(eventsProvider.notifier).importKairosTask(raw);
+      } catch (error, stackTrace) {
+        developer.log(
+          'Local Kairos socket payload rejected: $error',
+          name: 'main',
+          error: error,
+          stackTrace: stackTrace,
+        );
+      }
+    });
+    if (socketServer != null) {
+      // The server is owned by the process lifetime. Dart keeps the socket
+      // subscription alive; the exact pathname is useful in diagnostics.
+      developer.log(
+        'Kairos local socket listening at ${socketServer.path}',
+        name: 'main',
+      );
+    }
+  }
 
   // Deliberately not awaited: neither of these needs to block the first frame.
   if (!desktop.isLinuxDesktop) {
@@ -168,11 +197,11 @@ class AstraeaApp extends ConsumerWidget {
           ? desktop.wrapHome(
               navigatorKey: _navigatorKey,
               launchArgs: launchArgs,
-              child: const _AppRoot(),
+              child: const KairosTaskHandler(child: _AppRoot()),
             )
           : WidgetLaunchHandler(
               navigatorKey: _navigatorKey,
-              child: const _AppRoot(),
+              child: const KairosTaskHandler(child: _AppRoot()),
             ),
     );
   }

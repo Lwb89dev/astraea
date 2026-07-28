@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer' as developer;
 
 import 'package:flutter/material.dart';
@@ -5,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/calendar_view_provider.dart';
+import '../providers/events_provider.dart';
 import '../screens/event_details_screen.dart';
 import '../screens/event_editor_screen.dart';
 
@@ -90,6 +92,13 @@ class _DesktopDeepLinkHandlerState
       case 'new-event':
         final date = _parseDate(uri.queryParameters['date']);
         _push(EventEditorScreen(initialDay: date ?? DateTime.now()));
+      case 'kairos':
+        if (uri.pathSegments.firstOrNull == 'task') {
+          final payload = uri.queryParameters['payload'];
+          if (payload != null && payload.isNotEmpty) {
+            unawaited(_importKairosTask(payload));
+          }
+        }
       case 'auth':
         // Authentication callbacks belong to the background service's
         // localhost listener; reaching the app this way is a no-op.
@@ -99,6 +108,26 @@ class _DesktopDeepLinkHandlerState
           'unsupported deep link host: ${uri.host}',
           name: 'DesktopDeepLinkHandler',
         );
+    }
+  }
+
+  Future<void> _importKairosTask(String raw) async {
+    try {
+      final event = await ref
+          .read(eventsProvider.notifier)
+          .importKairosTask(raw);
+      if (!mounted) return;
+      final local = event.startTimeUtc.toLocal();
+      final view = ref.read(calendarViewProvider.notifier);
+      view.setMode(CalendarViewMode.day);
+      view.selectDay(DateTime(local.year, local.month, local.day));
+    } catch (error, stackTrace) {
+      developer.log(
+        'Could not import local Kairos task: $error',
+        name: 'DesktopDeepLinkHandler',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
   }
 

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:developer' as developer;
 
 import '../models/event_model.dart';
+import '../services/kairos_local_service.dart';
 import '../providers/events_provider.dart';
 import '../utils/ics.dart';
 import 'desktop_providers.dart';
@@ -93,5 +94,52 @@ class DesktopEventsNotifier extends EventsNotifier {
     ref.invalidateSelf();
     await future;
     return written;
+  }
+
+  @override
+  Future<Event> importKairosTask(String raw) async {
+    final message = KairosLocalService.decode(raw);
+    final incoming = message.event;
+    // The Linux service intentionally rejects non-positive event spans. Keep
+    // Kairos' due instant as the start (so notifications fire at the right
+    // time), but use a one-minute display span in the service database.
+    final serviceEvent = incoming.startTimeUtc == incoming.endTimeUtc
+        ? incoming.copyWith(
+            endTimeUtc: incoming.startTimeUtc.add(const Duration(minutes: 1)),
+          )
+        : incoming;
+    final persistedEvent = message.showNotification
+        ? serviceEvent
+        : serviceEvent.copyWith(reminders: const []);
+    final current = (state.value ?? const <Event>[])
+        .where((event) => event.id == persistedEvent.id)
+        .firstOrNull;
+    final client = ref.read(dbusCalendarClientProvider);
+
+    if (message.operation == 'delete') {
+      if (current != null && incoming.updatedAt.isAfter(current.updatedAt)) {
+        await client.deleteEvent(current.id);
+        ref.invalidateSelf();
+        await future;
+        return incoming;
+      }
+      return current ?? incoming;
+    }
+
+    if (current == null) {
+      await client.createEvent(persistedEvent);
+    } else if (persistedEvent.updatedAt.isAfter(current.updatedAt)) {
+      await client.updateEvent(persistedEvent);
+    } else {
+      // Kairos may retry the same hand-off after the app has already handled
+      // it. Do not roll a newer local/service version backwards.
+      return current;
+    }
+    ref.invalidateSelf();
+    await future;
+    return (state.value ?? const <Event>[]).firstWhere(
+      (event) => event.id == persistedEvent.id,
+      orElse: () => persistedEvent,
+    );
   }
 }
