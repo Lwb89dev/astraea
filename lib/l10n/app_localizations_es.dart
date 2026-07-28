@@ -502,6 +502,18 @@ class AppLocalizationsEs extends AppLocalizations {
   String get systemLanguage => 'Idioma del sistema';
 
   @override
+  String get accentColorLabel => 'Color de acento';
+
+  @override
+  String get accentNavy => 'Azul marino';
+
+  @override
+  String get accentBitcoin => 'Naranja Bitcoin';
+
+  @override
+  String get accentNostr => 'Morado Nostr';
+
+  @override
   String get exportEvents => 'Exportar eventos';
 
   @override

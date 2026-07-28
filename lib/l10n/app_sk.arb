@@ -242,5 +242,10 @@
   "declineInvitation": "Odmietnuť",
   "respondToInvitationFailed": "Odpoveď sa nepodarilo odoslať: {error}",
   "invitationAccepted": "Pozvánka prijatá",
-  "invitationDeclined": "Pozvánka odmietnutá"
+  "invitationDeclined": "Pozvánka odmietnutá",
+
+  "accentColorLabel": "Zvýrazňujúca farba",
+  "accentNavy": "Tmavomodrá",
+  "accentBitcoin": "Bitcoinová oranžová",
+  "accentNostr": "Nostr fialová"
 }

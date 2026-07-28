@@ -511,6 +511,18 @@ class AppLocalizationsGa extends AppLocalizations {
   String get systemLanguage => 'Teanga an chórais';
 
   @override
+  String get accentColorLabel => 'Dath aiceanta';
+
+  @override
+  String get accentNavy => 'Gorm airm';
+
+  @override
+  String get accentBitcoin => 'Oráiste Bitcoin';
+
+  @override
+  String get accentNostr => 'Corcra Nostr';
+
+  @override
   String get exportEvents => 'Easpórtáil ócáidí';
 
   @override

@@ -507,6 +507,18 @@ class AppLocalizationsSl extends AppLocalizations {
   String get systemLanguage => 'Sistemski jezik';
 
   @override
+  String get accentColorLabel => 'Barva poudarka';
+
+  @override
+  String get accentNavy => 'Mornarsko modra';
+
+  @override
+  String get accentBitcoin => 'Bitcoin oranžna';
+
+  @override
+  String get accentNostr => 'Nostr vijolična';
+
+  @override
   String get exportEvents => 'Izvozi dogodke';
 
   @override

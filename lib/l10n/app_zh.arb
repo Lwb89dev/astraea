@@ -242,5 +242,10 @@
   "declineInvitation": "拒绝",
   "respondToInvitationFailed": "无法发送回复：{error}",
   "invitationAccepted": "邀请已接受",
-  "invitationDeclined": "邀请已拒绝"
+  "invitationDeclined": "邀请已拒绝",
+
+  "accentColorLabel": "强调色",
+  "accentNavy": "藏青色",
+  "accentBitcoin": "比特币橙",
+  "accentNostr": "Nostr紫"
 }

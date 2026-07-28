@@ -503,6 +503,18 @@ class AppLocalizationsHu extends AppLocalizations {
   String get systemLanguage => 'Rendszernyelv';
 
   @override
+  String get accentColorLabel => 'Kiemelőszín';
+
+  @override
+  String get accentNavy => 'Sötétkék';
+
+  @override
+  String get accentBitcoin => 'Bitcoin narancs';
+
+  @override
+  String get accentNostr => 'Nostr lila';
+
+  @override
   String get exportEvents => 'Események exportálása';
 
   @override

@@ -502,6 +502,18 @@ class AppLocalizationsFi extends AppLocalizations {
   String get systemLanguage => 'Järjestelmän kieli';
 
   @override
+  String get accentColorLabel => 'Korostusväri';
+
+  @override
+  String get accentNavy => 'Laivastonsininen';
+
+  @override
+  String get accentBitcoin => 'Bitcoin-oranssi';
+
+  @override
+  String get accentNostr => 'Nostr-violetti';
+
+  @override
   String get exportEvents => 'Vie tapahtumat';
 
   @override

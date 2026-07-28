@@ -242,5 +242,10 @@
   "declineInvitation": "Ablehnen",
   "respondToInvitationFailed": "Antwort konnte nicht gesendet werden: {error}",
   "invitationAccepted": "Einladung angenommen",
-  "invitationDeclined": "Einladung abgelehnt"
+  "invitationDeclined": "Einladung abgelehnt",
+
+  "accentColorLabel": "Akzentfarbe",
+  "accentNavy": "Marineblau",
+  "accentBitcoin": "Bitcoin-Orange",
+  "accentNostr": "Nostr-Lila"
 }

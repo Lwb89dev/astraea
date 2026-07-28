@@ -242,5 +242,10 @@
   "declineInvitation": "Iċħad",
   "respondToInvitationFailed": "Ma setgħetx tintbagħat tweġiba: {error}",
   "invitationAccepted": "Stedina aċċettata",
-  "invitationDeclined": "Stedina miċħuda"
+  "invitationDeclined": "Stedina miċħuda",
+
+  "accentColorLabel": "Kulur ta' l-aċċent",
+  "accentNavy": "Blu navy",
+  "accentBitcoin": "Oranġjo Bitcoin",
+  "accentNostr": "Vjola Nostr"
 }

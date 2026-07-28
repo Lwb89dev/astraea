@@ -994,6 +994,30 @@ abstract class AppLocalizations {
   /// **'System language'**
   String get systemLanguage;
 
+  /// No description provided for @accentColorLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Accent color'**
+  String get accentColorLabel;
+
+  /// No description provided for @accentNavy.
+  ///
+  /// In en, this message translates to:
+  /// **'Navy blue'**
+  String get accentNavy;
+
+  /// No description provided for @accentBitcoin.
+  ///
+  /// In en, this message translates to:
+  /// **'Bitcoin orange'**
+  String get accentBitcoin;
+
+  /// No description provided for @accentNostr.
+  ///
+  /// In en, this message translates to:
+  /// **'Nostr purple'**
+  String get accentNostr;
+
   /// No description provided for @exportEvents.
   ///
   /// In en, this message translates to:

@@ -163,6 +163,7 @@ private class MonthGridFactory(
     private var cells: List<Cell> = emptyList()
     private var scale = 1f
     private var offset = 0
+    private var accent = WidgetAccent.NAVY
 
     /** [day] is null for the blank cells before the 1st. */
     private data class Cell(val day: Int?, val isToday: Boolean, val firstEventId: String?)
@@ -171,6 +172,7 @@ private class MonthGridFactory(
 
     override fun onDataSetChanged() {
         scale = AstraeaWidgetData.widgetScale(context, widgetId, 250f, 180f)
+        accent = AstraeaWidgetData.widgetAccent(context, widgetId)
         val events = AstraeaWidgetData.loadEvents(context)
         offset = AstraeaWidgetData.periodOffset(context, widgetId)
         val monthStart = AstraeaWidgetData.startOfMonth(offset)
@@ -240,12 +242,14 @@ private class MonthGridFactory(
                 setInt(R.id.cell_day, "setBackgroundResource", 0)
             } else {
                 setTextViewText(R.id.cell_day, cell.day.toString())
-                setViewVisibility(
-                    R.id.cell_dot,
-                    if (cell.firstEventId != null) View.VISIBLE else View.INVISIBLE,
-                )
+                if (cell.firstEventId != null) {
+                    setImageViewResource(R.id.cell_dot, accent.dot)
+                    setViewVisibility(R.id.cell_dot, View.VISIBLE)
+                } else {
+                    setViewVisibility(R.id.cell_dot, View.INVISIBLE)
+                }
                 if (cell.isToday) {
-                    setInt(R.id.cell_day, "setBackgroundResource", R.drawable.astraea_widget_today)
+                    setInt(R.id.cell_day, "setBackgroundResource", accent.dayBackground)
                     setTextColor(R.id.cell_day, 0xFF161A2E.toInt())
                 } else {
                     setInt(R.id.cell_day, "setBackgroundResource", 0)

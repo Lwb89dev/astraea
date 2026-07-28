@@ -502,6 +502,18 @@ class AppLocalizationsPt extends AppLocalizations {
   String get systemLanguage => 'Idioma do sistema';
 
   @override
+  String get accentColorLabel => 'Cor de destaque';
+
+  @override
+  String get accentNavy => 'Azul-marinho';
+
+  @override
+  String get accentBitcoin => 'Laranja Bitcoin';
+
+  @override
+  String get accentNostr => 'Roxo Nostr';
+
+  @override
   String get exportEvents => 'Exportar eventos';
 
   @override

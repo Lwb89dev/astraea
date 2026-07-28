@@ -435,10 +435,10 @@ class _DesktopRelaySection extends ConsumerWidget {
             title: Text(l10n.addRelay),
             onTap: () => _addRelay(context, ref, relays),
           ),
-          if (AppConstants.defaultRelays.any((r) => !relays.contains(r))) ...[
+          if (AppConstants.suggestedRelays.any((r) => !relays.contains(r))) ...[
             const Divider(),
             ListTile(dense: true, title: Text(l10n.suggestedRelaysTitle)),
-            for (final url in AppConstants.defaultRelays)
+            for (final url in AppConstants.suggestedRelays)
               if (!relays.contains(url))
                 ListTile(
                   leading: const Icon(Icons.dns_outlined),

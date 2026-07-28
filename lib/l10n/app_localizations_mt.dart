@@ -503,6 +503,18 @@ class AppLocalizationsMt extends AppLocalizations {
   String get systemLanguage => 'Lingwa tas-sistema';
 
   @override
+  String get accentColorLabel => 'Kulur ta\' l-aċċent';
+
+  @override
+  String get accentNavy => 'Blu navy';
+
+  @override
+  String get accentBitcoin => 'Oranġjo Bitcoin';
+
+  @override
+  String get accentNostr => 'Vjola Nostr';
+
+  @override
   String get exportEvents => 'Esporta avvenimenti';
 
   @override

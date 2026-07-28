@@ -477,6 +477,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get systemLanguage => '系统语言';
 
   @override
+  String get accentColorLabel => '强调色';
+
+  @override
+  String get accentNavy => '藏青色';
+
+  @override
+  String get accentBitcoin => '比特币橙';
+
+  @override
+  String get accentNostr => 'Nostr紫';
+
+  @override
   String get exportEvents => '导出事件';
 
   @override

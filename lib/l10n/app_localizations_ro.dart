@@ -506,6 +506,18 @@ class AppLocalizationsRo extends AppLocalizations {
   String get systemLanguage => 'Limba sistemului';
 
   @override
+  String get accentColorLabel => 'Culoare de accent';
+
+  @override
+  String get accentNavy => 'Bleumarin';
+
+  @override
+  String get accentBitcoin => 'Portocaliu Bitcoin';
+
+  @override
+  String get accentNostr => 'Violet Nostr';
+
+  @override
   String get exportEvents => 'Exportă evenimente';
 
   @override

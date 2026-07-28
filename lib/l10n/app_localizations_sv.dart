@@ -503,6 +503,18 @@ class AppLocalizationsSv extends AppLocalizations {
   String get systemLanguage => 'Systemspråk';
 
   @override
+  String get accentColorLabel => 'Accentfärg';
+
+  @override
+  String get accentNavy => 'Marinblå';
+
+  @override
+  String get accentBitcoin => 'Bitcoin-orange';
+
+  @override
+  String get accentNostr => 'Nostr-lila';
+
+  @override
   String get exportEvents => 'Exportera händelser';
 
   @override

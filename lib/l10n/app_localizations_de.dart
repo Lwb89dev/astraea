@@ -505,6 +505,18 @@ class AppLocalizationsDe extends AppLocalizations {
   String get systemLanguage => 'Systemsprache';
 
   @override
+  String get accentColorLabel => 'Akzentfarbe';
+
+  @override
+  String get accentNavy => 'Marineblau';
+
+  @override
+  String get accentBitcoin => 'Bitcoin-Orange';
+
+  @override
+  String get accentNostr => 'Nostr-Lila';
+
+  @override
   String get exportEvents => 'Termine exportieren';
 
   @override

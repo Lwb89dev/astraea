@@ -242,5 +242,10 @@
   "declineInvitation": "Elutasítás",
   "respondToInvitationFailed": "Nem sikerült válaszolni: {error}",
   "invitationAccepted": "Meghívás elfogadva",
-  "invitationDeclined": "Meghívás elutasítva"
+  "invitationDeclined": "Meghívás elutasítva",
+
+  "accentColorLabel": "Kiemelőszín",
+  "accentNavy": "Sötétkék",
+  "accentBitcoin": "Bitcoin narancs",
+  "accentNostr": "Nostr lila"
 }

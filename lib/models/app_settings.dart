@@ -22,12 +22,16 @@ class AppSettings {
   /// "follow the system language" (the default).
   final String? locale;
 
+  /// [AppAccent.prefsValue]. Null means the default (navy).
+  final String? accent;
+
   const AppSettings({
     this.relays = const [],
     this.homeRelayUrl,
     this.timezone,
     this.notificationsEnabled = true,
     this.locale,
+    this.accent,
   });
 
   /// Every relay we should publish to: the public list plus the home relay
@@ -47,6 +51,7 @@ class AppSettings {
     bool? notificationsEnabled,
     String? locale,
     bool clearLocale = false,
+    String? accent,
   }) {
     return AppSettings(
       relays: relays ?? this.relays,
@@ -54,6 +59,7 @@ class AppSettings {
       timezone: clearTimezone ? null : (timezone ?? this.timezone),
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
       locale: clearLocale ? null : (locale ?? this.locale),
+      accent: accent ?? this.accent,
     );
   }
 }

@@ -242,5 +242,10 @@
   "declineInvitation": "Keeldu",
   "respondToInvitationFailed": "Vastust ei õnnestunud saata: {error}",
   "invitationAccepted": "Kutse vastu võetud",
-  "invitationDeclined": "Kutsest keelduti"
+  "invitationDeclined": "Kutsest keelduti",
+
+  "accentColorLabel": "Aktsendivärv",
+  "accentNavy": "Meresinine",
+  "accentBitcoin": "Bitcoini oranž",
+  "accentNostr": "Nostri lilla"
 }

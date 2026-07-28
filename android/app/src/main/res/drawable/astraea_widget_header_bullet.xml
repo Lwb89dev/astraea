@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The header's small leading bullet, next to the white title text.
+     Deliberately theme-independent: it's a TextView compound drawable, and
+     RemoteViews can only re-tint those via setCompoundDrawableTintList,
+     which needs API 31+ — not worth gating a purely decorative dot behind
+     an SDK check when a neutral color already reads fine on every accent's
+     dark widget background. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <solid android:color="#B3FFFFFF" />
+    <size android:width="4dp" android:height="4dp" />
+</shape>

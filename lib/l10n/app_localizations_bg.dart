@@ -502,6 +502,18 @@ class AppLocalizationsBg extends AppLocalizations {
   String get systemLanguage => 'Системен език';
 
   @override
+  String get accentColorLabel => 'Акцентен цвят';
+
+  @override
+  String get accentNavy => 'Тъмносиньо';
+
+  @override
+  String get accentBitcoin => 'Биткойн оранжево';
+
+  @override
+  String get accentNostr => 'Ностр лилаво';
+
+  @override
   String get exportEvents => 'Експортиране на събития';
 
   @override

@@ -242,5 +242,10 @@
   "declineInvitation": "Diúltaigh",
   "respondToInvitationFailed": "Níorbh fhéidir freagra a sheoladh: {error}",
   "invitationAccepted": "Glacadh leis an gcuireadh",
-  "invitationDeclined": "Diúltaíodh don chuireadh"
+  "invitationDeclined": "Diúltaíodh don chuireadh",
+
+  "accentColorLabel": "Dath aiceanta",
+  "accentNavy": "Gorm airm",
+  "accentBitcoin": "Oráiste Bitcoin",
+  "accentNostr": "Corcra Nostr"
 }

@@ -439,7 +439,7 @@ class _RelayChooser extends StatelessWidget {
           style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: 4),
-        for (final url in AppConstants.defaultRelays)
+        for (final url in AppConstants.suggestedRelays)
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.dns_outlined),
