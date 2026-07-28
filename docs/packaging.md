@@ -55,6 +55,13 @@ Equivalent by hand: `sudo apt install ./dist/astraea-service_*.deb
 ./dist/astraea-desktop_*.deb ./dist/astraea-gnome-shell-extension_*.deb
 ./dist/astraea-all_*.deb`.
 
+For people who don't want to clone and build from source, `scripts/install-release.sh`
+downloads the `.deb` assets from the latest (or `--tag TAG`) GitHub release and
+installs them the same way. It verifies each download against the release's
+`SHA256SUMS` asset when one was published, and — unlike `install-debs.sh`,
+which just refuses to run without root — it explains why it needs sudo and
+asks before invoking it, rather than escalating on its own.
+
 Maintainer scripts only refresh the desktop/icon caches (guarded, `|| true`,
 headless-safe); they never touch user homes and never enable services —
 D-Bus activation makes enabling unnecessary.
