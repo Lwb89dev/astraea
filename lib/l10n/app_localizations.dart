@@ -706,6 +706,54 @@ abstract class AppLocalizations {
   /// **'Import'**
   String get importButton;
 
+  /// No description provided for @signInWithRemoteSigner.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with a remote signer'**
+  String get signInWithRemoteSigner;
+
+  /// No description provided for @remoteSignerFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'bunker:// connection string'**
+  String get remoteSignerFieldLabel;
+
+  /// No description provided for @remoteSignerHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste the bunker:// string from your signer (Amber, nsec.app, nostrify, your own bunker). Astraea only stores a throwaway key for this device — never your private key.'**
+  String get remoteSignerHelp;
+
+  /// No description provided for @remoteSignerConnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect'**
+  String get remoteSignerConnect;
+
+  /// No description provided for @remoteSignerConnecting.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for your signer to approve the connection…'**
+  String get remoteSignerConnecting;
+
+  /// No description provided for @invalidBunkerUri.
+  ///
+  /// In en, this message translates to:
+  /// **'That is not a valid bunker:// connection string.'**
+  String get invalidBunkerUri;
+
+  /// No description provided for @remoteSignerApprovalOpened.
+  ///
+  /// In en, this message translates to:
+  /// **'Approve the connection in the page that just opened, then come back.'**
+  String get remoteSignerApprovalOpened;
+
+  /// No description provided for @remoteSignerDisconnected.
+  ///
+  /// In en, this message translates to:
+  /// **'The remote signer is not connected. Sign in again.'**
+  String get remoteSignerDisconnected;
+
   /// No description provided for @followDeviceTimezone.
   ///
   /// In en, this message translates to:

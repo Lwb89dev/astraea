@@ -24,8 +24,10 @@ enum AppAccent {
 
   String get prefsValue => _prefsValues[this]!;
 
-  static AppAccent fromPrefsValue(String? value) => AppAccent.values
-      .firstWhere((a) => a.prefsValue == value, orElse: () => AppAccent.navy);
+  static AppAccent fromPrefsValue(String? value) => AppAccent.values.firstWhere(
+    (a) => a.prefsValue == value,
+    orElse: () => AppAccent.navy,
+  );
 
   /// Seed for `ColorScheme.fromSeed` — drives the rest of Material's tonal
   /// palette (buttons, app bar, etc.).

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/misc.dart' show Override;
 import 'deep_link_handler.dart';
 import 'desktop_providers.dart';
 import 'desktop_shell.dart';
+import 'desktop_startup_sync.dart';
 
 /// Entry points used by main.dart on IO platforms (conditional import; the
 /// web build gets desktop_bootstrap_stub.dart instead).
@@ -25,6 +26,6 @@ Widget wrapHome({
   return DesktopDeepLinkHandler(
     navigatorKey: navigatorKey,
     initialUri: DesktopDeepLinkHandler.uriFromArgs(launchArgs),
-    child: DesktopShell(child: child),
+    child: DesktopStartupSync(child: DesktopShell(child: child)),
   );
 }

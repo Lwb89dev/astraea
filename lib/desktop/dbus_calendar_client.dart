@@ -137,6 +137,19 @@ class DbusCalendarClient {
     ], null);
   }
 
+  /// Connects a NIP-46 remote signer ("bunker") and returns the account pubkey
+  /// the signer confirmed. This both signs in and gives the service background
+  /// signing, with no key material on this machine.
+  ///
+  /// [bunkerUri] is a secret (it embeds a single-use connection token): it
+  /// goes straight to the service and is never logged here or included in an
+  /// error message shown to the user.
+  Future<String> connectRemoteSigner(String bunkerUri) {
+    return _callString(accountInterface, 'ConnectRemoteSigner', [
+      DBusString(bunkerUri),
+    ]);
+  }
+
   Future<void> logout() async {
     await _call(accountInterface, 'Logout', [], null);
   }

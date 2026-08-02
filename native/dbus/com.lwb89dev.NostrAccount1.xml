@@ -21,6 +21,15 @@
     <method name="SwitchAccount">
       <arg type="s" name="accountId" direction="in"/>
     </method>
+    <!-- Connects a NIP-46 remote signer from a bunker:// string and returns
+         the account pubkey the signer confirmed. This is both a login and the
+         way to give the service background signing with no key on the machine.
+         The argument is secret (it embeds a single-use connection token): the
+         service never logs it and never quotes it back in an error. -->
+    <method name="ConnectRemoteSigner">
+      <arg type="s" name="bunkerUri" direction="in"/>
+      <arg type="s" name="pubkeyHex" direction="out"/>
+    </method>
     <!-- Switches signer mode only; secret material never crosses D-Bus. -->
     <method name="SetSigner">
       <arg type="s" name="signerName" direction="in"/>

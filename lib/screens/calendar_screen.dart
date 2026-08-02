@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -32,15 +34,13 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   @override
   void initState() {
     super.initState();
-    // Local-key sessions can synchronize unobtrusively on app open. Amber is
-    // intentionally excluded: decrypting a calendar may require signer UI and
-    // should only happen after an explicit tap.
+    // Force a sync as soon as the calendar is on screen, so what the user sees
+    // is already reconciled with the relays. [SyncNotifier.syncOnStartup]
+    // latches itself, so coming back to this screen later does not re-trigger
+    // it, and it decides on its own which session types can sync silently.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      final user = ref.read(authProvider).value;
-      if (user?.loginMethod.isLocalKey == true) {
-        ref.read(syncProvider.notifier).syncNow();
-      }
+      unawaited(ref.read(syncProvider.notifier).syncOnStartup());
     });
   }
 

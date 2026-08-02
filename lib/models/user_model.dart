@@ -11,11 +11,24 @@ enum LoginMethod {
   /// External signer (Amber, NIP-55, Android only). The app never sees the
   /// private key: every signing / NIP-44 encrypt / NIP-44 decrypt goes
   /// through an intent to Amber. [User.privateKeyHex] is always null.
-  amber;
+  amber,
 
-  /// Whether Astraea holds the private key itself (local signing/crypto) vs.
-  /// delegating to Amber.
-  bool get isLocalKey => this != amber;
+  /// Remote signer over NIP-46 ("bunker"), available on every platform. The
+  /// app never sees the account private key: it holds only a throwaway client
+  /// key and sends every signing / NIP-44 operation to the user's own signer
+  /// over a relay. [User.privateKeyHex] is always null.
+  remoteSigner;
+
+  /// Whether Astraea holds the account private key itself (local signing and
+  /// local NIP-44 crypto) rather than delegating every operation to an
+  /// external signer. Enumerated positively — adding a new external-signer
+  /// mode must not silently make it look like a local-key session.
+  bool get isLocalKey => this == importedKey || this == generatedKey;
+
+  /// Whether signing requires a round-trip to software outside Astraea. Such
+  /// sessions can involve user interaction (an Amber prompt, a bunker
+  /// approval), so they are never triggered silently in the background.
+  bool get usesExternalSigner => !isLocalKey;
 }
 
 /// Identity of the logged-in Nostr account: public key in hex + its bech32

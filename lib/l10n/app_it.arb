@@ -103,6 +103,15 @@
   "privateKeyFieldLabel": "nsec o chiave privata esadecimale",
   "importButton": "Importa",
 
+  "signInWithRemoteSigner": "Accedi con un signer remoto",
+  "remoteSignerFieldLabel": "stringa di connessione bunker://",
+  "remoteSignerHelp": "Incolla la stringa bunker:// del tuo signer (Amber, nsec.app, nostrify, il tuo bunker). Astraea salva solo una chiave usa-e-getta per questo dispositivo — mai la tua chiave privata.",
+  "remoteSignerConnect": "Connetti",
+  "remoteSignerConnecting": "In attesa che il signer approvi la connessione…",
+  "invalidBunkerUri": "Questa non è una stringa di connessione bunker:// valida.",
+  "remoteSignerApprovalOpened": "Approva la connessione nella pagina appena aperta, poi torna qui.",
+  "remoteSignerDisconnected": "Il signer remoto non è connesso. Accedi di nuovo.",
+
   "followDeviceTimezone": "Segui il fuso orario del dispositivo",
   "searchCityRegion": "Cerca una città o una regione",
   "noMatchingTimezone": "Nessun fuso orario corrispondente.",

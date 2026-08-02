@@ -57,32 +57,85 @@ class _DesktopAccountSection extends ConsumerWidget {
       ),
       data: (data) {
         final authenticated = data['authenticated'] == true;
-        if (!authenticated) {
-          return ListTile(
-            leading: const Icon(Icons.person_outline),
-            title: Text(l10n.notSignedIn),
-            subtitle: Text(l10n.signInWithBrowserSubtitle),
-            trailing: FilledButton(
-              onPressed: () => _beginLogin(context, ref),
-              child: Text(l10n.signIn),
-            ),
-          );
-        }
+        final signerState = data['signerState'] as String? ?? 'unknown';
+        if (!authenticated) return _signedOutTiles(context, ref, l10n);
+
         final npub = data['npub'] as String? ?? '';
         final signer = data['signer'] as String? ?? 'none';
-        final signerState = data['signerState'] as String? ?? 'unknown';
-        return ListTile(
-          leading: const Icon(Icons.verified_user_outlined),
-          title: Text(_truncate(npub)),
-          subtitle: Text(_signerSubtitle(l10n, signer, signerState)),
-          isThreeLine: signerState != 'ready',
-          trailing: TextButton(
-            onPressed: () => _confirmSignOut(context, ref),
-            child: Text(l10n.signOut),
-          ),
+        return Column(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.verified_user_outlined),
+              title: Text(_truncate(npub)),
+              subtitle: Text(_signerSubtitle(l10n, signer, signerState)),
+              isThreeLine: signerState != 'ready',
+              trailing: TextButton(
+                onPressed: () => _confirmSignOut(context, ref),
+                child: Text(l10n.signOut),
+              ),
+            ),
+            // Offered while signed in too: it is the upgrade path from a
+            // browser (NIP-07) login, which proves identity but cannot sign in
+            // the background, to unattended sync with no key on this machine.
+            if (signerState != 'ready')
+              ListTile(
+                leading: const Icon(Icons.vpn_key_outlined),
+                title: Text(l10n.signInWithRemoteSigner),
+                subtitle: Text(l10n.remoteSignerHelp),
+                onTap: () => _connectRemoteSigner(context, ref),
+              ),
+          ],
         );
       },
     );
+  }
+
+  /// Two ways in, in decreasing order of what they leave the service able to
+  /// do: a remote signer (identity **and** background signing, no local key),
+  /// or the browser bridge (identity only).
+  Widget _signedOutTiles(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+  ) {
+    return Column(
+      children: [
+        ListTile(
+          leading: const Icon(Icons.person_outline),
+          title: Text(l10n.notSignedIn),
+          subtitle: Text(l10n.signInWithBrowserSubtitle),
+          trailing: FilledButton(
+            onPressed: () => _beginLogin(context, ref),
+            child: Text(l10n.signIn),
+          ),
+        ),
+        ListTile(
+          leading: const Icon(Icons.vpn_key_outlined),
+          title: Text(l10n.signInWithRemoteSigner),
+          subtitle: Text(l10n.remoteSignerHelp),
+          trailing: FilledButton.tonal(
+            onPressed: () => _connectRemoteSigner(context, ref),
+            child: Text(l10n.remoteSignerConnect),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _connectRemoteSigner(BuildContext context, WidgetRef ref) async {
+    final uri = await _promptForBunkerUri(context);
+    if (uri == null || uri.isEmpty || !context.mounted) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await ref.read(dbusCalendarClientProvider).connectRemoteSigner(uri);
+    } catch (e) {
+      // The service refuses malformed strings without quoting them back, so
+      // this message can never contain the connection secret.
+      messenger.showSnackBar(SnackBar(content: Text(e.toString())));
+      return;
+    }
+    ref.invalidate(desktopAuthStatusProvider);
   }
 
   String _truncate(String npub) => npub.length > 20
@@ -483,6 +536,58 @@ class _DesktopRelaySection extends ConsumerWidget {
     if (relays.contains(url)) return;
     await ref.read(desktopRelaysProvider.notifier).save([...relays, url]);
   }
+}
+
+/// Asks for a `bunker://` connection string.
+///
+/// The field is deliberately not `obscureText`: users paste a long string here
+/// and need to see that the paste landed. It is single-use on the signer side
+/// and the dialog is dismissed immediately after, so the exposure window is
+/// the paste itself — while an unreadable field would push people towards
+/// pasting into a terminal instead.
+Future<String?> _promptForBunkerUri(BuildContext context) async {
+  final l10n = AppLocalizations.of(context);
+  final controller = TextEditingController();
+  final result = await showDialog<String>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text(l10n.signInWithRemoteSigner),
+      content: SizedBox(
+        width: 480,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(l10n.remoteSignerHelp),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              autocorrect: false,
+              enableSuggestions: false,
+              decoration: InputDecoration(
+                labelText: l10n.remoteSignerFieldLabel,
+                hintText: 'bunker://…',
+                border: const OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(),
+          child: Text(l10n.cancel),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
+          child: Text(l10n.remoteSignerConnect),
+        ),
+      ],
+    ),
+  );
+  controller.dispose();
+  return result;
 }
 
 Future<String?> _promptForRelayUrl(BuildContext context) async {

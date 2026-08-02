@@ -62,7 +62,11 @@ fn notifications_enabled(store: &Store) -> bool {
         .ok()
         .flatten()
         .and_then(|raw| serde_json::from_str::<serde_json::Value>(&raw).ok())
-        .and_then(|settings| settings.get("notificationsEnabled").and_then(|v| v.as_bool()))
+        .and_then(|settings| {
+            settings
+                .get("notificationsEnabled")
+                .and_then(|v| v.as_bool())
+        })
         .unwrap_or(true)
 }
 
@@ -75,8 +79,8 @@ async fn fire_due_reminders(
     let occurrences = recurrence::expand(event, now - LOOK_AROUND, now + LOOK_AROUND);
     for occurrence in occurrences {
         for reminder in &event.reminders {
-            let fire_at = occurrence.occurrence_start
-                - Duration::minutes(reminder.minutes_before.max(0));
+            let fire_at =
+                occurrence.occurrence_start - Duration::minutes(reminder.minutes_before.max(0));
             // The scan cadence is 15 seconds. The one-minute slack handles a
             // busy desktop without replaying an old reminder after restart.
             if fire_at > now || fire_at <= now - Duration::minutes(1) {
@@ -98,7 +102,11 @@ async fn fire_due_reminders(
             };
             crate::notify::notify(
                 connection,
-                if event.title.is_empty() { "Astraea" } else { &event.title },
+                if event.title.is_empty() {
+                    "Astraea"
+                } else {
+                    &event.title
+                },
                 &body,
             )
             .await;

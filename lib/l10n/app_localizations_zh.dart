@@ -318,6 +318,35 @@ class AppLocalizationsZh extends AppLocalizations {
   String get importButton => '导入';
 
   @override
+  String get signInWithRemoteSigner => 'Sign in with a remote signer';
+
+  @override
+  String get remoteSignerFieldLabel => 'bunker:// connection string';
+
+  @override
+  String get remoteSignerHelp =>
+      'Paste the bunker:// string from your signer (Amber, nsec.app, nostrify, your own bunker). Astraea only stores a throwaway key for this device — never your private key.';
+
+  @override
+  String get remoteSignerConnect => 'Connect';
+
+  @override
+  String get remoteSignerConnecting =>
+      'Waiting for your signer to approve the connection…';
+
+  @override
+  String get invalidBunkerUri =>
+      'That is not a valid bunker:// connection string.';
+
+  @override
+  String get remoteSignerApprovalOpened =>
+      'Approve the connection in the page that just opened, then come back.';
+
+  @override
+  String get remoteSignerDisconnected =>
+      'The remote signer is not connected. Sign in again.';
+
+  @override
   String get followDeviceTimezone => '跟随设备时区';
 
   @override
