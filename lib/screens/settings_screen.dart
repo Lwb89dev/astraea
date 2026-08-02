@@ -192,26 +192,18 @@ class _AccountSection extends ConsumerWidget {
                     ? FileImage(avatarFile)
                     : null,
                 child: avatarFile == null
-                    ? Icon(
-                        user.loginMethod == LoginMethod.amber
-                            ? Icons.shield_outlined
-                            : Icons.verified_user_outlined,
-                      )
+                    ? Icon(_accountIcon(user.loginMethod))
                     : null,
               ),
               title: Text(displayName),
-              subtitle: Text(
-                user.loginMethod == LoginMethod.amber
-                    ? l10n.signedInWithAmber
-                    : l10n.signedIn,
-              ),
+              subtitle: Text(_accountSubtitle(l10n, user.loginMethod)),
               trailing: TextButton(
                 onPressed: () => _confirmSignOut(context, ref),
                 child: Text(l10n.signOut),
               ),
             ),
-            // Backing up the key only applies when Astraea holds it — with
-            // Amber the key lives in the signer, not here.
+            // Backing up the key only applies when Astraea holds it — with an
+            // external signer (Amber or NIP-46) the key lives there, not here.
             if (user.loginMethod.isLocalKey)
               ListTile(
                 leading: const Icon(Icons.vpn_key_outlined),
@@ -223,6 +215,24 @@ class _AccountSection extends ConsumerWidget {
         );
       },
     );
+  }
+
+  /// Icon that tells the user, at a glance, where their key actually lives.
+  IconData _accountIcon(LoginMethod method) {
+    return switch (method) {
+      LoginMethod.amber => Icons.shield_outlined,
+      LoginMethod.remoteSigner => Icons.cloud_outlined,
+      LoginMethod.importedKey ||
+      LoginMethod.generatedKey => Icons.verified_user_outlined,
+    };
+  }
+
+  String _accountSubtitle(AppLocalizations l10n, LoginMethod method) {
+    return switch (method) {
+      LoginMethod.amber => l10n.signedInWithAmber,
+      LoginMethod.remoteSigner => l10n.signedInRemoteSigner,
+      LoginMethod.importedKey || LoginMethod.generatedKey => l10n.signedIn,
+    };
   }
 
   Future<void> _confirmSignOut(BuildContext context, WidgetRef ref) async {
@@ -568,9 +578,7 @@ class _AppearanceSection extends ConsumerWidget {
             backgroundColor: AppAccent.fromPrefsValue(settings.accent).seed,
           ),
           title: Text(l10n.accentColorLabel),
-          subtitle: Text(
-            AppAccent.fromPrefsValue(settings.accent).label(l10n),
-          ),
+          subtitle: Text(AppAccent.fromPrefsValue(settings.accent).label(l10n)),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => _pickAccent(context, ref, settings),
         ),
@@ -594,10 +602,7 @@ class _AppearanceSection extends ConsumerWidget {
           children: [
             for (final accent in AppAccent.values)
               ListTile(
-                leading: CircleAvatar(
-                  radius: 12,
-                  backgroundColor: accent.seed,
-                ),
+                leading: CircleAvatar(radius: 12, backgroundColor: accent.seed),
                 title: Text(accent.label(l10n)),
                 selected: accent == current,
                 trailing: accent == current ? const Icon(Icons.check) : null,
@@ -833,6 +838,45 @@ class _DataSection extends ConsumerWidget {
     var submitting = false;
     String? errorText;
 
+    // One attempt, lifted out of the widget tree. Inline it and the actual
+    // logic — try, decrypt, classify the failure — sits eight levels deep
+    // inside builders, where it is nearly unreadable and easy to get wrong.
+    // Here it is a flat sequence: mark busy, import, close or explain.
+    Future<void> attempt(
+      BuildContext ctx,
+      void Function(void Function()) setState,
+    ) async {
+      setState(() {
+        submitting = true;
+        errorText = null;
+      });
+      String? failure;
+      try {
+        final imported = await ref
+            .read(eventsProvider.notifier)
+            .importFromIcs(
+              raw,
+              password: controller.text,
+              defaultTimezone: defaultTimezone,
+            );
+        if (ctx.mounted) Navigator.of(ctx).pop(imported);
+        return;
+      } on SecretBoxAuthenticationError {
+        // The one failure the user can act on: the password was wrong.
+        failure = l10n.wrongPassword;
+      } catch (_) {
+        // Anything else means the file is not a readable Astraea export. The
+        // exception is deliberately not shown: a decode failure can quote the
+        // bytes it choked on, which are the user's calendar.
+        failure = l10n.invalidEncryptedExport;
+      }
+      if (!ctx.mounted) return;
+      setState(() {
+        submitting = false;
+        errorText = failure;
+      });
+    }
+
     final count = await showDialog<int>(
       context: context,
       builder: (ctx) => StatefulBuilder(
@@ -853,36 +897,7 @@ class _DataSection extends ConsumerWidget {
               child: Text(l10n.cancel),
             ),
             FilledButton(
-              onPressed: submitting
-                  ? null
-                  : () async {
-                      setState(() {
-                        submitting = true;
-                        errorText = null;
-                      });
-                      try {
-                        final imported = await ref
-                            .read(eventsProvider.notifier)
-                            .importFromIcs(
-                              raw,
-                              password: controller.text,
-                              defaultTimezone: defaultTimezone,
-                            );
-                        if (ctx.mounted) Navigator.of(ctx).pop(imported);
-                      } on SecretBoxAuthenticationError {
-                        if (!ctx.mounted) return;
-                        setState(() {
-                          submitting = false;
-                          errorText = l10n.wrongPassword;
-                        });
-                      } catch (_) {
-                        if (!ctx.mounted) return;
-                        setState(() {
-                          submitting = false;
-                          errorText = l10n.invalidEncryptedExport;
-                        });
-                      }
-                    },
+              onPressed: submitting ? null : () => attempt(ctx, setState),
               child: Text(l10n.importButton),
             ),
           ],

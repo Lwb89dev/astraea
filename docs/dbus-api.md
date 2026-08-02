@@ -128,7 +128,9 @@ service for Astraea/Echoes/Kairos).
 | `BeginBrowserLogin` | `() → (s json)` | `{sessionId, url, expiresAt}`; service opens the browser itself and also returns the URL |
 | `CancelBrowserLogin` | `(s sessionId) → ()` | |
 | `GetAuthenticationStatus` | `() → (s json)` | `{authenticated, pubkey, npub, signer, signerState, readOnly}` |
-| `Logout` | `() → ()` | wipes session + Secret Service entries |
+| `ConnectRemoteSigner` | `(s bunkerUri) → (s pubkeyHex)` | connects a NIP-46 signer; logs in **and** enables background signing. Argument is secret — never logged, never echoed back in an error. Rejected above 4096 characters |
+| `SetSigner` | `(s signerName) → ()` | `read_only` \| `browser_nip07` \| `remote_nip46` \| `local_delegated`; mode only, no secret material crosses the bus |
+| `Logout` | `() → ()` | wipes session + Secret Service entries, and drops the live remote-signer connection |
 | `GetAccounts` | `() → (s json)` | |
 | `SwitchAccount` | `(s accountId) → ()` | |
 

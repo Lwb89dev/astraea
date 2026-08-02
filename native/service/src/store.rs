@@ -800,98 +800,12 @@ impl Store {
                 )
                 .optional()?;
 
-            let calendar_exists = |id: &str| -> Result<bool, StoreError> {
-                let n: i64 = conn.query_row(
-                    "SELECT COUNT(*) FROM calendars WHERE id = ?1 AND deleted = 0",
-                    [id],
-                    |r| r.get(0),
-                )?;
-                Ok(n > 0)
-            };
-
             match local {
-                None => {
-                    // Unknown event: adopt it (tombstones included — the
-                    // contract says readers keep them and hide them).
-                    let calendar_id = match &payload.calendar_id {
-                        Some(id) if calendar_exists(id)? => id.clone(),
-                        _ => "default".to_owned(),
-                    };
-                    let event = Event {
-                        id: payload.id.clone(),
-                        calendar_id,
-                        nostr_event_id: Some(remote_concrete_id.to_owned()),
-                        owner_pubkey: Some(owner_pubkey.to_owned()),
-                        title: payload.title.clone(),
-                        description: payload.description.clone(),
-                        location: payload.location.clone(),
-                        url: payload.url.clone(),
-                        start: payload.start,
-                        end: payload.end,
-                        timezone: payload.timezone.clone(),
-                        all_day: payload.all_day,
-                        recurrence: payload.recurrence,
-                        recurrence_end: payload.recurrence_end,
-                        reminders: payload.reminders.clone(),
-                        status: "confirmed".to_owned(),
-                        visibility: "private".to_owned(),
-                        color: payload.color.clone(),
-                        created_at: payload.created_at,
-                        updated_at: payload.updated_at,
-                        deleted_at: payload.deleted.then_some(payload.updated_at),
-                        local_revision: 1,
-                        remote_revision: Some(remote_concrete_id.to_owned()),
-                        sync_state: if payload.deleted {
-                            SyncState::DeletedSynced
-                        } else {
-                            SyncState::Synced
-                        },
-                        source_device: None,
-                        metadata: serde_json::Map::new(),
-                    };
-                    insert_event_row(conn, &event)?;
-                    Ok(Some(event.id))
-                }
-                Some(mut event) => {
-                    if payload.updated_at <= event.updated_at {
-                        // Local wins (or tie): nothing changes; a pending
-                        // local publish will replace the remote version.
-                        return Ok(None);
-                    }
-                    // Remote wins: local pending ops for this event are stale.
-                    conn.execute("DELETE FROM sync_queue WHERE event_id = ?1", [&event.id])?;
-                    if let Some(id) = &payload.calendar_id {
-                        if calendar_exists(id)? {
-                            event.calendar_id = id.clone();
-                        }
-                    }
-                    // Payloads without calendarId keep the local assignment
-                    // (ADR-005: membership is local-first).
-                    event.title = payload.title.clone();
-                    event.description = payload.description.clone();
-                    event.location = payload.location.clone();
-                    event.url = payload.url.clone().or(event.url);
-                    event.start = payload.start;
-                    event.end = payload.end;
-                    event.timezone = payload.timezone.clone();
-                    event.all_day = payload.all_day;
-                    event.recurrence = payload.recurrence;
-                    event.recurrence_end = payload.recurrence_end;
-                    event.reminders = payload.reminders.clone();
-                    event.color = payload.color.clone();
-                    event.updated_at = payload.updated_at;
-                    event.deleted_at = payload.deleted.then_some(payload.updated_at);
-                    event.local_revision += 1;
-                    event.remote_revision = Some(remote_concrete_id.to_owned());
-                    event.nostr_event_id = Some(remote_concrete_id.to_owned());
-                    event.owner_pubkey = Some(owner_pubkey.to_owned());
-                    event.sync_state = if payload.deleted {
-                        SyncState::DeletedSynced
-                    } else {
-                        SyncState::Synced
-                    };
-                    update_event_row(conn, &event)?;
-                    Ok(Some(event.id))
+                // Unknown event: adopt it (tombstones included — the contract
+                // says readers keep them and hide them).
+                None => adopt_remote_event(conn, payload, remote_concrete_id, owner_pubkey),
+                Some(event) => {
+                    apply_remote_update(conn, event, payload, remote_concrete_id, owner_pubkey)
                 }
             }
         })
@@ -1366,6 +1280,123 @@ const EVENT_COLS: &str =
      start_utc, end_utc, timezone, all_day, recurrence, recurrence_end_utc, reminders, status, \
      visibility, color, created_at_ms, updated_at_ms, deleted_at_ms, local_revision, \
      remote_revision, sync_state, source_device, metadata";
+
+/// True when `id` names a calendar that still exists. A pulled payload can
+/// reference a calendar this device has never seen (or has deleted), and
+/// adopting that id would leave the event unreachable in the UI.
+fn calendar_exists(conn: &Connection, id: &str) -> Result<bool, StoreError> {
+    let n: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM calendars WHERE id = ?1 AND deleted = 0",
+        [id],
+        |r| r.get(0),
+    )?;
+    Ok(n > 0)
+}
+
+/// Inserts a pulled event this device has never seen before.
+///
+/// Split out of [`Store::merge_remote_event`] rather than living as a match
+/// arm: it is a straight-line "build the row and write it", and inlining it
+/// buried that behind three levels of nesting.
+fn adopt_remote_event(
+    conn: &Connection,
+    payload: &RemotePayload,
+    remote_concrete_id: &str,
+    owner_pubkey: &str,
+) -> Result<Option<String>, StoreError> {
+    let calendar_id = match &payload.calendar_id {
+        Some(id) if calendar_exists(conn, id)? => id.clone(),
+        _ => "default".to_owned(),
+    };
+    let event = Event {
+        id: payload.id.clone(),
+        calendar_id,
+        nostr_event_id: Some(remote_concrete_id.to_owned()),
+        owner_pubkey: Some(owner_pubkey.to_owned()),
+        title: payload.title.clone(),
+        description: payload.description.clone(),
+        location: payload.location.clone(),
+        url: payload.url.clone(),
+        start: payload.start,
+        end: payload.end,
+        timezone: payload.timezone.clone(),
+        all_day: payload.all_day,
+        recurrence: payload.recurrence,
+        recurrence_end: payload.recurrence_end,
+        reminders: payload.reminders.clone(),
+        status: "confirmed".to_owned(),
+        visibility: "private".to_owned(),
+        color: payload.color.clone(),
+        created_at: payload.created_at,
+        updated_at: payload.updated_at,
+        deleted_at: payload.deleted.then_some(payload.updated_at),
+        local_revision: 1,
+        remote_revision: Some(remote_concrete_id.to_owned()),
+        sync_state: remote_sync_state(payload.deleted),
+        source_device: None,
+        metadata: serde_json::Map::new(),
+    };
+    insert_event_row(conn, &event)?;
+    Ok(Some(event.id))
+}
+
+/// Applies a pulled payload over an event this device already has, under the
+/// last-write-wins rule: strictly-newer `updatedAt` wins, ties keep local.
+fn apply_remote_update(
+    conn: &Connection,
+    mut event: Event,
+    payload: &RemotePayload,
+    remote_concrete_id: &str,
+    owner_pubkey: &str,
+) -> Result<Option<String>, StoreError> {
+    if payload.updated_at <= event.updated_at {
+        // Local wins (or tie): nothing changes; a pending local publish will
+        // replace the remote version.
+        return Ok(None);
+    }
+    // Remote wins: local pending ops for this event are stale.
+    conn.execute("DELETE FROM sync_queue WHERE event_id = ?1", [&event.id])?;
+
+    // A payload without calendarId keeps the local assignment (ADR-005:
+    // membership is local-first). A database error here is propagated, not
+    // swallowed into "calendar missing": that would silently re-home the
+    // event under `default`.
+    if let Some(id) = &payload.calendar_id {
+        if calendar_exists(conn, id)? {
+            event.calendar_id = id.clone();
+        }
+    }
+
+    event.title = payload.title.clone();
+    event.description = payload.description.clone();
+    event.location = payload.location.clone();
+    event.url = payload.url.clone().or(event.url);
+    event.start = payload.start;
+    event.end = payload.end;
+    event.timezone = payload.timezone.clone();
+    event.all_day = payload.all_day;
+    event.recurrence = payload.recurrence;
+    event.recurrence_end = payload.recurrence_end;
+    event.reminders = payload.reminders.clone();
+    event.color = payload.color.clone();
+    event.updated_at = payload.updated_at;
+    event.deleted_at = payload.deleted.then_some(payload.updated_at);
+    event.local_revision += 1;
+    event.remote_revision = Some(remote_concrete_id.to_owned());
+    event.nostr_event_id = Some(remote_concrete_id.to_owned());
+    event.owner_pubkey = Some(owner_pubkey.to_owned());
+    event.sync_state = remote_sync_state(payload.deleted);
+    update_event_row(conn, &event)?;
+    Ok(Some(event.id))
+}
+
+fn remote_sync_state(deleted: bool) -> SyncState {
+    if deleted {
+        SyncState::DeletedSynced
+    } else {
+        SyncState::Synced
+    }
+}
 
 fn event_from_row(row: &Row<'_>) -> rusqlite::Result<Event> {
     let invalid = |i: usize, e: String| {

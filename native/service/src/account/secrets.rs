@@ -29,15 +29,63 @@ impl SecretStore {
 
     /// Stores/replaces the delegated calendar key for an account.
     pub async fn set_delegated_key(&self, pubkey: &str, secret: &str) -> anyhow::Result<()> {
+        self.set(
+            pubkey,
+            "delegated-key",
+            &format!(
+                "Astraea delegated calendar key ({})",
+                &pubkey[..8.min(pubkey.len())]
+            ),
+            secret,
+        )
+        .await
+    }
+
+    pub async fn get_delegated_key(&self, pubkey: &str) -> anyhow::Result<Option<String>> {
+        self.get(pubkey, "delegated-key").await
+    }
+
+    /// Stores/replaces the NIP-46 remote-signer session for an account.
+    ///
+    /// The blob holds the ephemeral client key and the bunker's single-use
+    /// secret — both authorize this machine against the user's signer — so it
+    /// belongs here with the delegated key, not in SQLite or a config file.
+    /// Note what it does *not* hold: the account private key, which never
+    /// leaves the remote signer.
+    pub async fn set_remote_signer_session(
+        &self,
+        pubkey: &str,
+        session: &str,
+    ) -> anyhow::Result<()> {
+        self.set(
+            pubkey,
+            "remote-signer",
+            &format!(
+                "Astraea remote signer session ({})",
+                &pubkey[..8.min(pubkey.len())]
+            ),
+            session,
+        )
+        .await
+    }
+
+    pub async fn get_remote_signer_session(&self, pubkey: &str) -> anyhow::Result<Option<String>> {
+        self.get(pubkey, "remote-signer").await
+    }
+
+    async fn set(
+        &self,
+        pubkey: &str,
+        purpose: &str,
+        label: &str,
+        secret: &str,
+    ) -> anyhow::Result<()> {
         let service = self.service().await?;
         let collection = service.get_default_collection().await?;
         collection
             .create_item(
-                &format!(
-                    "Astraea delegated calendar key ({})",
-                    &pubkey[..8.min(pubkey.len())]
-                ),
-                Self::attributes("delegated-key", pubkey),
+                label,
+                Self::attributes(purpose, pubkey),
                 secret.as_bytes(),
                 true, // replace
                 "text/plain",
@@ -46,14 +94,14 @@ impl SecretStore {
         Ok(())
     }
 
-    pub async fn get_delegated_key(&self, pubkey: &str) -> anyhow::Result<Option<String>> {
+    async fn get(&self, pubkey: &str, purpose: &str) -> anyhow::Result<Option<String>> {
         let service = self.service().await?;
         let results = service
-            .search_items(Self::attributes("delegated-key", pubkey))
+            .search_items(Self::attributes(purpose, pubkey))
             .await?;
         let Some(item) = results.unlocked.first() else {
             // Try to unlock locked matches once; if the user dismisses the
-            // prompt the key simply stays unavailable.
+            // prompt the secret simply stays unavailable.
             let Some(locked) = results.locked.first() else {
                 return Ok(None);
             };

@@ -133,6 +133,15 @@
   "privateKeyFieldLabel": "nsec or hex private key",
   "importButton": "Import",
 
+  "signInWithRemoteSigner": "Sign in with a remote signer",
+  "remoteSignerFieldLabel": "bunker:// connection string",
+  "remoteSignerHelp": "Paste the bunker:// string from your signer (Amber, nsec.app, nostrify, your own bunker). Astraea only stores a throwaway key for this device — never your private key.",
+  "remoteSignerConnect": "Connect",
+  "remoteSignerConnecting": "Waiting for your signer to approve the connection…",
+  "invalidBunkerUri": "That is not a valid bunker:// connection string.",
+  "remoteSignerApprovalOpened": "Approve the connection in the page that just opened, then come back.",
+  "remoteSignerDisconnected": "The remote signer is not connected. Sign in again.",
+
   "followDeviceTimezone": "Follow device timezone",
   "searchCityRegion": "Search a city or region",
   "noMatchingTimezone": "No matching timezone.",

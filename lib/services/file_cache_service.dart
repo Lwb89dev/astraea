@@ -44,4 +44,23 @@ class FileCacheService {
     final file = File('${dir.path}/$key$extension');
     return file.writeAsBytes(bytes, flush: true);
   }
+
+  /// Deletes every cached file. Called on sign-out: the avatar of the account
+  /// that just signed out is a picture of the user, and leaving it on disk
+  /// after they asked to be signed out is a privacy leak, not a cache hit.
+  /// Best-effort — a failure here must never block signing out.
+  Future<void> clear() async {
+    developer.log('FileCacheService.clear called', name: 'FileCacheService');
+    try {
+      final dir = await _dir;
+      if (await dir.exists()) await dir.delete(recursive: true);
+      _cacheDir = null;
+    } catch (error) {
+      developer.log(
+        'Could not clear the file cache',
+        name: 'FileCacheService',
+        error: error,
+      );
+    }
+  }
 }

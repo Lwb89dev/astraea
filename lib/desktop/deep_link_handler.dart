@@ -77,7 +77,9 @@ class _DesktopDeepLinkHandlerState
 
   void _handle(Uri? uri) {
     if (uri == null || uri.scheme != 'astraea') return;
-    developer.log('deep link: $uri', name: 'DesktopDeepLinkHandler');
+    // Only the route, never the URI: an astraea:// link carries event ids,
+    // and a log line is the wrong place for one.
+    developer.log('deep link: ${uri.host}', name: 'DesktopDeepLinkHandler');
 
     switch (uri.host) {
       case 'calendar':

@@ -181,69 +181,6 @@ impl SignerBackend for BrowserNip07Signer {
     }
 }
 
-/// NIP-46 (Nostr Connect / bunker) — the right choice for continuous
-/// background signing without holding any key locally. Deliberately not
-/// hand-rolled here: the implementation will use the audited `nostr-connect`
-/// client when relay support lands in phase 7+. Until then it reports
-/// unavailable rather than pretending.
-pub struct RemoteSigner;
-
-#[async_trait]
-impl SignerBackend for RemoteSigner {
-    fn kind(&self) -> SignerKind {
-        SignerKind::Remote
-    }
-
-    /// `true`, even though NIP-46 is not actually an interactive-per-signature
-    /// backend once implemented: every method below unconditionally reports
-    /// `Unavailable`, so `false` here would make `AccountManager::status_json`
-    /// (its only caller) report `signerState: "ready"` — actively telling the
-    /// user this signer works when nothing it does can ever succeed. `true`
-    /// at least surfaces it as not-currently-usable rather than lying;
-    /// revisit once NIP-46 actually lands (see the struct doc).
-    fn is_interactive_only(&self) -> bool {
-        true
-    }
-
-    async fn sign_event(&self, _unsigned: UnsignedEvent) -> Result<Event, SignerError> {
-        Err(SignerError::Unavailable(
-            "remote signer (NIP-46) is not configured in this build".into(),
-        ))
-    }
-
-    async fn nip44_self_encrypt(&self, _plaintext: &str) -> Result<String, SignerError> {
-        Err(SignerError::Unavailable(
-            "remote signer (NIP-46) is not configured in this build".into(),
-        ))
-    }
-
-    async fn nip44_self_decrypt(&self, _ciphertext: &str) -> Result<String, SignerError> {
-        Err(SignerError::Unavailable(
-            "remote signer (NIP-46) is not configured in this build".into(),
-        ))
-    }
-
-    async fn nip44_encrypt_to(
-        &self,
-        _recipient: PublicKey,
-        _plaintext: &str,
-    ) -> Result<String, SignerError> {
-        Err(SignerError::Unavailable(
-            "remote signer (NIP-46) is not configured in this build".into(),
-        ))
-    }
-
-    async fn nip44_decrypt_from(
-        &self,
-        _sender: PublicKey,
-        _ciphertext: &str,
-    ) -> Result<String, SignerError> {
-        Err(SignerError::Unavailable(
-            "remote signer (NIP-46) is not configured in this build".into(),
-        ))
-    }
-}
-
 /// App-scoped key stored in the freedesktop Secret Service. This is NOT the
 /// user's main nsec: it is a dedicated calendar key the user provisions
 /// explicitly (or a future NIP-26 delegated key), revocable by `Logout` or by
@@ -335,6 +272,13 @@ impl SignerBackend for LocalDelegatedSigner {
 }
 
 /// Chooses the backend for a stored signer name (the accounts.signer column).
+///
+/// `remote_nip46` is deliberately absent: a NIP-46 signer owns a live relay
+/// connection, so it cannot be rebuilt statelessly per call. It is resolved by
+/// [`crate::account::AccountManager::backend_for_account`], which reuses the
+/// cached connection; anything unrecognised here (including `remote_nip46`
+/// reaching this function by mistake) falls back to read-only, which parks
+/// operations instead of failing them.
 pub fn backend_for(
     name: &str,
     secrets: SecretStore,
@@ -345,7 +289,6 @@ pub fn backend_for(
             secrets,
             account_pubkey.to_owned(),
         )),
-        "remote_nip46" => Box::new(RemoteSigner),
         "browser_nip07" => Box::new(BrowserNip07Signer),
         _ => Box::new(ReadOnlySigner),
     }

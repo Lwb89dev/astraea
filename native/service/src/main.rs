@@ -63,6 +63,14 @@ enum AuthCommand {
     /// calendar-scoped identity — not your main social nsec — whenever you
     /// can. Revoke with `auth logout` or by deleting the keyring item.
     ProvisionKey,
+    /// Connect a NIP-46 remote signer ("bunker") and log in with it.
+    ///
+    /// The `bunker://` string is read from STDIN, never from a CLI argument:
+    /// argv is visible in `ps` and lands in shell history, and the string
+    /// embeds a single-use connection secret. This is the recommended way to
+    /// give the service background signing: unlike `provision-key`, no key
+    /// material is ever stored on this machine.
+    ConnectBunker,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -147,46 +155,85 @@ async fn cli_auth(command: AuthCommand) -> anyhow::Result<()> {
             proxy.call::<_, _, ()>("Logout", &()).await?;
             println!("logged out");
         }
-        AuthCommand::ProvisionKey => {
-            let status: String = proxy.call("GetAuthenticationStatus", &()).await?;
-            let status: serde_json::Value = serde_json::from_str(&status)?;
-            let Some(account_pubkey) = status["pubkey"].as_str().map(str::to_owned) else {
-                println!("no active account — run `astraea-service auth login` first");
-                return Ok(());
-            };
-
-            eprintln!("Paste the calendar signing key (nsec or hex), then Enter.");
-            eprintln!("It is stored only in the Secret Service keyring.");
-            let mut line = String::new();
-            std::io::stdin().read_line(&mut line)?;
-            let trimmed = line.trim();
-            let keys = match nostr::Keys::parse(trimmed) {
-                Ok(keys) => keys,
-                Err(_) => {
-                    println!("that is not a valid nsec/hex private key");
-                    return Ok(());
-                }
-            };
-            if keys.public_key().to_hex() != account_pubkey {
-                println!(
-                    "this key does not belong to the active account — the events it \
-                     signs would be invisible to your other devices. Log in with the \
-                     matching identity first."
-                );
-                return Ok(());
-            }
-
-            let secrets = account::secrets::SecretStore;
-            secrets
-                .set_delegated_key(&account_pubkey, &keys.secret_key().to_secret_hex())
-                .await?;
-            proxy
-                .call::<_, _, ()>("SetSigner", &("local_delegated",))
-                .await?;
-            println!("signing key stored in the keyring; background signing enabled");
-        }
+        AuthCommand::ProvisionKey => cli_provision_key(&proxy).await?,
+        AuthCommand::ConnectBunker => cli_connect_bunker(&proxy).await?,
     }
     Ok(())
+}
+
+/// Stores a calendar signing key for the active account (LocalDelegatedSigner).
+///
+/// Kept as its own function rather than an inline match arm: the validation
+/// chain reads as a flat sequence of guards this way, and every early return
+/// is a distinct, explainable refusal.
+async fn cli_provision_key(proxy: &zbus::Proxy<'static>) -> anyhow::Result<()> {
+    let Some(account_pubkey) = active_account_pubkey(proxy).await? else {
+        println!("no active account — run `astraea-service auth login` first");
+        return Ok(());
+    };
+
+    eprintln!("Paste the calendar signing key (nsec or hex), then Enter.");
+    eprintln!("It is stored only in the Secret Service keyring.");
+    let Ok(keys) = nostr::Keys::parse(read_secret_line()?.trim()) else {
+        println!("that is not a valid nsec/hex private key");
+        return Ok(());
+    };
+    if keys.public_key().to_hex() != account_pubkey {
+        println!(
+            "this key does not belong to the active account — the events it \
+             signs would be invisible to your other devices. Log in with the \
+             matching identity first."
+        );
+        return Ok(());
+    }
+
+    account::secrets::SecretStore
+        .set_delegated_key(&account_pubkey, &keys.secret_key().to_secret_hex())
+        .await?;
+    proxy
+        .call::<_, _, ()>("SetSigner", &("local_delegated",))
+        .await?;
+    println!("signing key stored in the keyring; background signing enabled");
+    Ok(())
+}
+
+/// Connects a NIP-46 bunker. Unlike `provision-key` this needs no prior login:
+/// answering `get_public_key` through the signer *is* the proof of ownership.
+async fn cli_connect_bunker(proxy: &zbus::Proxy<'static>) -> anyhow::Result<()> {
+    eprintln!("Paste the bunker:// connection string from your signer, then Enter.");
+    eprintln!("No private key is stored on this machine; the signer keeps it.");
+    let uri = read_secret_line()?;
+    let uri = uri.trim();
+    if uri.is_empty() {
+        println!("nothing to connect");
+        return Ok(());
+    }
+
+    match proxy
+        .call::<_, _, String>("ConnectRemoteSigner", &(uri,))
+        .await
+    {
+        // Never echo the connection string back: it carries a single-use
+        // secret and this output may well end up in a bug report.
+        Ok(pubkey) => println!("connected; signing as {pubkey}"),
+        Err(e) => println!("could not connect the remote signer: {e}"),
+    }
+    Ok(())
+}
+
+async fn active_account_pubkey(proxy: &zbus::Proxy<'static>) -> anyhow::Result<Option<String>> {
+    let status: String = proxy.call("GetAuthenticationStatus", &()).await?;
+    let status: serde_json::Value = serde_json::from_str(&status)?;
+    Ok(status["pubkey"].as_str().map(str::to_owned))
+}
+
+/// Reads one line of secret input from stdin. Secrets are read here rather
+/// than taken as arguments because argv is world-readable through `ps` and is
+/// recorded in shell history.
+fn read_secret_line() -> anyhow::Result<String> {
+    let mut line = String::new();
+    std::io::stdin().read_line(&mut line)?;
+    Ok(line)
 }
 
 fn cli_db_migrate() -> anyhow::Result<()> {

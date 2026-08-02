@@ -449,6 +449,16 @@ impl Calendar1 {
         let relay_urls: Option<Vec<String>> = match patch.get("relays") {
             None => None,
             Some(serde_json::Value::Array(list)) => {
+                // Every configured relay is a websocket the service keeps
+                // open and a fresh REQ on every sync cycle. Refusing an
+                // absurd list up front keeps a buggy (or hostile) client on
+                // the session bus from turning settings into an outbound
+                // connection flood.
+                if list.len() > MAX_RELAYS {
+                    return Err(Error::InvalidArgument(format!(
+                        "at most {MAX_RELAYS} relays can be configured"
+                    )));
+                }
                 let mut urls = Vec::with_capacity(list.len());
                 for value in list {
                     let url = value
@@ -728,6 +738,17 @@ impl From<crate::account::AccountError> for Error {
     }
 }
 
+/// Upper bound on the configured relay list. Redundancy across a handful of
+/// relays is the point (docs/nostr-sync.md); dozens is not redundancy, it is
+/// an amplifier — every publish fans out to all of them, and every one learns
+/// the account's pubkey and this machine's IP address.
+const MAX_RELAYS: usize = 16;
+
+/// A `bunker://` string is a pubkey, a handful of relay URLs and a secret.
+/// Anything materially longer is not a connection string, and bounding it
+/// before parsing keeps a hostile client from making the service allocate.
+const MAX_BUNKER_URI_CHARS: usize = 4096;
+
 pub struct NostrAccount1 {
     pub state: Arc<AppState>,
 }
@@ -742,6 +763,24 @@ impl NostrAccount1 {
     async fn cancel_browser_login(&self, session_id: String) -> Result<(), Error> {
         self.state.touch();
         Ok(self.state.account.cancel_browser_login(&session_id).await?)
+    }
+
+    /// Connects a NIP-46 remote signer from a `bunker://` connection string
+    /// and returns the account pubkey the signer confirmed.
+    ///
+    /// This both logs in and enables background signing, with no key material
+    /// on this machine. `uri` is treated as a secret end to end: it is
+    /// size-checked here, never logged, and never quoted back in an error —
+    /// it embeds a single-use connection token.
+    async fn connect_remote_signer(&self, uri: String) -> Result<String, Error> {
+        self.state.touch();
+        if uri.len() > MAX_BUNKER_URI_CHARS {
+            return Err(Error::InvalidArgument("connection string too long".into()));
+        }
+        let pubkey = self.state.account.connect_remote_signer(&uri).await?;
+        // A newly capable signer can unpark pending_signature events.
+        self.state.nudge_sync();
+        Ok(pubkey)
     }
 
     async fn get_authentication_status(&self) -> Result<String, Error> {

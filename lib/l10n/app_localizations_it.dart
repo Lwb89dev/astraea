@@ -333,6 +333,35 @@ class AppLocalizationsIt extends AppLocalizations {
   String get importButton => 'Importa';
 
   @override
+  String get signInWithRemoteSigner => 'Accedi con un signer remoto';
+
+  @override
+  String get remoteSignerFieldLabel => 'stringa di connessione bunker://';
+
+  @override
+  String get remoteSignerHelp =>
+      'Incolla la stringa bunker:// del tuo signer (Amber, nsec.app, nostrify, il tuo bunker). Astraea salva solo una chiave usa-e-getta per questo dispositivo — mai la tua chiave privata.';
+
+  @override
+  String get remoteSignerConnect => 'Connetti';
+
+  @override
+  String get remoteSignerConnecting =>
+      'In attesa che il signer approvi la connessione…';
+
+  @override
+  String get invalidBunkerUri =>
+      'Questa non è una stringa di connessione bunker:// valida.';
+
+  @override
+  String get remoteSignerApprovalOpened =>
+      'Approva la connessione nella pagina appena aperta, poi torna qui.';
+
+  @override
+  String get remoteSignerDisconnected =>
+      'Il signer remoto non è connesso. Accedi di nuovo.';
+
+  @override
   String get followDeviceTimezone => 'Segui il fuso orario del dispositivo';
 
   @override

@@ -51,6 +51,27 @@
     <control>touch</control>
   </supports>
   <releases>
+    <release version="0.4.0" date="2026-08-02">
+      <description>
+        <p>Sign in with a NIP-46 remote signer ("bunker") on both Android and
+        Linux: paste the bunker connection string and the account private key
+        never reaches the device — Astraea keeps only a throwaway client key
+        that the signer authorizes and can revoke. On Linux this also gives
+        the background service unattended signing with no key material on the
+        machine, replacing the need to provision a local delegated key.
+        Astraea now forces a sync when it opens, so the calendar is already
+        reconciled with the relays before you touch anything. Hardening: a
+        total memory budget on relay responses, bounded and back-pressured
+        reading on the local Kairos socket, a cap on the configured relay
+        list, and less identifying information in diagnostic logs.</p>
+      </description>
+    </release>
+    <release version="0.3.1" date="2026-07-28">
+      <description>
+        <p>Fixes zero-duration occurrences vanishing on an exact range
+        boundary.</p>
+      </description>
+    </release>
     <release version="0.3.0" date="2026-07-28">
       <description>
         <p>Multi-day events now draw as a continuous bar across every day

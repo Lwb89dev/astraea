@@ -115,6 +115,13 @@ class AppConstants {
   /// The legacy value is part of the on-device data migration contract.
   static const String secureStoragePrivateKeyKey = 'epochs.privkey';
 
+  /// flutter_secure_storage key for the NIP-46 remote-signer session JSON
+  /// (ephemeral client key + bunker secret + signer/relay coordinates). It is
+  /// secret material — the client key authorizes this device against the
+  /// user's signer — so it lives beside the private key, never in
+  /// SharedPreferences.
+  static const String secureStorageRemoteSignerKey = 'astraea.nip46_session';
+
   /// Name of the Hive box that holds the calendar events. Kept stable across
   /// the Astraea rename so existing calendars remain available.
   static const String eventsBoxName = 'epochs_events';
@@ -138,6 +145,12 @@ class AppConstants {
   /// relay's EOSE ("end of stored events"), after which we treat the
   /// initial fetch as complete even if a slow relay never sent EOSE.
   static const Duration syncEoseTimeout = Duration(seconds: 10);
+
+  /// Upper bound on how long we wait for a NIP-46 remote signer to answer one
+  /// request. Generous on purpose: a bunker typically has to wake the user's
+  /// phone and show an approval prompt. Without it a silent signer would hang
+  /// the calling screen indefinitely.
+  static const Duration remoteSignerRequestTimeout = Duration(seconds: 90);
 
   /// Upper bound on how long we wait for Amber to respond to a request
   /// (get_public_key, sign_event, nip44_*). `amberflutter`'s Android side

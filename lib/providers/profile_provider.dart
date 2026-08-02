@@ -137,7 +137,9 @@ final avatarFileProvider = FutureProvider.family<File?, String>((
     }
   } catch (e) {
     developer.log(
-      'Could not download avatar from $url: $e',
+      // Host only: the full avatar URL is a stable identifier for the
+      // account, and often for the person behind it.
+      'Could not download avatar from ${Uri.tryParse(url)?.host}: $e',
       name: 'avatarFileProvider',
     );
     return null;

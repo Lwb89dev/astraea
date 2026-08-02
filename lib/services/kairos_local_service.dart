@@ -29,7 +29,8 @@ class KairosLocalService {
     if (wireProtocol is String && wireProtocol != protocol) {
       throw FormatException('Unsupported Kairos protocol: $wireProtocol');
     }
-    final version = (json['version'] as num?)?.toInt() ??
+    final version =
+        (json['version'] as num?)?.toInt() ??
         (wireProtocol is num ? wireProtocol.toInt() : protocolVersion);
     if (version != protocolVersion) {
       throw FormatException('Unsupported Kairos protocol version: $version');
@@ -101,9 +102,7 @@ class KairosLocalService {
       endTimeUtc: end,
       timezone: _string(json['timezone']) ?? 'UTC',
       isAllDay: _bool(_first(json, const ['isAllDay', 'allDay'])) ?? false,
-      recurrence: RecurrenceType.fromJson(
-        _string(json['recurrence']),
-      ),
+      recurrence: RecurrenceType.fromJson(_string(json['recurrence'])),
       recurrenceEnd: _parseTimestamp(json['recurrenceEnd']),
       // The explicit envelope says whether to notify. When Kairos has no
       // task reminder, still make “show in Astraea” visibly actionable.
@@ -148,7 +147,9 @@ class KairosLocalService {
     final values = raw is List
         ? raw
         : json['reminderMinutesBefore'] is num
-        ? [<String, dynamic>{'minutesBefore': json['reminderMinutesBefore']}]
+        ? [
+            <String, dynamic>{'minutesBefore': json['reminderMinutesBefore']},
+          ]
         : const [];
     final seen = <int>{};
     final result = <Reminder>[];
