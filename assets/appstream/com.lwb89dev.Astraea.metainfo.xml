@@ -51,6 +51,12 @@
     <control>touch</control>
   </supports>
   <releases>
+    <release version="0.4.1" date="2026-08-10">
+      <description>
+        <p>The Android widget picker now shows a real preview of each
+        home-screen widget instead of an empty placeholder grid.</p>
+      </description>
+    </release>
     <release version="0.4.0" date="2026-08-02">
       <description>
         <p>Sign in with a NIP-46 remote signer ("bunker") on both Android and

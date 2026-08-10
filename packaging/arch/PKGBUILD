@@ -6,7 +6,7 @@
 # docs/packaging.md. An -git variant only needs pkgver() over this file.
 
 pkgname=astraea
-pkgver=0.4.0
+pkgver=0.4.1
 pkgrel=1
 pkgdesc="Nostr-synced calendar and agenda (desktop app, background service, GNOME extension)"
 arch=('x86_64')
