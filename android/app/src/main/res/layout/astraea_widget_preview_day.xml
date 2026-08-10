@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Widget-picker preview for the daily agenda (android:previewLayout).
+
+  Why this file exists at all: the picker inflates the preview in the
+  launcher's process, where our RemoteViewsService never runs. Point it at the
+  real widget layout and the ListView it contains has nothing to bind, so the
+  picker draws an empty box — which most launchers then cover with their own
+  cell-footprint grid. That is the "white grid of numbers" this replaces.
+
+  So the preview mirrors astraea_widget_list.xml element for element — same
+  background, padding, header row, text sizes and colours — with the ListView
+  swapped for static sample rows that match astraea_widget_item.xml. Anything
+  that changes in the real layout should change here too; the preview is a
+  promise about what the user is about to place on their home screen.
+
+  Views are kept to the RemoteViews-supported set (no plain <View>) even
+  though this layout is not inflated as RemoteViews, so the two files stay
+  copy-paste compatible with each other.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/astraea_widget_background"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <ImageView
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:contentDescription="@string/astraea_widget_previous"
+            android:padding="7dp"
+            android:src="@drawable/astraea_widget_previous" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:drawableStart="@drawable/astraea_widget_header_bullet"
+            android:drawablePadding="6dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="@string/astraea_widget_preview_day_header"
+            android:textColor="#FFFFFFFF"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:contentDescription="@string/astraea_widget_next"
+            android:padding="7dp"
+            android:src="@drawable/astraea_widget_next" />
+
+        <ImageView
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:background="@drawable/astraea_widget_add_background"
+            android:contentDescription="@string/astraea_widget_add"
+            android:padding="6dp"
+            android:src="@drawable/astraea_widget_plus" />
+    </LinearLayout>
+
+    <!-- Sample rows: the same three views agendaRow() fills at runtime.
+         Colours are the accent's own tones, so the preview reads as the
+         default (navy) theme a freshly placed widget starts on. -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp">
+
+        <ImageView
+            android:layout_width="3dp"
+            android:layout_height="14dp"
+            android:layout_marginEnd="7dp"
+            android:background="#FF3F51B5"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="6dp"
+            android:maxLines="1"
+            android:text="@string/astraea_widget_preview_time_1"
+            android:textColor="#B3FFFFFF"
+            android:textSize="11sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="@string/astraea_widget_preview_event_1"
+            android:textColor="#FFFFFFFF"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp">
+
+        <ImageView
+            android:layout_width="3dp"
+            android:layout_height="14dp"
+            android:layout_marginEnd="7dp"
+            android:background="#FF9FA8DA"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="6dp"
+            android:maxLines="1"
+            android:text="@string/astraea_widget_preview_time_2"
+            android:textColor="#B3FFFFFF"
+            android:textSize="11sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="@string/astraea_widget_preview_event_2"
+            android:textColor="#FFFFFFFF"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp">
+
+        <ImageView
+            android:layout_width="3dp"
+            android:layout_height="14dp"
+            android:layout_marginEnd="7dp"
+            android:background="#FF3F51B5"
+            android:contentDescription="@null" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="6dp"
+            android:maxLines="1"
+            android:text="@string/astraea_widget_preview_time_3"
+            android:textColor="#B3FFFFFF"
+            android:textSize="11sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="@string/astraea_widget_preview_event_3"
+            android:textColor="#FFFFFFFF"
+            android:textSize="12sp" />
+    </LinearLayout>
+</LinearLayout>

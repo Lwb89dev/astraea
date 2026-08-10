@@ -61,6 +61,12 @@ All notable changes to Astraea are documented here. The format follows
 
 ### Fixed
 
+- The Android widget picker now shows what each widget actually looks like.
+  The three providers declared no preview at all, so the picker fell back to
+  inflating the live layout — whose list/grid has no data source outside the
+  app — and drew an empty box that launchers covered with their own
+  cell-footprint grid. Each widget now ships a `previewLayout` (API 31+) with
+  static sample content and a rendered `previewImage` for API 24–30.
 - Overlapping sync cycles are prevented: the start-up sync racing a manual tap
   could run two full pull-merge-push passes at once over the same store.
 - The automatic sync is now a start-up action rather than a "calendar screen
