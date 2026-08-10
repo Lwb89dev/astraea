@@ -1,6 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Monthly agenda: a 4x4 cell block — the grid needs the extra height. See the
      day widget's info for why it updates on a 30-minute period. -->
+<!--
+  Widget-picker preview. Both attributes are needed:
+
+    previewLayout  API 31+ — the modern picker inflates this and scales it, so
+                   the user sees the real widget rather than a thumbnail.
+    previewImage   API 24–30 — those pickers only understand a static image.
+
+  Without either, the picker has nothing to draw: it inflates initialLayout
+  instead, whose collection view (ListView/GridView) has no bound
+  RemoteViewsService in the launcher's process, so it renders as an empty box
+  that launchers then cover with their own cell-footprint grid. That is the
+  "white grid of block numbers" this pair fixes. The preview resources carry
+  their own static sample data for exactly that reason.
+-->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="250dp"
     android:minHeight="180dp"
@@ -12,5 +26,7 @@
     android:widgetCategory="home_screen"
     android:description="@string/astraea_widget_month_label"
     android:initialLayout="@layout/astraea_widget_month"
+    android:previewLayout="@layout/astraea_widget_preview_month"
+    android:previewImage="@drawable/astraea_widget_preview_month"
     android:updatePeriodMillis="1800000"
     android:configure="com.example.astraea.AstraeaWidgetConfigActivity" />

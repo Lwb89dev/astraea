@@ -17,6 +17,33 @@
     <string name="astraea_widget_theme_bitcoin">Bitcoin orange</string>
     <string name="astraea_widget_theme_nostr">Nostr purple</string>
 
+    <!-- Sample content for the widget-picker previews (res/layout/
+         astraea_widget_preview_*.xml). These are never shown on a placed
+         widget: the picker cannot run our RemoteViewsService, so the preview
+         has to carry its own static data.
+
+         Deliberately plausible-but-fictional: a preview showing the user's
+         real calendar would leak event titles into the launcher's picker,
+         which is a surface we neither control nor can clear. The time and
+         header formats mirror what the providers actually render
+         (AstraeaWidgetProviders.headerText, AstraeaWidgetService.formatTime)
+         so the preview does not promise a layout the widget won't deliver. -->
+    <string name="astraea_widget_preview_day_header">Thursday 12 February</string>
+    <string name="astraea_widget_preview_week_header">9 – 15 Feb</string>
+    <string name="astraea_widget_preview_month_header">February 2026</string>
+    <string name="astraea_widget_preview_time_1">09:00</string>
+    <string name="astraea_widget_preview_time_2">13:30</string>
+    <string name="astraea_widget_preview_time_3">18:00</string>
+    <string name="astraea_widget_preview_time_4">20:30</string>
+    <string name="astraea_widget_preview_week_time_1">Mon 09:00</string>
+    <string name="astraea_widget_preview_week_time_2">Tue 11:00</string>
+    <string name="astraea_widget_preview_week_time_3">Thu 18:00</string>
+    <string name="astraea_widget_preview_week_time_4">Sat 20:30</string>
+    <string name="astraea_widget_preview_event_1">Team stand-up</string>
+    <string name="astraea_widget_preview_event_2">Lunch with Ada</string>
+    <string name="astraea_widget_preview_event_3">Climbing session</string>
+    <string name="astraea_widget_preview_event_4">Film night</string>
+
     <!-- Month grid weekday strip. Single letters so seven fit at widget width;
          the grid always starts on Monday (see MonthGridFactory). -->
     <string name="astraea_weekday_mon">M</string>
