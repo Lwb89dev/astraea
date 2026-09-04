@@ -91,11 +91,12 @@ private class DayAgendaFactory(
 ) : RemoteViewsService.RemoteViewsFactory {
     private var rows: List<WidgetEvent> = emptyList()
     private var scale = 1f
+    private var offset = 0
 
     override fun onCreate() {}
 
     override fun onDataSetChanged() {
-        val offset = AstraeaWidgetData.periodOffset(context, widgetId)
+        offset = AstraeaWidgetData.periodOffset(context, widgetId)
         rows = AstraeaWidgetData.eventsOn(
             AstraeaWidgetData.loadEvents(context),
             AstraeaWidgetData.startOfToday(offset),
@@ -108,7 +109,9 @@ private class DayAgendaFactory(
     override fun getLoadingView(): RemoteViews? = null
     override fun getViewTypeCount() = 1
     override fun getItemId(position: Int) = position.toLong()
-    override fun hasStableIds() = true
+    // The payload can change without changing the period or item count. Do
+    // not let the launcher reuse a previously bound row in that case.
+    override fun hasStableIds() = false
 
     override fun getViewAt(position: Int): RemoteViews =
         agendaRow(context, rows[position], formatTime(rows[position]), scale)
@@ -121,11 +124,12 @@ private class WeekAgendaFactory(
 ) : RemoteViewsService.RemoteViewsFactory {
     private var rows: List<WidgetEvent> = emptyList()
     private var scale = 1f
+    private var offset = 0
 
     override fun onCreate() {}
 
     override fun onDataSetChanged() {
-        val offset = AstraeaWidgetData.periodOffset(context, widgetId)
+        offset = AstraeaWidgetData.periodOffset(context, widgetId)
         val start = AstraeaWidgetData.startOfWeek(offset)
         val end = (start.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, 7) }
         rows = AstraeaWidgetData.eventsBetween(AstraeaWidgetData.loadEvents(context), start, end)
@@ -137,7 +141,7 @@ private class WeekAgendaFactory(
     override fun getLoadingView(): RemoteViews? = null
     override fun getViewTypeCount() = 1
     override fun getItemId(position: Int) = position.toLong()
-    override fun hasStableIds() = true
+    override fun hasStableIds() = false
 
     override fun getViewAt(position: Int): RemoteViews {
         val event = rows[position]
@@ -157,6 +161,8 @@ private class MonthGridFactory(
 ) : RemoteViewsService.RemoteViewsFactory {
     private var cells: List<Cell> = emptyList()
     private var scale = 1f
+    private var offset = 0
+    private var accent = WidgetAccent.NAVY
 
     /** [day] is null for the blank cells before the 1st. */
     private data class Cell(val day: Int?, val isToday: Boolean, val firstEventId: String?)
@@ -165,8 +171,9 @@ private class MonthGridFactory(
 
     override fun onDataSetChanged() {
         scale = AstraeaWidgetData.widgetScale(context, widgetId, 250f, 180f)
+        accent = AstraeaWidgetData.widgetAccent(context, widgetId)
         val events = AstraeaWidgetData.loadEvents(context)
-        val offset = AstraeaWidgetData.periodOffset(context, widgetId)
+        offset = AstraeaWidgetData.periodOffset(context, widgetId)
         val monthStart = AstraeaWidgetData.startOfMonth(offset)
         val today = Calendar.getInstance()
         val isCurrentMonth = monthStart.get(Calendar.MONTH) == today.get(Calendar.MONTH) &&
@@ -177,12 +184,12 @@ private class MonthGridFactory(
 
         // First event per day of this month — both the dot and the tap target.
         val firstEventByDay = mutableMapOf<Int, String>()
-        for (event in events) {
-            val c = event.startCalendar()
-            if (c.get(Calendar.MONTH) == monthStart.get(Calendar.MONTH) &&
-                c.get(Calendar.YEAR) == monthStart.get(Calendar.YEAR)
-            ) {
-                firstEventByDay.putIfAbsent(c.get(Calendar.DAY_OF_MONTH), event.id)
+        for (day in 1..daysInMonth) {
+            val dayCalendar = (monthStart.clone() as Calendar).apply {
+                set(Calendar.DAY_OF_MONTH, day)
+            }
+            AstraeaWidgetData.eventsOn(events, dayCalendar).firstOrNull()?.let {
+                firstEventByDay[day] = it.id
             }
         }
 
@@ -205,7 +212,7 @@ private class MonthGridFactory(
     override fun getLoadingView(): RemoteViews? = null
     override fun getViewTypeCount() = 1
     override fun getItemId(position: Int) = position.toLong()
-    override fun hasStableIds() = true
+    override fun hasStableIds() = false
 
     override fun getViewAt(position: Int): RemoteViews {
         val cell = cells[position]
@@ -234,12 +241,14 @@ private class MonthGridFactory(
                 setInt(R.id.cell_day, "setBackgroundResource", 0)
             } else {
                 setTextViewText(R.id.cell_day, cell.day.toString())
-                setViewVisibility(
-                    R.id.cell_dot,
-                    if (cell.firstEventId != null) View.VISIBLE else View.INVISIBLE,
-                )
+                if (cell.firstEventId != null) {
+                    setImageViewResource(R.id.cell_dot, accent.dot)
+                    setViewVisibility(R.id.cell_dot, View.VISIBLE)
+                } else {
+                    setViewVisibility(R.id.cell_dot, View.INVISIBLE)
+                }
                 if (cell.isToday) {
-                    setInt(R.id.cell_day, "setBackgroundResource", R.drawable.astraea_widget_today)
+                    setInt(R.id.cell_day, "setBackgroundResource", accent.dayBackground)
                     setTextColor(R.id.cell_day, 0xFF161A2E.toInt())
                 } else {
                     setInt(R.id.cell_day, "setBackgroundResource", 0)

@@ -2,21 +2,34 @@ import 'dart:async';
 import 'dart:developer' as developer;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
+import 'package:intl/intl.dart' as intl;
 import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
+import 'desktop/desktop_bootstrap_stub.dart'
+    if (dart.library.io) 'desktop/desktop_bootstrap.dart'
+    as desktop;
+import 'desktop/kairos_local_socket_server_stub.dart'
+    if (dart.library.io) 'desktop/kairos_local_socket_server.dart'
+    as kairos_socket;
+import 'l10n/app_localizations.dart';
 import 'providers/app_entry_provider.dart';
 import 'providers/events_provider.dart';
 import 'providers/service_providers.dart';
+import 'providers/settings_provider.dart';
 import 'providers/theme_provider.dart';
 import 'screens/calendar_screen.dart';
 import 'screens/onboarding_screen.dart';
+import 'screens/widgets/kairos_task_handler.dart';
 import 'screens/widgets/widget_launch_handler.dart';
+import 'utils/app_accent.dart';
 import 'utils/constants.dart';
+import 'widgets/astraea_ui.dart';
 
-Future<void> main() async {
+Future<void> main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize the IANA timezone database and set the device's local zone,
@@ -33,17 +46,54 @@ Future<void> main() async {
   final container = ProviderContainer(
     overrides: [
       themeModeProvider.overrideWith(() => ThemeModeNotifier(initialThemeMode)),
+      // On Linux desktop the events backend is the astraea-service D-Bus API
+      // (ADR-003); everywhere else this adds nothing.
+      ...desktop.platformOverrides(),
     ],
   );
   await container.read(localStorageServiceProvider).init();
-  await container.read(notificationServiceProvider).init();
+  if (!desktop.isLinuxDesktop) {
+    // Mobile-only: on Linux, reminders/notifications belong to the
+    // background service, not to the UI process.
+    await container.read(notificationServiceProvider).init();
+  }
 
   runApp(
-    UncontrolledProviderScope(container: container, child: const AstraeaApp()),
+    UncontrolledProviderScope(
+      container: container,
+      child: AstraeaApp(launchArgs: args),
+    ),
   );
 
+  if (desktop.isLinuxDesktop) {
+    final socketServer = await kairos_socket.KairosLocalSocketServer.start((
+      raw,
+    ) async {
+      try {
+        await container.read(eventsProvider.notifier).importKairosTask(raw);
+      } catch (error, stackTrace) {
+        developer.log(
+          'Local Kairos socket payload rejected: $error',
+          name: 'main',
+          error: error,
+          stackTrace: stackTrace,
+        );
+      }
+    });
+    if (socketServer != null) {
+      // The server is owned by the process lifetime. Dart keeps the socket
+      // subscription alive; the exact pathname is useful in diagnostics.
+      developer.log(
+        'Kairos local socket listening at ${socketServer.path}',
+        name: 'main',
+      );
+    }
+  }
+
   // Deliberately not awaited: neither of these needs to block the first frame.
-  unawaited(_refreshBackgroundState(container));
+  if (!desktop.isLinuxDesktop) {
+    unawaited(_refreshBackgroundState(container));
+  }
 }
 
 /// Startup housekeeping that has no UI of its own.
@@ -86,10 +136,11 @@ Future<void> _initTimezones() async {
 }
 
 class AstraeaApp extends ConsumerWidget {
-  const AstraeaApp({super.key});
+  const AstraeaApp({super.key, this.launchArgs = const []});
 
-  /// Brand seed color for both light and dark schemes.
-  static const _brandSeed = Color(0xFF3F51B5);
+  /// Process arguments, used on Linux desktop to receive the initial
+  /// astraea:// deep link from the GTK runner.
+  final List<String> launchArgs;
 
   /// Lets [WidgetLaunchHandler] push a screen for a home-widget tap, which can
   /// arrive before any screen's context exists.
@@ -98,6 +149,19 @@ class AstraeaApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
+    final accent = AppAccent.fromPrefsValue(
+      ref.watch(settingsProvider).value?.accent,
+    );
+    // Null (loading/error, or no explicit choice saved) means "follow the
+    // system language" — MaterialApp's own default resolution against
+    // supportedLocales, same fallback rule as the timezone setting.
+    final localeTag = ref.watch(settingsProvider).value?.locale;
+    final locale = localeTag == null ? null : Locale(localeTag);
+    // Formatter's DateFormat calls take no explicit locale (mirrors intl's
+    // own convention); this keeps them in step with the resolved app locale,
+    // including the "follow system" case where Flutter itself resolves it.
+    intl.Intl.defaultLocale =
+        (locale ?? View.of(context).platformDispatcher.locale).toLanguageTag();
 
     return MaterialApp(
       title: AppConstants.appName,
@@ -106,24 +170,28 @@ class AstraeaApp extends ConsumerWidget {
       // GrapheneOS/privacy-friendly default: dark theme (see
       // [ThemeModeNotifier]) — light is available from Settings.
       themeMode: themeMode,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: _brandSeed,
-          brightness: Brightness.light,
-        ),
-        useMaterial3: true,
-      ),
-      darkTheme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: _brandSeed,
-          brightness: Brightness.dark,
-        ),
-        useMaterial3: true,
-      ),
-      home: WidgetLaunchHandler(
-        navigatorKey: _navigatorKey,
-        child: const _AppRoot(),
-      ),
+      theme: astraeaTheme(brightness: Brightness.light, seed: accent.seed),
+      darkTheme: astraeaTheme(brightness: Brightness.dark, seed: accent.seed),
+      locale: locale,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: desktop.isLinuxDesktop
+          // Desktop: astraea:// deep links + desktop chrome. The Android
+          // home-widget launch handler stays out of this path entirely.
+          ? desktop.wrapHome(
+              navigatorKey: _navigatorKey,
+              launchArgs: launchArgs,
+              child: const KairosTaskHandler(child: _AppRoot()),
+            )
+          : WidgetLaunchHandler(
+              navigatorKey: _navigatorKey,
+              child: const KairosTaskHandler(child: _AppRoot()),
+            ),
     );
   }
 }

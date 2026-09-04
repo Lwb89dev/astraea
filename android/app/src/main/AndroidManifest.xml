@@ -42,6 +42,34 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Local Kairos → Astraea task hand-off. Kairos sends the JSON in
+                 dev.echoes.astraea.extra.PAYLOAD; Astraea validates it before
+                 persistence. -->
+            <intent-filter>
+                <action android:name="dev.echoes.astraea.action.LOCAL_SYNC" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <!-- Compatibility with the first Astraea local-bridge draft. -->
+            <intent-filter>
+                <action android:name="com.example.astraea.action.IMPORT_KAIROS_TASK" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+        <!-- Per-widget theme picker (AstraeaWidgetConfigActivity): the
+             `android:configure` target declared in each *_widget_info.xml
+             below. Launched by the OS both right after a widget is placed
+             and, on most launchers, from that widget's long-press "Widget
+             settings" action — see the class doc for why one activity
+             covers both. The APPWIDGET_CONFIGURE intent-filter is the
+             documented way a host identifies a configure activity, even
+             though this app always launches it by explicit component. -->
+        <activity
+            android:name=".AstraeaWidgetConfigActivity"
+            android:exported="true"
+            android:theme="@android:style/Theme.DeviceDefault.Dialog.Alert">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
         </activity>
         <!-- flutter_local_notifications: delivers a scheduled reminder, and
              restores all pending ones after a reboot (Android clears alarms on
@@ -74,6 +102,8 @@
                 <action android:name="android.intent.action.DATE_CHANGED" />
                 <action android:name="android.intent.action.TIMEZONE_CHANGED" />
                 <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="com.example.astraea.widget.PREVIOUS" />
+                <action android:name="com.example.astraea.widget.NEXT" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
@@ -87,6 +117,8 @@
                 <action android:name="android.intent.action.DATE_CHANGED" />
                 <action android:name="android.intent.action.TIMEZONE_CHANGED" />
                 <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="com.example.astraea.widget.PREVIOUS" />
+                <action android:name="com.example.astraea.widget.NEXT" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
@@ -100,6 +132,8 @@
                 <action android:name="android.intent.action.DATE_CHANGED" />
                 <action android:name="android.intent.action.TIMEZONE_CHANGED" />
                 <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="com.example.astraea.widget.PREVIOUS" />
+                <action android:name="com.example.astraea.widget.NEXT" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"

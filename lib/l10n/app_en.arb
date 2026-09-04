@@ -1,0 +1,370 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "Astraea",
+
+  "cancel": "Cancel",
+  "save": "Save",
+  "delete": "Delete",
+  "continueLabel": "Continue",
+  "next": "Next",
+  "back": "Back",
+  "loading": "Loading…",
+
+  "settingsTooltip": "Settings",
+  "newEventButton": "New event",
+  "couldNotLoadEvents": "Could not load events:\n{error}",
+  "@couldNotLoadEvents": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "viewMonth": "Month",
+  "viewWeek": "Week",
+  "viewDay": "Day",
+  "viewList": "List",
+  "noEventsToday": "No events on this day.",
+  "noUpcomingEvents": "No upcoming events in the next 60 days.",
+  "untitledEvent": "(untitled)",
+  "allDay": "All day",
+  "addAccountToSyncTooltip": "Add a Nostr account to sync",
+  "syncNowTooltip": "Sync now",
+
+  "addNostrAccountTitle": "Add a Nostr account",
+
+  "eventNotFound": "Event not found.",
+  "eventAppBarTitle": "Event",
+  "editTooltip": "Edit",
+  "deleteTooltip": "Delete",
+  "allDayLabel": "{date} · All day",
+  "@allDayLabel": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "recurrenceUntilLabel": "{recurrence} · until {date}",
+  "@recurrenceUntilLabel": {
+    "placeholders": {
+      "recurrence": { "type": "String" },
+      "date": { "type": "String" }
+    }
+  },
+  "syncedToRelays": "Synced to relays",
+  "notYetSynced": "Not yet synced",
+  "deleteEventTitle": "Delete event?",
+  "deleteEventBody": "This removes the event from this device and requests deletion from the relays.",
+
+  "editEventTitle": "Edit event",
+  "newEventTitle": "New event",
+  "fieldTitle": "Title",
+  "allDaySwitch": "All day",
+  "startsLabel": "Starts",
+  "endsLabel": "Ends",
+  "timezoneLabel": "Timezone",
+  "repeatsLabel": "Repeats",
+  "untilLabel": "Until",
+  "foreverLabel": "Forever",
+  "remindersLabel": "Reminders",
+  "addChip": "Add",
+  "colorLabel": "Color",
+  "locationLabel": "Location",
+  "descriptionLabel": "Description",
+  "couldNotSaveEvent": "Could not save the event: {error}",
+  "@couldNotSaveEvent": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+
+  "recurrenceNone": "Does not repeat",
+  "recurrenceDaily": "Daily",
+  "recurrenceWeekly": "Weekly",
+  "recurrenceMonthly": "Monthly",
+  "recurrenceYearly": "Yearly",
+  "reminderAtStart": "At start",
+  "reminderMinutesBefore": "{count} min before",
+  "@reminderMinutesBefore": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "reminderHoursBefore": "{count, plural, one{1 hour before} other{{count} hours before}}",
+  "@reminderHoursBefore": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "reminderDaysBefore": "{count, plural, one{1 day before} other{{count} days before}}",
+  "@reminderDaysBefore": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+
+  "getStarted": "Get started",
+  "useOffline": "Use offline",
+  "welcomeTitle": "Welcome to Astraea",
+  "welcomeSubtitle": "A private, offline-first calendar that puts you in control.",
+  "featureLocalTitle": "Your calendar stays on your device",
+  "featureLocalBody": "Create events, recurrences and reminders without an account or an internet connection.",
+  "featureSyncTitle": "Optional sync through Nostr",
+  "featureSyncBody": "Connect an account to back up your calendar and use it on multiple devices through relays you choose.",
+  "featureEncryptedTitle": "Always encrypted before upload",
+  "featureEncryptedBody": "Calendar contents are end-to-end encrypted before they leave this device. Relay operators cannot read them.",
+  "featureAmberTitle": "Keep your key in Amber",
+  "featureAmberBody": "On Android, an external signer can approve access without exposing your private key to Astraea.",
+  "featureRemindersTitle": "Private local reminders",
+  "featureRemindersBody": "Notifications are scheduled by your device and do not depend on a cloud calendar service.",
+  "connectNostrAccountTitle": "Connect a Nostr account",
+  "connectNostrAccountBody": "This is only needed for encrypted synchronization. You can also use Astraea entirely offline.",
+  "chooseRelaysTitle": "Choose relays for synchronization",
+  "chooseRelaysBody": "Relays store your encrypted calendar and make it available to your other devices. Add one or more, or leave the list empty and configure it later.",
+  "couldNotLoadRelaySettings": "Could not load relay settings: {error}",
+  "@couldNotLoadRelaySettings": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "suggestedRelays": "Suggested",
+  "addRelayTooltip": "Add relay",
+  "customRelayLabel": "Custom relay",
+  "customRelayHint": "wss://relay.example.com",
+  "selectedRelays": "Selected",
+  "removeRelayTooltip": "Remove relay",
+  "invalidRelayUrl": "Enter a valid wss:// (or ws:// for a private relay) URL.",
+  "insecureRelayWarning": "ws:// is unencrypted in transit — only use it for a relay you trust.",
+
+  "nostrAccountConnected": "Nostr account connected",
+  "invalidPrivateKey": "That private key is not valid. Check it and try again.",
+  "couldNotSignIn": "Could not sign in: {error}",
+  "@couldNotSignIn": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "signInWithAmber": "Sign in with Amber",
+  "createNewAccount": "Create a new account",
+  "generatedAccountWarning": "A generated account can only be recovered with its private key. Back it up from Settings after setup.",
+  "importExistingKey": "Import an existing key",
+  "privateKeyFieldLabel": "nsec or hex private key",
+  "importButton": "Import",
+
+  "signInWithRemoteSigner": "Sign in with a remote signer",
+  "remoteSignerFieldLabel": "bunker:// connection string",
+  "remoteSignerHelp": "Paste the bunker:// string from your signer (Amber, nsec.app, nostrify, your own bunker). Astraea only stores a throwaway key for this device — never your private key.",
+  "remoteSignerConnect": "Connect",
+  "remoteSignerConnecting": "Waiting for your signer to approve the connection…",
+  "invalidBunkerUri": "That is not a valid bunker:// connection string.",
+  "remoteSignerApprovalOpened": "Approve the connection in the page that just opened, then come back.",
+  "remoteSignerDisconnected": "The remote signer is not connected. Sign in again.",
+
+  "followDeviceTimezone": "Follow device timezone",
+  "searchCityRegion": "Search a city or region",
+  "noMatchingTimezone": "No matching timezone.",
+
+  "settingsTitle": "Settings",
+  "couldNotLoadSettings": "Could not load settings:\n{error}",
+  "@couldNotLoadSettings": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "sectionAccount": "Account",
+  "sectionSync": "Sync",
+  "sectionRelays": "Relays",
+  "sectionAppearance": "Appearance",
+  "sectionData": "Data",
+  "sectionRemindersTimezone": "Reminders & timezone",
+  "sectionSupport": "Support",
+
+  "somethingWentWrong": "Something went wrong: {error}",
+  "@somethingWentWrong": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "offlineNoAccount": "Offline — no account",
+  "signInToSyncAcrossDevices": "Sign in to sync your encrypted calendar across devices.",
+  "signIn": "Sign in",
+  "signedInWithAmber": "Signed in with Amber",
+  "signedIn": "Signed in",
+  "signOut": "Sign out",
+  "backUpPrivateKey": "Back up private key",
+  "revealNsecSubtitle": "Reveal your nsec to save it somewhere safe",
+  "signOutTitle": "Sign out?",
+  "signOutBody": "Your events stay on this device and on the relays. Make sure you have backed up your private key — without it a generated account cannot be recovered.",
+  "noPrivateKeyStored": "No private key stored for this session.",
+  "yourPrivateKeyTitle": "Your private key (nsec)",
+  "nsecWarning": "Anyone with this key controls your account. Never share it; store it in a password manager.",
+  "copy": "Copy",
+  "done": "Done",
+
+  "syncNowTitle": "Sync now",
+  "signInToSyncSubtitle": "Sign in to sync your encrypted calendar.",
+  "addRelayToSyncSubtitle": "Add at least one relay to synchronize.",
+  "syncingEllipsis": "Syncing…",
+  "synced": "Synced",
+  "lastSyncedLabel": "Last synced {when}",
+  "@lastSyncedLabel": {
+    "placeholders": { "when": { "type": "String" } }
+  },
+  "lastSyncFailedLabel": "Last sync failed: {error}",
+  "@lastSyncFailedLabel": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "pullMergePublish": "Pull, merge and publish your events",
+
+  "publicRelays": "Public relays",
+  "relaysConfiguredCount": "{count, plural, one{1 configured} other{{count} configured}}",
+  "@relaysConfiguredCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "addRelay": "Add relay",
+  "suggestedRelaysTitle": "Suggested relays",
+  "addOnlyRelaysYouWant": "Add only the relays you want to use.",
+  "homeRelayBackup": "Home relay (backup)",
+  "homeRelayNotConfigured": "Not configured — an additional personal relay to back up your events",
+  "homeRelayDialogTitle": "Home relay",
+
+  "lightTheme": "Light theme",
+  "darkThemeDefault": "Astraea uses the dark theme by default",
+  "languageLabel": "Language",
+  "systemLanguage": "System language",
+  "accentColorLabel": "Accent color",
+  "accentNavy": "Navy blue",
+  "accentBitcoin": "Bitcoin orange",
+  "accentNostr": "Nostr purple",
+
+  "exportEvents": "Export events",
+  "exportEventsSubtitle": "Save a .ics file — optionally password-encrypted",
+  "importEvents": "Import events",
+  "importEventsSubtitle": "From a .ics file or an encrypted Astraea export",
+  "encryptExportTitle": "Encrypt this export?",
+  "encryptExportBody": "A plain .ics can be opened by any calendar app — and by anyone who gets the file. Set a password to encrypt it (only Astraea will be able to import it back).",
+  "exportPasswordLabel": "Password (leave empty for a plain .ics)",
+  "export": "Export",
+  "encryptedExportSaved": "Encrypted export saved.",
+  "exportSaved": "Export saved.",
+  "exportFailed": "Export failed: {error}",
+  "@exportFailed": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "couldNotReadSelectedFile": "Could not read the selected file.",
+  "selectedFileTooLarge": "The selected file is larger than 10 MB.",
+  "importedEventCount": "{count, plural, one{Imported 1 event.} other{Imported {count} events.}}",
+  "@importedEventCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "importFailed": "Import failed: {error}",
+  "@importFailed": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "thisExportIsEncrypted": "This export is encrypted",
+  "passwordLabel": "Password",
+  "wrongPassword": "Wrong password.",
+  "invalidEncryptedExport": "This encrypted export is not valid.",
+
+  "reminders": "Reminders",
+  "scheduleLocalNotifications": "Schedule local notifications for event reminders",
+  "timezone": "Timezone",
+  "followDeviceTimezoneWithName": "Follow device timezone ({zone})",
+  "@followDeviceTimezoneWithName": {
+    "placeholders": { "zone": { "type": "String" } }
+  },
+
+  "supportAstraea": "Support Astraea",
+  "noLightningWalletFound": "No Lightning wallet found — address copied: {address}",
+  "@noLightningWalletFound": {
+    "placeholders": { "address": { "type": "String" } }
+  },
+
+  "desktopServiceUnreachableTitle": "Astraea background service unavailable",
+  "desktopServiceUnreachableBody": "The desktop app talks to astraea-service over D-Bus for storage, sync and notifications, and it could not be reached. If you are running from source, install it with:\n\n./scripts/install-dev.sh",
+  "retry": "Retry",
+  "calendarsLabel": "Calendars",
+  "calendarsUnavailable": "Calendars unavailable: {error}",
+  "@calendarsUnavailable": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "serviceUnreachable": "Service unreachable",
+  "syncStatusLabel": "Sync: {status}",
+  "@syncStatusLabel": {
+    "placeholders": { "status": { "type": "String" } }
+  },
+  "syncPendingSuffix": " ({count} pending)",
+  "@syncPendingSuffix": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "localOnlyMode": "Local-only mode (no Nostr identity)",
+  "syncStarted": "Sync started",
+  "syncUnavailable": "Sync unavailable: {error}",
+  "@syncUnavailable": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+
+  "notSignedIn": "Not signed in",
+  "signInWithBrowserSubtitle": "Sign in with your browser (NIP-07) to sync this calendar over Nostr.",
+  "signedInBackgroundSigning": "Signed in — background signing via a delegated key",
+  "signedInRemoteSigner": "Signed in — remote signer (NIP-46)",
+  "signedInNoBackgroundSigner": "Signed in, but no background signer is configured — sync stays parked. Run \"astraea-service auth provision-key\" in a terminal.",
+  "couldNotStartLogin": "Could not start login: {error}",
+  "@couldNotStartLogin": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "signOutConfirmDesktopBody": "This forgets the account on this device only — your events stay on the relays. A provisioned signing key, if any, is removed from the keyring.",
+  "signInWithBrowserTitle": "Sign in with your browser",
+  "loginSessionExpired": "This login session expired. Try again.",
+  "loginWaitingBody": "A browser tab was opened to confirm your Nostr identity (NIP-07). Approve it there — this dialog closes automatically. Your private key is never requested.",
+  "openAgain": "Open again",
+
+  "offlineWillRetry": "Offline — will retry automatically.",
+  "upToDate": "Up to date",
+  "operationsFailingCount": "{count, plural, one{1 operation failing} other{{count} operations failing}}",
+  "@operationsFailingCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "pendingCount": "{count, plural, one{1 pending} other{{count} pending}}",
+  "@pendingCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "pendingFailingCount": "{pending}, {failing}",
+  "@pendingFailingCount": {
+    "placeholders": {
+      "pending": { "type": "String" },
+      "failing": { "type": "String" }
+    }
+  },
+  "relayStatus": "Relay status",
+
+  "relaysLabel": "Relays",
+  "relaysConfiguredLabel": "{count, plural, one{1 configured} other{{count} configured}}",
+  "@relaysConfiguredLabel": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "unencryptedTransport": "Unencrypted transport",
+
+  "couldNotReachService": "Could not reach astraea-service: {error}",
+  "@couldNotReachService": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+
+  "inviteSectionTitle": "Attendees",
+  "inviteButtonLabel": "Invite",
+  "noAttendeesYet": "No one invited yet",
+  "inviteDialogTitle": "Invite someone",
+  "inviteDialogHint": "npub, name@domain, or public key",
+  "resolvePersonFailed": "Could not resolve that person: {error}",
+  "@resolvePersonFailed": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "confirmNip05Title": "Confirm recipient",
+  "confirmNip05Body": "{query} resolved to {pubkey} via NIP-05. This mapping is controlled by the domain — make sure it's who you expect.",
+  "@confirmNip05Body": {
+    "placeholders": {
+      "query": { "type": "String" },
+      "pubkey": { "type": "String" }
+    }
+  },
+  "attendeeStatusInvited": "Invited",
+  "attendeeStatusAccepted": "Accepted",
+  "attendeeStatusDeclined": "Declined",
+  "inviteFailed": "Could not send the invite: {error}",
+  "@inviteFailed": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "pendingInvitationsTooltip": "Invitations",
+  "pendingInvitationsTitle": "Invitations",
+  "pendingInvitationsEmpty": "No pending invitations",
+  "invitationFromLabel": "From {pubkey}",
+  "@invitationFromLabel": {
+    "placeholders": { "pubkey": { "type": "String" } }
+  },
+  "acceptInvitation": "Accept",
+  "declineInvitation": "Decline",
+  "respondToInvitationFailed": "Could not respond: {error}",
+  "@respondToInvitationFailed": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "invitationAccepted": "Invitation accepted",
+  "invitationDeclined": "Invitation declined"
+}

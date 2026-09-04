@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Accent pill behind the "+" so it reads as a button against the scrim. -->
+<!-- Navy theme: pill behind the "+" so it reads as a button against the
+     scrim. See astraea_widget_add_background_bitcoin.xml/_nostr.xml for the
+     other themes. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="oval">
     <solid android:color="#FF9FA8DA" />

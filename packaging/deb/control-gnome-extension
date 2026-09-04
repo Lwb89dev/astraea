@@ -1,0 +1,14 @@
+Package: astraea-gnome-shell-extension
+Version: @VERSION@
+Architecture: all
+Maintainer: Lwb89dev <lwb89dev@users.noreply.github.com>
+Section: gnome
+Priority: optional
+Depends: astraea-service (= @VERSION@), gnome-shell (>= 45)
+Recommends: astraea-desktop
+Homepage: https://github.com/Lwb89dev/astraea
+Description: Astraea agenda in the GNOME top bar
+ GNOME Shell extension (GNOME 45-48) showing the Astraea agenda in the top
+ bar with quick event creation. A thin D-Bus frontend: it never connects to
+ Nostr relays, never holds keys and never reads the database directly.
+ Enable with: gnome-extensions enable astraea@lwb89dev

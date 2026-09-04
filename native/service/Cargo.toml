@@ -1,0 +1,58 @@
+[package]
+name = "astraea-service"
+version = "1.0.0"
+edition = "2021"
+license = "GPL-3.0-or-later"
+description = "Astraea calendar background service: local database, Nostr sync, authentication and the com.lwb89dev.Astraea D-Bus API."
+homepage = "https://github.com/Lwb89dev/astraea"
+rust-version = "1.85"
+
+[lib]
+name = "astraea_service"
+path = "src/lib.rs"
+
+[[bin]]
+name = "astraea-service"
+path = "src/main.rs"
+
+[dependencies]
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "signal", "time", "sync"] }
+zbus = { version = "5", default-features = false, features = ["tokio"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rusqlite = { version = "0.32", features = ["bundled"] }
+clap = { version = "4", features = ["derive"] }
+uuid = { version = "1", features = ["v4"] }
+chrono = { version = "0.4", features = ["serde"] }
+chrono-tz = "0.10"
+thiserror = "2"
+anyhow = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+nostr = { version = "0.44.4", default-features = false, features = ["std", "nip44"] }
+nostr-sdk = { version = "0.44", default-features = false }
+# StreamExt::next() only, to consume nostr-sdk's stream_events() with a byte
+# budget instead of buffering an unbounded relay response (transport.rs).
+# Already resolved transitively via nostr-sdk; made explicit rather than
+# relying on that.
+futures-util = { version = "0.3", default-features = false, features = ["std"] }
+url = "2"
+# NIP-05 resolution only (account/person.rs): a single bounded HTTPS GET to
+# a domain's .well-known/nostr.json. rustls avoids pulling in OpenSSL;
+# no cookies, no redirect-follow (NIP-05 doesn't need it and blind
+# redirect-following is exactly the SSRF-adjacent behavior we don't want).
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json", "stream"] }
+rand = "0.10.2"
+secret-service = { version = "5.1.0", features = ["rt-tokio-crypto-rust"] }
+async-trait = "0.1.91"
+
+[dev-dependencies]
+base64 = "0.22"
+hex = "0.4"
+
+[profile.release]
+lto = "thin"
+strip = "symbols"
+
+[lints.clippy]
+unwrap_used = "warn"

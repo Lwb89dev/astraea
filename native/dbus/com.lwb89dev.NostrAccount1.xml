@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+ "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<!-- Product-neutral Nostr identity interface (ADR-004): designed so a future
+     shared account service for Astraea/Echoes/Kairos can own it unchanged. -->
+<node>
+  <interface name="com.lwb89dev.NostrAccount1">
+    <method name="BeginBrowserLogin">
+      <arg type="s" name="sessionJson" direction="out"/>
+    </method>
+    <method name="CancelBrowserLogin">
+      <arg type="s" name="sessionId" direction="in"/>
+    </method>
+    <method name="GetAuthenticationStatus">
+      <arg type="s" name="statusJson" direction="out"/>
+    </method>
+    <method name="Logout"/>
+    <method name="GetAccounts">
+      <arg type="s" name="accountsJson" direction="out"/>
+    </method>
+    <method name="SwitchAccount">
+      <arg type="s" name="accountId" direction="in"/>
+    </method>
+    <!-- Connects a NIP-46 remote signer from a bunker:// string and returns
+         the account pubkey the signer confirmed. This is both a login and the
+         way to give the service background signing with no key on the machine.
+         The argument is secret (it embeds a single-use connection token): the
+         service never logs it and never quotes it back in an error. -->
+    <method name="ConnectRemoteSigner">
+      <arg type="s" name="bunkerUri" direction="in"/>
+      <arg type="s" name="pubkeyHex" direction="out"/>
+    </method>
+    <!-- Switches signer mode only; secret material never crosses D-Bus. -->
+    <method name="SetSigner">
+      <arg type="s" name="signerName" direction="in"/>
+    </method>
+
+    <signal name="AuthenticationChanged">
+      <arg type="s" name="statusJson"/>
+    </signal>
+  </interface>
+</node>

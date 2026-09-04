@@ -1,0 +1,15 @@
+Package: astraea-service
+Version: @VERSION@
+Architecture: @ARCH@
+Maintainer: Lwb89dev <lwb89dev@users.noreply.github.com>
+Section: utils
+Priority: optional
+Depends: libc6, dbus-user-session | dbus-x11
+Recommends: gnome-keyring | kwalletmanager
+Homepage: https://github.com/Lwb89dev/astraea
+Description: Astraea calendar background service
+ Session daemon for the Astraea Nostr calendar: local SQLite database,
+ encrypted Nostr synchronization, browser-based authentication and the
+ com.lwb89dev.Astraea D-Bus API used by the desktop app and the shell
+ extensions. Started on demand via D-Bus activation; systemd is used when
+ available but not required.

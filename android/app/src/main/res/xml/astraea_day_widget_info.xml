@@ -8,6 +8,20 @@
   at midnight. Widgets are added by long-pressing the home screen; the app has
   no "add widget" UI.
 -->
+<!--
+  Widget-picker preview. Both attributes are needed:
+
+    previewLayout  API 31+ — the modern picker inflates this and scales it, so
+                   the user sees the real widget rather than a thumbnail.
+    previewImage   API 24–30 — those pickers only understand a static image.
+
+  Without either, the picker has nothing to draw: it inflates initialLayout
+  instead, whose collection view (ListView/GridView) has no bound
+  RemoteViewsService in the launcher's process, so it renders as an empty box
+  that launchers then cover with their own cell-footprint grid. That is the
+  "white grid of block numbers" this pair fixes. The preview resources carry
+  their own static sample data for exactly that reason.
+-->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="250dp"
     android:minHeight="110dp"
@@ -19,4 +33,7 @@
     android:widgetCategory="home_screen"
     android:description="@string/astraea_widget_day_label"
     android:initialLayout="@layout/astraea_widget_list"
-    android:updatePeriodMillis="1800000" />
+    android:previewLayout="@layout/astraea_widget_preview_day"
+    android:previewImage="@drawable/astraea_widget_preview_day"
+    android:updatePeriodMillis="1800000"
+    android:configure="com.example.astraea.AstraeaWidgetConfigActivity" />

@@ -1,0 +1,73 @@
+# Italian translation for the Astraea GNOME Shell extension.
+msgid ""
+msgstr ""
+"Project-Id-Version: astraea-gnome 0.1.1\n"
+"Language: it\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Previous day"
+msgstr "Giorno precedente"
+
+msgid "Next day"
+msgstr "Giorno successivo"
+
+msgid "Today"
+msgstr "Oggi"
+
+msgid "New event…"
+msgstr "Nuovo evento…"
+
+msgid "Open Astraea"
+msgstr "Apri Astraea"
+
+msgid "Title"
+msgstr "Titolo"
+
+msgid "Start"
+msgstr "Inizio"
+
+msgid "End"
+msgstr "Fine"
+
+msgid "All day"
+msgstr "Tutto il giorno"
+
+msgid "Save"
+msgstr "Salva"
+
+msgid "Open full editor…"
+msgstr "Apri l'editor completo…"
+
+msgid "The event needs a title."
+msgstr "L'evento richiede un titolo."
+
+msgid "Times must be HH:MM."
+msgstr "Gli orari devono essere nel formato HH:MM."
+
+msgid "The end time is before the start."
+msgstr "L'orario di fine precede quello di inizio."
+
+msgid "No events"
+msgstr "Nessun evento"
+
+msgid "%d more — open Astraea"
+msgstr "Altri %d — apri Astraea"
+
+msgid "Astraea service unavailable — install astraea-service, then reopen this menu."
+msgstr "Servizio Astraea non disponibile — installa astraea-service e riapri questo menu."
+
+msgid "signed in"
+msgstr "autenticato"
+
+msgid "local-only"
+msgstr "solo locale"
+
+msgid "%d change(s) waiting to sync"
+msgstr "%d modifiche in attesa di sincronizzazione"
+
+msgid "up to date"
+msgstr "aggiornato"
+
+msgid "Operation failed: %s"
+msgstr "Operazione non riuscita: %s"

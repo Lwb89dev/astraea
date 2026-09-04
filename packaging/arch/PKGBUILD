@@ -1,0 +1,66 @@
+# Maintainer: Lwb89dev <lwb89dev@users.noreply.github.com>
+#
+# Source build: compiles the Rust service with the repo's Cargo.lock and the
+# Flutter desktop app from the same tree. `flutter` comes from the AUR (or
+# a manual install on PATH). Not auto-published to the AUR — see
+# docs/packaging.md. An -git variant only needs pkgver() over this file.
+
+pkgname=astraea
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="Nostr-synced calendar and agenda (desktop app, background service, GNOME extension)"
+arch=('x86_64')
+url="https://github.com/Lwb89dev/astraea"
+license=('GPL-3.0-or-later')
+depends=('gtk3' 'dbus')
+makedepends=('cargo' 'flutter' 'imagemagick')
+optdepends=(
+    'gnome-shell: top-bar agenda extension (GNOME 45-48)'
+    'gnome-keyring: Secret Service storage for signing keys'
+)
+source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
+sha256sums=('SKIP')  # pinned by the release workflow when a tag exists
+
+build() {
+    cd "$pkgname-$pkgver"
+    cargo build --manifest-path native/service/Cargo.toml --release --locked
+    flutter build linux --release
+}
+
+package() {
+    cd "$pkgname-$pkgver"
+    local app_id=com.lwb89dev.Astraea
+
+    install -Dm0755 native/service/target/release/astraea-service \
+        "$pkgdir/usr/lib/astraea/astraea-service"
+
+    # Arch has no /usr/libexec: the unit + activation files point at
+    # /usr/lib/astraea instead.
+    sed 's|@LIBEXECDIR@/astraea|/usr/lib/astraea|g' packaging/common/astraea.service \
+        | install -Dm0644 /dev/stdin "$pkgdir/usr/lib/systemd/user/astraea.service"
+    sed 's|@LIBEXECDIR@/astraea|/usr/lib/astraea|g' \
+        "packaging/common/$app_id.Service.service" \
+        | install -Dm0644 /dev/stdin \
+            "$pkgdir/usr/share/dbus-1/services/$app_id.Service.service"
+
+    mkdir -p "$pkgdir/usr/lib/astraea/app"
+    cp -a build/linux/x64/release/bundle/. "$pkgdir/usr/lib/astraea/app/"
+    install -d "$pkgdir/usr/bin"
+    ln -s ../lib/astraea/app/astraea "$pkgdir/usr/bin/astraea"
+
+    install -Dm0644 "assets/desktop/$app_id.desktop" \
+        "$pkgdir/usr/share/applications/$app_id.desktop"
+    install -Dm0644 "assets/appstream/$app_id.metainfo.xml" \
+        "$pkgdir/usr/share/metainfo/$app_id.metainfo.xml"
+    for size in 512 256 128 64 48 32; do
+        convert assets/icon/icon.png -resize "${size}x${size}" /tmp/astraea-icon.png
+        install -Dm0644 /tmp/astraea-icon.png \
+            "$pkgdir/usr/share/icons/hicolor/${size}x${size}/apps/$app_id.png"
+    done
+
+    mkdir -p "$pkgdir/usr/share/gnome-shell/extensions/astraea@lwb89dev"
+    cp -a "extensions/gnome/astraea@lwb89dev/." \
+        "$pkgdir/usr/share/gnome-shell/extensions/astraea@lwb89dev/"
+
+    install -Dm0644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
+}

@@ -1,0 +1,8 @@
+{
+  "uuid": "astraea@lwb89dev",
+  "name": "Astraea Calendar",
+  "description": "Agenda in the top bar with quick event creation, backed by the Astraea background service over D-Bus. Requires astraea-service (it is started on demand via D-Bus activation). The extension itself never touches Nostr relays, private keys or the database.",
+  "shell-version": ["45", "46", "47", "48"],
+  "url": "https://github.com/Lwb89dev/astraea",
+  "gettext-domain": "astraea-gnome"
+}

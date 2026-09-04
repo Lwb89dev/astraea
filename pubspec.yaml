@@ -2,13 +2,19 @@ name: astraea
 description: "Astraea - offline-first, privacy-first calendar on the Nostr protocol. Part of the Echoes ecosystem."
 publish_to: 'none'
 
-version: 0.1.1+2
+version: 1.0.0+8
 
 environment:
   sdk: ^3.12.2
 
 dependencies:
   flutter:
+    sdk: flutter
+
+  # App UI localization (24 official EU languages + Chinese, Japanese,
+  # Russian). ARB sources in lib/l10n/, generated AppLocalizations consumed
+  # via flutter gen-l10n (see l10n.yaml and `generate: true` below).
+  flutter_localizations:
     sdk: flutter
 
   # State management: Riverpod (same choice as Echoes) — AsyncNotifier/
@@ -103,6 +109,7 @@ dependencies:
   # Android home-screen widgets (daily/weekly/monthly agenda): shares data
   # with the native AppWidgetProviders and triggers their redraw.
   home_widget: ^0.7.0
+  dbus: ^0.7.14
 
 dev_dependencies:
   flutter_test:
@@ -116,6 +123,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  generate: true
 
   assets:
     - assets/icon/

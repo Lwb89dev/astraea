@@ -100,6 +100,76 @@ void main() {
     });
 
     test(
+      'a zero-duration occurrence exactly on a range boundary is not lost',
+      () {
+        // Regression: the Astraea/Kairos integration mirrors a task's due
+        // date as start == end (a point in time). The interval-overlap
+        // test used for ordinary events degenerates to "excluded from
+        // both sides" for a zero-width interval landing exactly on a
+        // query boundary — e.g. a task due at midnight would vanish from
+        // both the day it starts and the day before.
+        final instant = DateTime.utc(2026, 7, 15);
+        final event = Event(
+          id: 'evt-midnight',
+          title: 'Ship the release',
+          description: '',
+          startTimeUtc: instant,
+          endTimeUtc: instant,
+          timezone: 'UTC',
+          createdAt: instant,
+          updatedAt: instant,
+        );
+
+        final onThatDay = RecurrenceExpander.expand(
+          event,
+          rangeStartUtc: instant,
+          rangeEndUtc: instant.add(const Duration(days: 1)),
+        );
+        expect(onThatDay, hasLength(1));
+
+        final theDayBefore = RecurrenceExpander.expand(
+          event,
+          rangeStartUtc: instant.subtract(const Duration(days: 1)),
+          rangeEndUtc: instant,
+        );
+        expect(
+          theDayBefore,
+          isEmpty,
+          reason:
+              'a point exactly at the exclusive upper bound belongs to '
+              'the next range, not this one',
+        );
+      },
+    );
+
+    test('a Kairos task mirror is accepted as a point occurrence', () {
+      final task = Event.fromJson({
+        'id': 'kairos-task-1',
+        'title': 'Ship the release',
+        'description': 'Kairos task',
+        'startTimeUtc': '2026-07-15T00:00:00.000Z',
+        'endTimeUtc': '2026-07-15T00:00:00.000Z',
+        'timezone': 'UTC',
+        'isAllDay': false,
+        'recurrence': null,
+        'reminders': const <dynamic>[],
+        'color': '0xFF2196F3',
+        'createdAt': DateTime.utc(2026, 7, 14).millisecondsSinceEpoch,
+        'updatedAt': DateTime.utc(2026, 7, 14).millisecondsSinceEpoch,
+      });
+
+      final occurrences = RecurrenceExpander.expand(
+        task,
+        rangeStartUtc: DateTime.utc(2026, 7, 15),
+        rangeEndUtc: DateTime.utc(2026, 7, 16),
+      );
+
+      expect(task.description, 'Kairos task');
+      expect(occurrences, hasLength(1));
+      expect(occurrences.single.isPoint, isTrue);
+    });
+
+    test(
       'daily recurrence produces one occurrence per day within the window',
       () {
         final event = _sampleEvent(recurrence: RecurrenceType.daily);

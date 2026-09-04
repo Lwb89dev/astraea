@@ -1,0 +1,32 @@
+# Astraea Calendar Background Service — systemd user unit.
+# Installed to /usr/lib/systemd/user/ by packages, or to
+# ~/.local/share/systemd/user/ by scripts/install-dev.sh (which substitutes
+# @LIBEXECDIR@). Started on demand via D-Bus activation (Type=dbus).
+
+[Unit]
+Description=Astraea Calendar Background Service
+Documentation=https://github.com/Lwb89dev/astraea
+After=graphical-session.target
+
+[Service]
+Type=dbus
+BusName=com.lwb89dev.Astraea.Service
+ExecStart=@LIBEXECDIR@/astraea/astraea-service run
+Restart=on-failure
+RestartSec=3
+Environment=RUST_LOG=info
+# Hardening (user service: keep it compatible with Secret Service and the
+# session bus, but drop what the daemon never needs).
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+# The service creates its own XDG subdirectories on first run, so the RW
+# holes must be the (always existing) XDG parents, not astraea/ itself.
+ReadWritePaths=%h/.local/share %h/.local/state %h/.cache %h/.config
+PrivateTmp=yes
+RestrictRealtime=yes
+MemoryDenyWriteExecute=yes
+LockPersonality=yes
+
+[Install]
+WantedBy=default.target
