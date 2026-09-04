@@ -14,6 +14,7 @@ import '../providers/settings_provider.dart';
 import '../utils/event_color.dart';
 import '../utils/formatter.dart';
 import 'widgets/timezone_picker.dart';
+import '../widgets/astraea_ui.dart';
 
 /// Create/edit an event. Pass [existing] to edit, or [initialDay] to create
 /// a new event pre-seeded to that day. Times are entered as local wall-clock
@@ -239,8 +240,14 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
       appBar: AppBar(
         title: Text(isEditing ? l10n.editEventTitle : l10n.newEventTitle),
         actions: [
-          TextButton(
+          FilledButton(
             onPressed: _saving ? null : _save,
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AstraeaTokens.radiusLg),
+              ),
+            ),
             child: _saving
                 ? const SizedBox.square(
                     dimension: 18,
@@ -251,160 +258,226 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 36),
         children: [
           TextField(
             controller: _titleController,
             textCapitalization: TextCapitalization.sentences,
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
             decoration: InputDecoration(
-              labelText: l10n.fieldTitle,
-              border: const OutlineInputBorder(),
+              hintText: l10n.fieldTitle,
+              filled: false,
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 4,
+                vertical: 12,
+              ),
             ),
           ),
-          const SizedBox(height: 16),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text(l10n.allDaySwitch),
-            value: _isAllDay,
-            onChanged: (v) => setState(() => _isAllDay = v),
-          ),
-          _DateTimeRow(
-            label: l10n.startsLabel,
-            value: _isAllDay
-                ? Formatter.dayLabel(_toUtc(_start), _timezone)
-                : _stampLocal(_start),
-            onTap: () => _pickDateTime(isStart: true),
-          ),
-          _DateTimeRow(
-            label: l10n.endsLabel,
-            value: _isAllDay
-                ? Formatter.dayLabel(_toUtc(_end), _timezone)
-                : _stampLocal(_end),
-            onTap: () => _pickDateTime(isStart: false),
-          ),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.public),
-            title: Text(l10n.timezoneLabel),
-            subtitle: Text(_timezone),
-            trailing: const Icon(Icons.chevron_right),
-            // Picked from the IANA list, never typed: the times above are
-            // interpreted in this zone, and an unrecognised name would silently
-            // fall back to the device's (see [_toUtc]).
-            onTap: () async {
-              final zone = await showTimezonePicker(
-                context,
-                current: _timezone,
-                allowFollowDevice: false,
-              );
-              if (zone == null || zone.isEmpty) return;
-              setState(() => _timezone = zone);
-            },
-          ),
-          const Divider(height: 32),
-          DropdownButtonFormField<RecurrenceType>(
-            initialValue: _recurrence,
-            decoration: InputDecoration(
-              labelText: l10n.repeatsLabel,
-              border: const OutlineInputBorder(),
-            ),
-            items: RecurrenceType.values
-                .map(
-                  (r) => DropdownMenuItem(
-                    value: r,
-                    child: Text(Formatter.recurrenceLabel(l10n, r)),
+          const SizedBox(height: 8),
+          AstraeaSection(
+            title: l10n.startsLabel,
+            child: AstraeaGlassSurface(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+              shadow: false,
+              child: Column(
+                children: [
+                  _DateTimeRow(
+                    label: l10n.startsLabel,
+                    value: _isAllDay
+                        ? Formatter.dayLabel(_toUtc(_start), _timezone)
+                        : _stampLocal(_start),
+                    onTap: () => _pickDateTime(isStart: true),
                   ),
-                )
-                .toList(),
-            onChanged: (v) =>
-                setState(() => _recurrence = v ?? RecurrenceType.none),
+                  const Divider(indent: 56, endIndent: 12),
+                  _DateTimeRow(
+                    label: l10n.endsLabel,
+                    value: _isAllDay
+                        ? Formatter.dayLabel(_toUtc(_end), _timezone)
+                        : _stampLocal(_end),
+                    onTap: () => _pickDateTime(isStart: false),
+                  ),
+                  const Divider(indent: 56, endIndent: 12),
+                  SwitchListTile.adaptive(
+                    contentPadding: const EdgeInsets.only(left: 12, right: 8),
+                    title: Text(l10n.allDaySwitch),
+                    value: _isAllDay,
+                    onChanged: (v) => setState(() => _isAllDay = v),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+          AstraeaGlassSurface(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+            shadow: false,
+            child: ListTile(
+              leading: const Icon(Icons.public_rounded),
+              title: Text(l10n.timezoneLabel),
+              subtitle: Text(_timezone),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () async {
+                final zone = await showTimezonePicker(
+                  context,
+                  current: _timezone,
+                  allowFollowDevice: false,
+                );
+                if (zone == null || zone.isEmpty) return;
+                setState(() => _timezone = zone);
+              },
+            ),
+          ),
+          const SizedBox(height: 18),
+          AstraeaSection(
+            title: l10n.repeatsLabel,
+            child: AstraeaGlassSurface(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              shadow: false,
+              child: DropdownButtonFormField<RecurrenceType>(
+                initialValue: _recurrence,
+                decoration: InputDecoration(
+                  labelText: l10n.repeatsLabel,
+                  border: InputBorder.none,
+                  filled: false,
+                ),
+                items: RecurrenceType.values
+                    .map(
+                      (r) => DropdownMenuItem(
+                        value: r,
+                        child: Text(Formatter.recurrenceLabel(l10n, r)),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (v) =>
+                    setState(() => _recurrence = v ?? RecurrenceType.none),
+              ),
+            ),
           ),
           if (_recurrence != RecurrenceType.none) ...[
             const SizedBox(height: 8),
-            _DateTimeRow(
-              label: l10n.untilLabel,
-              value: _recurrenceEnd == null
-                  ? l10n.foreverLabel
-                  : Formatter.dayLabel(_toUtc(_recurrenceEnd!), _timezone),
-              onTap: _pickRecurrenceEnd,
-              onClear: _recurrenceEnd == null
-                  ? null
-                  : () => setState(() => _recurrenceEnd = null),
+            AstraeaGlassSurface(
+              shadow: false,
+              child: _DateTimeRow(
+                label: l10n.untilLabel,
+                value: _recurrenceEnd == null
+                    ? l10n.foreverLabel
+                    : Formatter.dayLabel(_toUtc(_recurrenceEnd!), _timezone),
+                onTap: _pickRecurrenceEnd,
+                onClear: _recurrenceEnd == null
+                    ? null
+                    : () => setState(() => _recurrenceEnd = null),
+              ),
             ),
           ],
-          const Divider(height: 32),
-          Text(
-            l10n.remindersLabel,
-            style: Theme.of(context).textTheme.titleSmall,
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              ..._reminders.map(
-                (r) => InputChip(
-                  label: Text(Formatter.reminderLabel(l10n, r.minutesBefore)),
-                  onDeleted: () => setState(
-                    () => _reminders = _reminders.where((x) => x != r).toList(),
+          const SizedBox(height: 18),
+          AstraeaSection(
+            title: l10n.remindersLabel,
+            child: AstraeaGlassSurface(
+              padding: const EdgeInsets.all(14),
+              shadow: false,
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  ..._reminders.map(
+                    (r) => InputChip(
+                      label: Text(
+                        Formatter.reminderLabel(l10n, r.minutesBefore),
+                      ),
+                      onDeleted: () => setState(
+                        () => _reminders = _reminders
+                            .where((x) => x != r)
+                            .toList(),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              ActionChip(
-                avatar: const Icon(Icons.add, size: 18),
-                label: Text(l10n.addChip),
-                onPressed: _addReminder,
-              ),
-            ],
-          ),
-          const Divider(height: 32),
-          Text(l10n.colorLabel, style: Theme.of(context).textTheme.titleSmall),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 12,
-            children: kEventColorPalette.map((value) {
-              final selected = value == _colorValue;
-              return GestureDetector(
-                onTap: () => setState(() => _colorValue = value),
-                child: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: Color(value),
-                    shape: BoxShape.circle,
-                    border: selected
-                        ? Border.all(
-                            color: Theme.of(context).colorScheme.onSurface,
-                            width: 3,
-                          )
-                        : null,
+                  ActionChip(
+                    avatar: const Icon(Icons.add_rounded, size: 18),
+                    label: Text(l10n.addChip),
+                    onPressed: _addReminder,
                   ),
-                ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 24),
-          TextField(
-            controller: _locationController,
-            decoration: InputDecoration(
-              labelText: l10n.locationLabel,
-              border: const OutlineInputBorder(),
+                ],
+              ),
             ),
           ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _descriptionController,
-            maxLines: 4,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: InputDecoration(
-              labelText: l10n.descriptionLabel,
-              border: const OutlineInputBorder(),
+          const SizedBox(height: 18),
+          AstraeaSection(
+            title: l10n.colorLabel,
+            child: AstraeaGlassSurface(
+              padding: const EdgeInsets.all(16),
+              shadow: false,
+              child: Wrap(
+                spacing: 14,
+                children: kEventColorPalette.map((value) {
+                  final selected = value == _colorValue;
+                  return Semantics(
+                    label: l10n.colorLabel,
+                    selected: selected,
+                    button: true,
+                    child: GestureDetector(
+                      onTap: () => setState(() => _colorValue = value),
+                      child: AnimatedContainer(
+                        duration: AstraeaTokens.motion(
+                          context,
+                          AstraeaTokens.shortMotion,
+                        ),
+                        width: selected ? 38 : 32,
+                        height: selected ? 38 : 32,
+                        decoration: BoxDecoration(
+                          color: Color(value),
+                          shape: BoxShape.circle,
+                          border: selected
+                              ? Border.all(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface,
+                                  width: 3,
+                                )
+                              : null,
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+          AstraeaSection(
+            title: l10n.locationLabel,
+            child: Column(
+              children: [
+                TextField(
+                  controller: _locationController,
+                  decoration: InputDecoration(
+                    labelText: l10n.locationLabel,
+                    prefixIcon: const Icon(Icons.place_outlined),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _descriptionController,
+                  maxLines: 4,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: InputDecoration(
+                    labelText: l10n.descriptionLabel,
+                    alignLabelWithHint: true,
+                    prefixIcon: const Padding(
+                      padding: EdgeInsets.only(bottom: 62),
+                      child: Icon(Icons.notes_rounded),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           if (widget.existing != null)
             desktop_invite.desktopInviteSection(widget.existing!.id) ??
                 const SizedBox.shrink(),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
         ],
       ),
     );

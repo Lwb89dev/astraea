@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import '../l10n/app_localizations.dart';
@@ -9,15 +10,14 @@ import '../models/event_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/calendar_view_provider.dart';
 import '../providers/events_provider.dart';
-import '../providers/settings_provider.dart';
 import '../providers/sync_provider.dart';
-import '../utils/app_accent.dart';
 import '../utils/event_color.dart';
 import '../utils/formatter.dart';
 import '../utils/recurrence.dart';
 import 'event_details_screen.dart';
 import 'event_editor_screen.dart';
 import 'settings_screen.dart';
+import '../widgets/astraea_ui.dart';
 
 /// The home screen: month / week / day / list views over the same events,
 /// switchable from a segmented control. Tapping a day selects it; tapping an
@@ -51,38 +51,50 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final eventsAsync = ref.watch(eventsProvider);
 
     return Scaffold(
+      extendBody: true,
       appBar: AppBar(
         title: Text(l10n.appTitle),
         actions: [
           _SyncButton(),
-          IconButton(
+          AstraeaIconButton(
             tooltip: l10n.settingsTooltip,
-            icon: const Icon(Icons.settings_outlined),
+            icon: Icons.tune_rounded,
             onPressed: () => Navigator.of(
               context,
             ).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
           ),
+          const SizedBox(width: AstraeaTokens.space3),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: _NewEventButton(
+        label: l10n.newEventButton,
         onPressed: () => _openEditor(context, ref, view.selectedDay),
-        icon: const Icon(Icons.add),
-        label: Text(l10n.newEventButton),
       ),
-      body: eventsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(
-          child: Text(
-            l10n.couldNotLoadEvents(e.toString()),
-            textAlign: TextAlign.center,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      bottomNavigationBar: SafeArea(
+        minimum: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+        child: _ViewNavigationBar(mode: view.mode),
+      ),
+      body: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Theme.of(context).colorScheme.surface,
+              Theme.of(context).colorScheme.surfaceContainerLowest,
+            ],
           ),
         ),
-        data: (events) => Column(
-          children: [
-            _ViewModeSelector(mode: view.mode),
-            const Divider(height: 1),
-            Expanded(child: _body(context, ref, view, events)),
-          ],
+        child: eventsAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Center(
+            child: Text(
+              l10n.couldNotLoadEvents(e.toString()),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          data: (events) => _body(context, ref, view, events),
         ),
       ),
     );
@@ -96,8 +108,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   ) {
     switch (view.mode) {
       case CalendarViewMode.month:
-      case CalendarViewMode.week:
         return _CalendarWithAgenda(view: view, events: events);
+      case CalendarViewMode.week:
+        return _WeekTimeline(view: view, events: events);
       case CalendarViewMode.day:
         return _DayAgenda(day: view.selectedDay, events: events);
       case CalendarViewMode.list:
@@ -112,56 +125,104 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   }
 }
 
-// ── View-mode segmented control ────────────────────────────────────────────
-
-class _ViewModeSelector extends ConsumerWidget {
-  const _ViewModeSelector({required this.mode});
+class _ViewNavigationBar extends ConsumerWidget {
+  const _ViewNavigationBar({required this.mode});
 
   final CalendarViewMode mode;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final compact = constraints.maxWidth < 480;
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: SegmentedButton<CalendarViewMode>(
-            expandedInsets: EdgeInsets.zero,
-            segments: [
-              ButtonSegment(
-                value: CalendarViewMode.month,
-                icon: const Icon(Icons.calendar_view_month),
-                label: compact ? null : Text(l10n.viewMonth),
-                tooltip: l10n.viewMonth,
+    final labels = [l10n.viewMonth, l10n.viewWeek, l10n.viewDay, l10n.viewList];
+    final icons = [
+      Icons.calendar_month_rounded,
+      Icons.view_week_rounded,
+      Icons.today_rounded,
+      Icons.inbox_rounded,
+    ];
+    return AstraeaFloatingBar(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: CalendarViewMode.values.map((item) {
+          final selected = item == mode;
+          return Expanded(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(AstraeaTokens.radiusMd),
+              onTap: () =>
+                  ref.read(calendarViewProvider.notifier).setMode(item),
+              child: AnimatedContainer(
+                duration: AstraeaTokens.motion(
+                  context,
+                  AstraeaTokens.shortMotion,
+                ),
+                curve: AstraeaTokens.motionCurve,
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                decoration: BoxDecoration(
+                  color: selected
+                      ? Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.14)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(AstraeaTokens.radiusMd),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      icons[item.index],
+                      size: 19,
+                      color: selected
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      labels[item.index],
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: selected
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontWeight: selected
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              ButtonSegment(
-                value: CalendarViewMode.week,
-                icon: const Icon(Icons.calendar_view_week),
-                label: compact ? null : Text(l10n.viewWeek),
-                tooltip: l10n.viewWeek,
-              ),
-              ButtonSegment(
-                value: CalendarViewMode.day,
-                icon: const Icon(Icons.calendar_view_day),
-                label: compact ? null : Text(l10n.viewDay),
-                tooltip: l10n.viewDay,
-              ),
-              ButtonSegment(
-                value: CalendarViewMode.list,
-                icon: const Icon(Icons.view_agenda_outlined),
-                label: compact ? null : Text(l10n.viewList),
-                tooltip: l10n.viewList,
-              ),
-            ],
-            selected: {mode},
-            showSelectedIcon: false,
-            onSelectionChanged: (s) =>
-                ref.read(calendarViewProvider.notifier).setMode(s.first),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+class _NewEventButton extends StatelessWidget {
+  const _NewEventButton({required this.label, required this.onPressed});
+
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 78, right: 4),
+      child: FilledButton.icon(
+        onPressed: onPressed,
+        icon: const Icon(Icons.add_rounded),
+        label: Text(label),
+        style: FilledButton.styleFrom(
+          elevation: 8,
+          shadowColor: Theme.of(
+            context,
+          ).colorScheme.primary.withValues(alpha: 0.35),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AstraeaTokens.radiusLg),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }
@@ -236,23 +297,19 @@ class _CalendarWithAgenda extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final notifier = ref.read(calendarViewProvider.notifier);
     final occurrences = _visibleOccurrences();
-    final accent = AppAccent.fromPrefsValue(
-      ref.watch(settingsProvider).value?.accent,
-    );
     return Column(
       children: [
+        _CalendarHeader(
+          focusedDay: view.focusedDay,
+          onToday: () => notifier.selectDay(DateTime.now()),
+        ),
         TableCalendar<EventOccurrence>(
           firstDay: DateTime.utc(2000, 1, 1),
           lastDay: DateTime.utc(2100, 12, 31),
           focusedDay: view.focusedDay,
-          calendarFormat: view.mode == CalendarViewMode.week
-              ? CalendarFormat.week
-              : CalendarFormat.month,
+          calendarFormat: CalendarFormat.month,
           availableGestures: AvailableGestures.horizontalSwipe,
-          headerStyle: const HeaderStyle(
-            formatButtonVisible: false,
-            titleCentered: true,
-          ),
+          headerVisible: false,
           selectedDayPredicate: (day) => isSameDay(day, view.selectedDay),
           // The visible recurrence window is expanded once per rebuild rather
           // than once for every one of the calendar's 42 day cells.
@@ -261,20 +318,23 @@ class _CalendarWithAgenda extends ConsumerWidget {
           onDaySelected: (selected, focused) =>
               notifier.selectDay(selected, focusedDay: focused),
           onPageChanged: notifier.setFocusedDay,
-          calendarStyle: CalendarStyle(
-            todayDecoration: BoxDecoration(
-              color: accent.dayBackground,
-              shape: BoxShape.circle,
-            ),
-            todayTextStyle: TextStyle(color: accent.onIndicator),
-            selectedDecoration: BoxDecoration(
-              color: accent.indicator,
-              shape: BoxShape.circle,
-            ),
-            selectedTextStyle: TextStyle(color: accent.onIndicator),
+          calendarStyle: const CalendarStyle(
+            cellMargin: EdgeInsets.symmetric(vertical: 5),
+            outsideDaysVisible: true,
+            markersMaxCount: 3,
+            markerSize: 5,
+            markerMargin: EdgeInsets.symmetric(horizontal: 1),
           ),
-          calendarBuilders: const CalendarBuilders<EventOccurrence>(
+          calendarBuilders: CalendarBuilders<EventOccurrence>(
             markerBuilder: _buildDayMarkers,
+            defaultBuilder: (context, day, focusedDay) =>
+                _CalendarDayCell(day: day),
+            outsideBuilder: (context, day, focusedDay) =>
+                _CalendarDayCell(day: day, outside: true),
+            todayBuilder: (context, day, focusedDay) =>
+                _CalendarDayCell(day: day, today: true),
+            selectedBuilder: (context, day, focusedDay) =>
+                _CalendarDayCell(day: day, selected: true),
           ),
         ),
         const Divider(height: 1),
@@ -282,6 +342,405 @@ class _CalendarWithAgenda extends ConsumerWidget {
           child: _DayAgenda(day: view.selectedDay, events: events),
         ),
       ],
+    );
+  }
+}
+
+class _CalendarHeader extends StatelessWidget {
+  const _CalendarHeader({required this.focusedDay, required this.onToday});
+
+  final DateTime focusedDay;
+  final VoidCallback onToday;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  DateFormat('MMMM').format(focusedDay),
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
+                Text(
+                  '${focusedDay.year}',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          TextButton.icon(
+            onPressed: onToday,
+            icon: const Icon(Icons.my_location_rounded, size: 16),
+            label: const Text('Today'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CalendarDayCell extends StatelessWidget {
+  const _CalendarDayCell({
+    required this.day,
+    this.selected = false,
+    this.today = false,
+    this.outside = false,
+  });
+
+  final DateTime day;
+  final bool selected;
+  final bool today;
+  final bool outside;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final weekend = day.weekday >= DateTime.saturday;
+    final foreground = selected
+        ? scheme.onPrimary
+        : outside
+        ? scheme.onSurface.withValues(alpha: 0.28)
+        : weekend
+        ? scheme.primary.withValues(alpha: 0.82)
+        : scheme.onSurface;
+    return Center(
+      child: AnimatedContainer(
+        duration: AstraeaTokens.motion(context, AstraeaTokens.shortMotion),
+        curve: AstraeaTokens.motionCurve,
+        width: 38,
+        height: 38,
+        decoration: BoxDecoration(
+          color: selected
+              ? scheme.primary
+              : today
+              ? scheme.primary.withValues(alpha: 0.13)
+              : weekend
+              ? scheme.primary.withValues(alpha: 0.035)
+              : Colors.transparent,
+          shape: BoxShape.circle,
+          border: today && !selected
+              ? Border.all(color: scheme.primary, width: 1.5)
+              : null,
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          '${day.day}',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: foreground,
+            fontWeight: selected || today ? FontWeight.w700 : FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _WeekTimeline extends ConsumerWidget {
+  const _WeekTimeline({required this.view, required this.events});
+
+  final CalendarViewState view;
+  final List<Event> events;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selected = DateTime(
+      view.selectedDay.year,
+      view.selectedDay.month,
+      view.selectedDay.day,
+    );
+    final weekStart = selected.subtract(Duration(days: selected.weekday % 7));
+    final occurrences = RecurrenceExpander.expandAll(
+      events,
+      rangeStartUtc: weekStart.toUtc(),
+      rangeEndUtc: weekStart.add(const Duration(days: 7)).toUtc(),
+    );
+    final l10n = AppLocalizations.of(context);
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 10),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  l10n.viewWeek,
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+              ),
+              Text(
+                DateFormat('MMM yyyy').format(selected),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          child: AstraeaGlassSurface(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+            radius: AstraeaTokens.radiusMd,
+            shadow: false,
+            child: Row(
+              children: List.generate(7, (index) {
+                final day = weekStart.add(Duration(days: index));
+                final active = isSameDay(day, selected);
+                final hasEvents = occurrences.any(
+                  (o) => isSameDay(o.startUtc.toLocal(), day),
+                );
+                return Expanded(
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(AstraeaTokens.radiusSm),
+                    onTap: () =>
+                        ref.read(calendarViewProvider.notifier).selectDay(day),
+                    child: AnimatedContainer(
+                      duration: AstraeaTokens.motion(
+                        context,
+                        AstraeaTokens.shortMotion,
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      decoration: BoxDecoration(
+                        color: active
+                            ? Theme.of(context).colorScheme.primary
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(
+                          AstraeaTokens.radiusSm,
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          Text(
+                            DateFormat(
+                              'EEE',
+                            ).format(day).substring(0, 2).toUpperCase(),
+                            style: Theme.of(context).textTheme.labelSmall
+                                ?.copyWith(
+                                  color: active
+                                      ? Theme.of(context).colorScheme.onPrimary
+                                      : Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
+                                ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            '${day.day}',
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(
+                                  color: active
+                                      ? Theme.of(context).colorScheme.onPrimary
+                                      : Theme.of(context).colorScheme.onSurface,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                          const SizedBox(height: 3),
+                          AnimatedContainer(
+                            duration: AstraeaTokens.motion(
+                              context,
+                              AstraeaTokens.shortMotion,
+                            ),
+                            width: hasEvents ? 5 : 3,
+                            height: hasEvents ? 5 : 3,
+                            decoration: BoxDecoration(
+                              color: active
+                                  ? Theme.of(context).colorScheme.onPrimary
+                                  : Theme.of(
+                                      context,
+                                    ).colorScheme.primary.withValues(
+                                      alpha: hasEvents ? 1 : 0.18,
+                                    ),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Expanded(
+          child: _Timeline(day: selected, occurrences: occurrences),
+        ),
+      ],
+    );
+  }
+}
+
+class _Timeline extends StatelessWidget {
+  const _Timeline({required this.day, required this.occurrences});
+
+  final DateTime day;
+  final List<EventOccurrence> occurrences;
+
+  @override
+  Widget build(BuildContext context) {
+    final dayOccurrences = occurrences.where((o) {
+      final startDay = _localDay(o.startUtc);
+      final endDay = _lastTouchedLocalDay(o);
+      return !day.isBefore(startDay) && !day.isAfter(endDay);
+    }).toList();
+    final now = DateTime.now();
+    final today = isSameDay(now, day);
+    return ListView.builder(
+      padding: const EdgeInsets.only(bottom: 120),
+      itemCount: 24,
+      itemBuilder: (context, hour) {
+        final matches = dayOccurrences.where((o) {
+          final startsBeforeThisDay = _localDay(o.startUtc).isBefore(day);
+          return o.event.isAllDay || startsBeforeThisDay
+              ? hour == 0
+              : o.startUtc.toLocal().hour == hour;
+        }).toList();
+        final current = today && now.hour == hour;
+        return SizedBox(
+          height: matches.isEmpty
+              ? 62
+              : (matches.length * 58).clamp(62, 150).toDouble(),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: 62,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 3, right: 10),
+                  child: Text(
+                    hour == 0
+                        ? '12 AM'
+                        : DateFormat(
+                            'HH:00',
+                          ).format(DateTime(2020, 1, 1, hour)),
+                    textAlign: TextAlign.right,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Stack(
+                  children: [
+                    Positioned(
+                      top: 10,
+                      left: 0,
+                      right: 14,
+                      child: Divider(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.outlineVariant.withValues(alpha: 0.55),
+                      ),
+                    ),
+                    if (current)
+                      Positioned(
+                        top: 8,
+                        left: -3,
+                        right: 14,
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 7,
+                              height: 7,
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.error,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            Expanded(
+                              child: Divider(
+                                color: Theme.of(context).colorScheme.error,
+                                thickness: 1.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    if (matches.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 18, right: 14),
+                        child: Column(
+                          children: matches
+                              .map(
+                                (occurrence) =>
+                                    _TimelineEvent(occurrence: occurrence),
+                              )
+                              .toList(),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _TimelineEvent extends StatelessWidget {
+  const _TimelineEvent({required this.occurrence});
+
+  final EventOccurrence occurrence;
+
+  @override
+  Widget build(BuildContext context) {
+    final event = occurrence.event;
+    final color = parseEventColor(event.color);
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 5),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AstraeaTokens.radiusSm),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => EventDetailsScreen(eventId: event.id),
+          ),
+        ),
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 42),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.18),
+            borderRadius: BorderRadius.circular(AstraeaTokens.radiusSm),
+            border: Border(left: BorderSide(color: color, width: 4)),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  event.title.isEmpty ? l10n.untitledEvent : event.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                ),
+              ),
+              if (!event.isAllDay)
+                Text(
+                  Formatter.timeLabelLocal(occurrence.startUtc),
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -429,20 +888,31 @@ class _DayAgenda extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-          child: Text(
-            Formatter.dayLabelLocal(start),
-            style: Theme.of(context).textTheme.titleMedium,
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  Formatter.dayLabelLocal(start),
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+              ),
+              Text(
+                DateFormat('d').format(start),
+                style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: 0.35),
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
           ),
         ),
         Expanded(
           child: occurrences.isEmpty
               ? _EmptyState(message: l10n.noEventsToday)
-              : ListView.builder(
-                  itemCount: occurrences.length,
-                  itemBuilder: (_, i) =>
-                      _OccurrenceTile(occurrence: occurrences[i]),
-                ),
+              : _Timeline(day: start, occurrences: occurrences),
         ),
       ],
     );
@@ -482,15 +952,48 @@ class _UpcomingList extends StatelessWidget {
 
     final sections = byDay.values.toList();
     return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 120),
       itemCount: sections.length,
       itemBuilder: (context, i) {
         final section = sections[i];
+        final localDay = section.first.startUtc.toLocal();
+        final isToday = isSameDay(localDay, DateTime.now());
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-              child: Text(
+              padding: EdgeInsets.only(top: i == 0 ? 0 : 22, bottom: 8),
+              child: Row(
+                children: [
+                  Text(
+                    DateFormat('EEE').format(localDay).toUpperCase(),
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                      letterSpacing: 1.2,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    DateFormat('d MMM').format(localDay),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  if (isToday) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              /* child: Text(
                 // Local, matching the grouping above — labelling with the
                 // event's own timezone could name a different day than the
                 // section the event was grouped into.
@@ -498,7 +1001,7 @@ class _UpcomingList extends StatelessWidget {
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
                   color: Theme.of(context).colorScheme.primary,
                 ),
-              ),
+              ), */
             ),
             ...section.map((occ) => _OccurrenceTile(occurrence: occ)),
           ],
@@ -519,31 +1022,68 @@ class _OccurrenceTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final event = occurrence.event;
-    return ListTile(
-      leading: Container(
-        width: 6,
-        height: 40,
-        decoration: BoxDecoration(
-          color: parseEventColor(event.color),
-          borderRadius: BorderRadius.circular(3),
-        ),
-      ),
-      title: Text(event.title.isEmpty ? l10n.untitledEvent : event.title),
-      subtitle: Text(
-        // Device-local times, consistent with the local day grouping (store
-        // UTC, display local). The event's own timezone is authoring detail,
-        // shown in the details screen.
-        event.isAllDay
-            ? l10n.allDay
-            : '${Formatter.timeLabelLocal(occurrence.startUtc)}'
-                  ' – ${Formatter.timeLabelLocal(occurrence.endUtc)}',
-      ),
-      trailing: occurrence.isRecurringInstance
-          ? const Icon(Icons.repeat, size: 18)
-          : null,
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => EventDetailsScreen(eventId: event.id),
+    final color = parseEventColor(event.color);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: AstraeaGlassSurface(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        radius: AstraeaTokens.radiusSm,
+        blur: 6,
+        shadow: false,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AstraeaTokens.radiusSm),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => EventDetailsScreen(eventId: event.id),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 4,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      event.title.isEmpty ? l10n.untitledEvent : event.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      event.isAllDay
+                          ? l10n.allDay
+                          : '${Formatter.timeLabelLocal(occurrence.startUtc)} – ${Formatter.timeLabelLocal(occurrence.endUtc)}',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (occurrence.isRecurringInstance)
+                Icon(
+                  Icons.repeat_rounded,
+                  size: 18,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              const SizedBox(width: 4),
+              Icon(
+                Icons.chevron_right_rounded,
+                size: 20,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ],
+          ),
         ),
       ),
     );

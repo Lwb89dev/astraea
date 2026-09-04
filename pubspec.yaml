@@ -2,7 +2,7 @@ name: astraea
 description: "Astraea - offline-first, privacy-first calendar on the Nostr protocol. Part of the Echoes ecosystem."
 publish_to: 'none'
 
-version: 0.4.1+7
+version: 1.0.0+8
 
 environment:
   sdk: ^3.12.2

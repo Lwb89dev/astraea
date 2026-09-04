@@ -27,6 +27,7 @@ import 'screens/widgets/kairos_task_handler.dart';
 import 'screens/widgets/widget_launch_handler.dart';
 import 'utils/app_accent.dart';
 import 'utils/constants.dart';
+import 'widgets/astraea_ui.dart';
 
 Future<void> main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -169,20 +170,8 @@ class AstraeaApp extends ConsumerWidget {
       // GrapheneOS/privacy-friendly default: dark theme (see
       // [ThemeModeNotifier]) — light is available from Settings.
       themeMode: themeMode,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: accent.seed,
-          brightness: Brightness.light,
-        ),
-        useMaterial3: true,
-      ),
-      darkTheme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: accent.seed,
-          brightness: Brightness.dark,
-        ),
-        useMaterial3: true,
-      ),
+      theme: astraeaTheme(brightness: Brightness.light, seed: accent.seed),
+      darkTheme: astraeaTheme(brightness: Brightness.dark, seed: accent.seed),
       locale: locale,
       localizationsDelegates: const [
         AppLocalizations.delegate,
