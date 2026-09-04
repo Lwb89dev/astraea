@@ -51,6 +51,15 @@
     <control>touch</control>
   </supports>
   <releases>
+    <release version="1.0.0" date="2026-08-10">
+      <description>
+        <p>First stable release. The interface has been rebuilt across every
+        screen on a shared design system, with a real week timeline and a
+        bottom navigation bar for switching views. The storage format, the
+        Nostr wire contract and the D-Bus API are now covered by the
+        major-version guarantee.</p>
+      </description>
+    </release>
     <release version="0.4.1" date="2026-08-10">
       <description>
         <p>The Android widget picker now shows a real preview of each

@@ -11,6 +11,40 @@ All notable changes to Astraea are documented here. The format follows
 - Final Android application ID and production signing setup.
 - Dedicated production hardening for additional platforms.
 
+## [1.0.0] - 2026-08-10
+
+First stable release.
+
+Astraea has carried a `0.x` number since the first commit while the storage
+format, the Nostr wire contract and the D-Bus API settled. They have now been
+stable across several releases, the Linux service and the mobile app agree on
+one contract, and the interface has been rebuilt to match. `1.0.0` says that
+out loud: from here, breaking any of those is a major-version decision, not a
+patch note.
+
+### Added
+
+- Rebuilt interface across every screen, on a shared design system
+  (`lib/widgets/astraea_ui.dart`): one set of colour, spacing, radius and
+  motion tokens, a single themed surface treatment, and a theme builder that
+  both the light and dark palettes are derived from.
+- A week view with a real timeline, instead of the month grid reused at a
+  different range.
+- A bottom navigation bar for switching between month, week, day and list,
+  replacing the segmented control at the top of the screen.
+
+### Changed
+
+- Calendar, event details, event editor, onboarding and settings all follow
+  the new layout language: grouped translucent surfaces, consistent section
+  headers, larger touch targets and a calmer type scale.
+- The accent colour chosen in Settings and the light/dark preference continue
+  to drive the whole theme; the revamp changes how they are applied, not
+  whether they are respected.
+- Animations honour the platform's "reduce motion" accessibility setting:
+  every transition in the new design system collapses to zero duration when
+  the user has asked for that.
+
 ## [0.4.1] - 2026-08-10
 
 ### Fixed

@@ -30,6 +30,7 @@ import '../utils/formatter.dart';
 import '../utils/relay_url.dart';
 import 'entry_screen.dart';
 import 'widgets/timezone_picker.dart';
+import '../widgets/astraea_ui.dart';
 
 const _privacyChannel = MethodChannel('com.example.astraea/privacy');
 
@@ -94,24 +95,34 @@ class SettingsScreen extends ConsumerWidget {
           ),
         ),
         data: (settings) => ListView(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
           children: [
             _SectionHeader(l10n.sectionAccount),
-            desktop_settings.desktopAccountSection() ?? const _AccountSection(),
+            _SettingsSurface(
+              child:
+                  desktop_settings.desktopAccountSection() ??
+                  const _AccountSection(),
+            ),
             _SectionHeader(l10n.sectionSync),
-            desktop_settings.desktopSyncSection() ??
-                _SyncSection(settings: settings),
+            _SettingsSurface(
+              child:
+                  desktop_settings.desktopSyncSection() ??
+                  _SyncSection(settings: settings),
+            ),
             _SectionHeader(l10n.sectionRelays),
-            desktop_settings.desktopRelaySection() ??
-                _RelaySection(settings: settings),
+            _SettingsSurface(
+              child:
+                  desktop_settings.desktopRelaySection() ??
+                  _RelaySection(settings: settings),
+            ),
             _SectionHeader(l10n.sectionAppearance),
-            _AppearanceSection(settings: settings),
+            _SettingsSurface(child: _AppearanceSection(settings: settings)),
             _SectionHeader(l10n.sectionData),
-            const _DataSection(),
+            const _SettingsSurface(child: _DataSection()),
             _SectionHeader(l10n.sectionRemindersTimezone),
-            _RemindersSection(settings: settings),
+            _SettingsSurface(child: _RemindersSection(settings: settings)),
             _SectionHeader(l10n.sectionSupport),
-            const _DonationTile(),
-            const SizedBox(height: 24),
+            const _SettingsSurface(child: _DonationTile()),
           ],
         ),
       ),
@@ -127,13 +138,32 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      padding: const EdgeInsets.fromLTRB(4, 22, 4, 10),
       child: Text(
         title,
         style: Theme.of(context).textTheme.labelLarge?.copyWith(
           color: Theme.of(context).colorScheme.primary,
+          letterSpacing: 1.2,
+          fontWeight: FontWeight.w700,
         ),
       ),
+    );
+  }
+}
+
+class _SettingsSurface extends StatelessWidget {
+  const _SettingsSurface({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return AstraeaGlassSurface(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      radius: AstraeaTokens.radiusMd,
+      blur: 5,
+      shadow: false,
+      child: child,
     );
   }
 }

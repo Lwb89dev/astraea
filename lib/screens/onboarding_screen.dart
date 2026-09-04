@@ -10,6 +10,7 @@ import '../providers/settings_provider.dart';
 import '../utils/constants.dart';
 import '../utils/relay_url.dart';
 import 'widgets/nostr_login_form.dart';
+import '../widgets/astraea_ui.dart';
 
 /// First-launch flow, modelled after Echoes:
 /// presentation → optional Nostr account → explicit relay selection.
@@ -57,30 +58,42 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final settings = ref.watch(settingsProvider);
 
     return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: PageView(
-                controller: _controller,
-                onPageChanged: (page) => setState(() => _page = page),
-                children: [
-                  const _IntroPage(),
-                  _LoginPage(onLoggedIn: () => _goToPage(2)),
-                  const _RelaySetupPage(),
-                ],
+      body: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Theme.of(context).colorScheme.surface,
+              Theme.of(context).colorScheme.primary.withValues(alpha: 0.09),
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              Expanded(
+                child: PageView(
+                  controller: _controller,
+                  onPageChanged: (page) => setState(() => _page = page),
+                  children: [
+                    const _IntroPage(),
+                    _LoginPage(onLoggedIn: () => _goToPage(2)),
+                    const _RelaySetupPage(),
+                  ],
+                ),
               ),
-            ),
-            _BottomBar(
-              page: _page,
-              accountConnected: auth.value != null,
-              canFinish: settings.hasValue,
-              onBack: () => _goToPage(_page - 1),
-              onNext: () => _goToPage(_page + 1),
-              onSkip: _finish,
-              onFinish: _finish,
-            ),
-          ],
+              _BottomBar(
+                page: _page,
+                accountConnected: auth.value != null,
+                canFinish: settings.hasValue,
+                onBack: () => _goToPage(_page - 1),
+                onNext: () => _goToPage(_page + 1),
+                onSkip: _finish,
+                onFinish: _finish,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -113,36 +126,39 @@ class _BottomBar extends StatelessWidget {
     final isLast = page == 2;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 16, 16),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 72,
-            child: isFirst
-                ? null
-                : TextButton(onPressed: onBack, child: Text(l10n.back)),
-          ),
-          Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(
-                3,
-                (index) => _PageDot(active: index == page),
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
+      child: AstraeaFloatingBar(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 72,
+              child: isFirst
+                  ? null
+                  : TextButton(onPressed: onBack, child: Text(l10n.back)),
+            ),
+            Expanded(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(
+                  3,
+                  (index) => _PageDot(active: index == page),
+                ),
               ),
             ),
-          ),
-          if (isLast)
-            FilledButton(
-              onPressed: canFinish ? onFinish : null,
-              child: Text(l10n.getStarted),
-            )
-          else if (page == 1 && !accountConnected)
-            TextButton(onPressed: onSkip, child: Text(l10n.useOffline))
-          else if (page == 0)
-            FilledButton(onPressed: onNext, child: Text(l10n.next))
-          else
-            const SizedBox(width: 72),
-        ],
+            if (isLast)
+              FilledButton(
+                onPressed: canFinish ? onFinish : null,
+                child: Text(l10n.getStarted),
+              )
+            else if (page == 1 && !accountConnected)
+              TextButton(onPressed: onSkip, child: Text(l10n.useOffline))
+            else if (page == 0)
+              FilledButton(onPressed: onNext, child: Text(l10n.next))
+            else
+              const SizedBox(width: 72),
+          ],
+        ),
       ),
     );
   }
@@ -156,7 +172,10 @@ class _PageDot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
+      duration: AstraeaTokens.motion(
+        context,
+        const Duration(milliseconds: 200),
+      ),
       margin: const EdgeInsets.symmetric(horizontal: 3),
       width: active ? 20 : 6,
       height: 6,
