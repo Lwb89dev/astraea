@@ -11,6 +11,27 @@ All notable changes to Astraea are documented here. The format follows
 - Final Android application ID and production signing setup.
 - Dedicated production hardening for additional platforms.
 
+## [1.1.0] - 2026-09-29
+
+### Changed
+
+- The interface now follows the same desk as Echoes. Iris and coral replace
+  the teal pairing. An aurora sits behind frosted search and navigation
+  (the view bar, the week strip, the desktop sidebar, and timezone search).
+  Event cards use a gloss gradient, and opening an event paints that same
+  gradient instead of a flat fill. The accent chosen in Settings still
+  drives buttons and the current day.
+- Dark theme text stays on the night ink. Weekday names and days from
+  the neighbouring month no longer sit in dark grey on the aurora, and an
+  event colour that would have put black type on a bright blue field is
+  deepened so the type stays light.
+- The month title, the weekday names and the days from the neighbouring
+  month use the full night ink, so they stay readable on the navy aurora.
+  An event's description uses that same ink against the event colour.
+- The default accent is Bitcoin orange. Navy and Nostr stay available in
+  Settings. An accent already saved on the device is left as it is. A
+  freshly placed Android widget starts on the same orange.
+
 ## [1.0.0] - 2026-08-10
 
 First stable release.

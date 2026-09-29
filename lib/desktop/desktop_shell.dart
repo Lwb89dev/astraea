@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/app_localizations.dart';
+import '../widgets/astraea_ui.dart';
 import 'dbus_calendar_client.dart';
 import 'desktop_invite_section.dart';
 import 'desktop_providers.dart';
@@ -57,8 +58,11 @@ class _Sidebar extends ConsumerWidget {
     final calendars = ref.watch(desktopCalendarsProvider);
     final theme = Theme.of(context);
 
-    return Material(
-      color: theme.colorScheme.surfaceContainerLow,
+    return AstraeaGlassSurface(
+      radius: 0,
+      frosted: true,
+      shadow: false,
+      border: false,
       child: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -126,9 +130,9 @@ class _Sidebar extends ConsumerWidget {
   }
 
   Color _parseColor(String? raw) {
-    if (raw == null) return const Color(0xFF3F51B5);
+    if (raw == null) return AstraeaTokens.iris;
     final value = int.tryParse(raw.replaceFirst('0x', ''), radix: 16);
-    return value == null ? const Color(0xFF3F51B5) : Color(value);
+    return value == null ? AstraeaTokens.iris : Color(value);
   }
 }
 

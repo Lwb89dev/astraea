@@ -75,27 +75,15 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         minimum: const EdgeInsets.fromLTRB(12, 0, 12, 12),
         child: _ViewNavigationBar(mode: view.mode),
       ),
-      body: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Theme.of(context).colorScheme.surface,
-              Theme.of(context).colorScheme.surfaceContainerLowest,
-            ],
+      body: eventsAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(
+          child: Text(
+            l10n.couldNotLoadEvents(e.toString()),
+            textAlign: TextAlign.center,
           ),
         ),
-        child: eventsAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(
-            child: Text(
-              l10n.couldNotLoadEvents(e.toString()),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          data: (events) => _body(context, ref, view, events),
-        ),
+        data: (events) => _body(context, ref, view, events),
       ),
     );
   }
@@ -297,6 +285,11 @@ class _CalendarWithAgenda extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final notifier = ref.read(calendarViewProvider.notifier);
     final occurrences = _visibleOccurrences();
+    final scheme = Theme.of(context).colorScheme;
+    final dayLabel =
+        Theme.of(context).textTheme.labelMedium ?? const TextStyle();
+    final dayNumber =
+        Theme.of(context).textTheme.bodyMedium ?? const TextStyle();
     return Column(
       children: [
         _CalendarHeader(
@@ -318,12 +311,33 @@ class _CalendarWithAgenda extends ConsumerWidget {
           onDaySelected: (selected, focused) =>
               notifier.selectDay(selected, focusedDay: focused),
           onPageChanged: notifier.setFocusedDay,
-          calendarStyle: const CalendarStyle(
-            cellMargin: EdgeInsets.symmetric(vertical: 5),
+          daysOfWeekStyle: DaysOfWeekStyle(
+            weekdayStyle: dayLabel.copyWith(
+              color: scheme.onSurface,
+              fontWeight: FontWeight.w600,
+            ),
+            weekendStyle: dayLabel.copyWith(
+              color: scheme.onSurface,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          calendarStyle: CalendarStyle(
+            cellMargin: const EdgeInsets.symmetric(vertical: 5),
             outsideDaysVisible: true,
             markersMaxCount: 3,
             markerSize: 5,
-            markerMargin: EdgeInsets.symmetric(horizontal: 1),
+            markerMargin: const EdgeInsets.symmetric(horizontal: 1),
+            defaultTextStyle: dayNumber.copyWith(color: scheme.onSurface),
+            weekendTextStyle: dayNumber.copyWith(color: scheme.onSurface),
+            outsideTextStyle: dayNumber.copyWith(color: scheme.onSurface),
+            todayTextStyle: dayNumber.copyWith(
+              color: scheme.onSurface,
+              fontWeight: FontWeight.w700,
+            ),
+            selectedTextStyle: dayNumber.copyWith(
+              color: scheme.onPrimary,
+              fontWeight: FontWeight.w700,
+            ),
           ),
           calendarBuilders: CalendarBuilders<EventOccurrence>(
             markerBuilder: _buildDayMarkers,
@@ -366,12 +380,14 @@ class _CalendarHeader extends StatelessWidget {
               children: [
                 Text(
                   DateFormat('MMMM').format(focusedDay),
-                  style: Theme.of(context).textTheme.headlineMedium,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.headlineMedium?.copyWith(color: scheme.onSurface),
                 ),
                 Text(
                   '${focusedDay.year}',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: scheme.onSurfaceVariant,
+                    color: scheme.onSurface,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -409,9 +425,9 @@ class _CalendarDayCell extends StatelessWidget {
     final foreground = selected
         ? scheme.onPrimary
         : outside
-        ? scheme.onSurface.withValues(alpha: 0.28)
+        ? scheme.onSurface
         : weekend
-        ? scheme.primary.withValues(alpha: 0.82)
+        ? scheme.primary
         : scheme.onSurface;
     return Center(
       child: AnimatedContainer(
@@ -480,7 +496,7 @@ class _WeekTimeline extends ConsumerWidget {
               Text(
                 DateFormat('MMM yyyy').format(selected),
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ],
@@ -492,6 +508,7 @@ class _WeekTimeline extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
             radius: AstraeaTokens.radiusMd,
             shadow: false,
+            frosted: true,
             child: Row(
               children: List.generate(7, (index) {
                 final day = weekStart.add(Duration(days: index));
@@ -528,9 +545,7 @@ class _WeekTimeline extends ConsumerWidget {
                                 ?.copyWith(
                                   color: active
                                       ? Theme.of(context).colorScheme.onPrimary
-                                      : Theme.of(
-                                          context,
-                                        ).colorScheme.onSurfaceVariant,
+                                      : Theme.of(context).colorScheme.onSurface,
                                 ),
                           ),
                           const SizedBox(height: 3),
@@ -703,41 +718,43 @@ class _TimelineEvent extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 5),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AstraeaTokens.radiusSm),
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => EventDetailsScreen(eventId: event.id),
-          ),
-        ),
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 42),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.18),
+      child: AstraeaGlassSurface(
+        tint: color,
+        radius: AstraeaTokens.radiusSm,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        shadow: false,
+        child: Builder(
+          builder: (context) => InkWell(
             borderRadius: BorderRadius.circular(AstraeaTokens.radiusSm),
-            border: Border(left: BorderSide(color: color, width: 4)),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  event.title.isEmpty ? l10n.untitledEvent : event.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-                ),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => EventDetailsScreen(eventId: event.id),
               ),
-              if (!event.isAllDay)
-                Text(
-                  Formatter.timeLabelLocal(occurrence.startUtc),
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 42),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      event.title.isEmpty ? l10n.untitledEvent : event.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
-                ),
-            ],
+                  if (!event.isAllDay)
+                    Text(
+                      Formatter.timeLabelLocal(occurrence.startUtc),
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -977,6 +994,7 @@ class _UpcomingList extends StatelessWidget {
                   Text(
                     DateFormat('d MMM').format(localDay),
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -1026,63 +1044,56 @@ class _OccurrenceTile extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: AstraeaGlassSurface(
+        tint: color,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         radius: AstraeaTokens.radiusSm,
-        blur: 6,
         shadow: false,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AstraeaTokens.radiusSm),
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => EventDetailsScreen(eventId: event.id),
+        child: Builder(
+          builder: (context) => InkWell(
+            borderRadius: BorderRadius.circular(AstraeaTokens.radiusSm),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => EventDetailsScreen(eventId: event.id),
+              ),
             ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 4,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      event.title.isEmpty ? l10n.untitledEvent : event.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      event.isAllDay
-                          ? l10n.allDay
-                          : '${Formatter.timeLabelLocal(occurrence.startUtc)} – ${Formatter.timeLabelLocal(occurrence.endUtc)}',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        event.title.isEmpty ? l10n.untitledEvent : event.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleMedium,
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      Text(
+                        event.isAllDay
+                            ? l10n.allDay
+                            : '${Formatter.timeLabelLocal(occurrence.startUtc)} – ${Formatter.timeLabelLocal(occurrence.endUtc)}',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              if (occurrence.isRecurringInstance)
+                if (occurrence.isRecurringInstance)
+                  Icon(
+                    Icons.repeat_rounded,
+                    size: 18,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                const SizedBox(width: 4),
                 Icon(
-                  Icons.repeat_rounded,
-                  size: 18,
+                  Icons.chevron_right_rounded,
+                  size: 20,
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
-              const SizedBox(width: 4),
-              Icon(
-                Icons.chevron_right_rounded,
-                size: 20,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

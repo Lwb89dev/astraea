@@ -14,7 +14,7 @@
 %global app_id com.lwb89dev.Astraea
 
 Name:           astraea
-Version: 1.0.0
+Version: 1.1.0
 Release:        1%{?dist}
 Summary:        Nostr-synced calendar and agenda
 License:        GPL-3.0-or-later

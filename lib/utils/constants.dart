@@ -89,7 +89,7 @@ class AppConstants {
   /// means "follow the system language".
   static const String prefsLocaleKey = 'astraea.locale';
 
-  /// [AppAccent.prefsValue]. Null/absent means the default (navy).
+  /// [AppAccent.prefsValue]. Null/absent means the default (Bitcoin orange).
   static const String prefsAccentKey = 'astraea.accent';
 
   /// Last-fetched profile metadata (name/avatar URL) for the signed-in

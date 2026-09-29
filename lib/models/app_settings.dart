@@ -22,7 +22,7 @@ class AppSettings {
   /// "follow the system language" (the default).
   final String? locale;
 
-  /// [AppAccent.prefsValue]. Null means the default (navy).
+  /// [AppAccent.prefsValue]. Null means the default (Bitcoin orange).
   final String? accent;
 
   const AppSettings({

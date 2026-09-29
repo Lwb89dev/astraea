@@ -26,7 +26,7 @@ enum AppAccent {
 
   static AppAccent fromPrefsValue(String? value) => AppAccent.values.firstWhere(
     (a) => a.prefsValue == value,
-    orElse: () => AppAccent.navy,
+    orElse: () => AppAccent.bitcoin,
   );
 
   /// Seed for `ColorScheme.fromSeed` — drives the rest of Material's tonal

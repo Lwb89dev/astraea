@@ -30,5 +30,5 @@
         android:layout_height="4dp"
         android:layout_marginTop="1dp"
         android:contentDescription="@null"
-        android:src="@drawable/astraea_widget_dot" />
+        android:src="@drawable/astraea_widget_dot_bitcoin" />
 </LinearLayout>

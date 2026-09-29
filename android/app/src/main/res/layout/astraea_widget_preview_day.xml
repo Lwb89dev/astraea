@@ -61,7 +61,7 @@
         <ImageView
             android:layout_width="28dp"
             android:layout_height="28dp"
-            android:background="@drawable/astraea_widget_add_background"
+            android:background="@drawable/astraea_widget_add_background_bitcoin"
             android:contentDescription="@string/astraea_widget_add"
             android:padding="6dp"
             android:src="@drawable/astraea_widget_plus" />
@@ -69,7 +69,7 @@
 
     <!-- Sample rows: the same three views agendaRow() fills at runtime.
          Colours are the accent's own tones, so the preview reads as the
-         default (navy) theme a freshly placed widget starts on. -->
+         default (bitcoin) theme a freshly placed widget starts on. -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -83,7 +83,7 @@
             android:layout_width="3dp"
             android:layout_height="14dp"
             android:layout_marginEnd="7dp"
-            android:background="#FF3F51B5"
+            android:background="#FFF7931A"
             android:contentDescription="@null" />
 
         <TextView
@@ -117,7 +117,7 @@
             android:layout_width="3dp"
             android:layout_height="14dp"
             android:layout_marginEnd="7dp"
-            android:background="#FF9FA8DA"
+            android:background="#FFFBC287"
             android:contentDescription="@null" />
 
         <TextView
@@ -151,7 +151,7 @@
             android:layout_width="3dp"
             android:layout_height="14dp"
             android:layout_marginEnd="7dp"
-            android:background="#FF3F51B5"
+            android:background="#FFF7931A"
             android:contentDescription="@null" />
 
         <TextView

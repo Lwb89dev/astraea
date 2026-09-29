@@ -56,7 +56,7 @@
         <ImageView
             android:layout_width="28dp"
             android:layout_height="28dp"
-            android:background="@drawable/astraea_widget_add_background"
+            android:background="@drawable/astraea_widget_add_background_bitcoin"
             android:contentDescription="@string/astraea_widget_add"
             android:padding="6dp"
             android:src="@drawable/astraea_widget_plus" />
@@ -254,7 +254,7 @@
                     android:layout_height="4dp"
                     android:layout_marginTop="1dp"
                     android:contentDescription="@null"
-                    android:src="@drawable/astraea_widget_dot" />
+                    android:src="@drawable/astraea_widget_dot_bitcoin" />
             </LinearLayout>
 
             <LinearLayout
@@ -375,7 +375,7 @@
                     android:layout_height="4dp"
                     android:layout_marginTop="1dp"
                     android:contentDescription="@null"
-                    android:src="@drawable/astraea_widget_dot" />
+                    android:src="@drawable/astraea_widget_dot_bitcoin" />
             </LinearLayout>
 
             <LinearLayout
@@ -426,7 +426,7 @@
                 <TextView
                     android:layout_width="18dp"
                     android:layout_height="18dp"
-                    android:background="@drawable/astraea_widget_today"
+                    android:background="@drawable/astraea_widget_today_bitcoin"
                     android:gravity="center"
                     android:text="12"
                     android:textColor="#FF161A2E"
@@ -437,7 +437,7 @@
                     android:layout_height="4dp"
                     android:layout_marginTop="1dp"
                     android:contentDescription="@null"
-                    android:src="@drawable/astraea_widget_dot" />
+                    android:src="@drawable/astraea_widget_dot_bitcoin" />
             </LinearLayout>
 
             <LinearLayout
@@ -540,7 +540,7 @@
                     android:layout_height="4dp"
                     android:layout_marginTop="1dp"
                     android:contentDescription="@null"
-                    android:src="@drawable/astraea_widget_dot" />
+                    android:src="@drawable/astraea_widget_dot_bitcoin" />
             </LinearLayout>
 
             <LinearLayout
@@ -679,7 +679,7 @@
                     android:layout_height="4dp"
                     android:layout_marginTop="1dp"
                     android:contentDescription="@null"
-                    android:src="@drawable/astraea_widget_dot" />
+                    android:src="@drawable/astraea_widget_dot_bitcoin" />
             </LinearLayout>
 
             <LinearLayout

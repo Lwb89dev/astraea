@@ -36,132 +36,102 @@ class EventDetailsScreen extends ConsumerWidget {
     final event = found;
 
     final eventColor = parseEventColor(event.color);
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.eventAppBarTitle),
-        actions: [
-          AstraeaIconButton(
-            tooltip: l10n.editTooltip,
-            icon: Icons.edit_outlined,
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => EventEditorScreen(existing: event),
+    return AstraeaSheet(
+      tint: eventColor,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(l10n.eventAppBarTitle),
+          actions: [
+            AstraeaIconButton(
+              tooltip: l10n.editTooltip,
+              icon: Icons.edit_outlined,
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => EventEditorScreen(existing: event),
+                ),
               ),
             ),
-          ),
-          AstraeaIconButton(
-            tooltip: l10n.deleteTooltip,
-            icon: Icons.delete_outline,
-            onPressed: () => _confirmDelete(context, ref, event),
-          ),
-          const SizedBox(width: 12),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 14, 20, 32),
-        children: [
-          AstraeaGlassSurface(
-            padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
-            radius: AstraeaTokens.radiusLg,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 34,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: eventColor,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  event.title.isEmpty ? l10n.untitledEvent : event.title,
-                  style: Theme.of(context).textTheme.headlineMedium,
-                ),
-                const SizedBox(height: 18),
+            AstraeaIconButton(
+              tooltip: l10n.deleteTooltip,
+              icon: Icons.delete_outline,
+              onPressed: () => _confirmDelete(context, ref, event),
+            ),
+            const SizedBox(width: 12),
+          ],
+        ),
+        body: Builder(
+          builder: (context) => ListView(
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+            children: [
+              Text(
+                event.title.isEmpty ? l10n.untitledEvent : event.title,
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
+              const SizedBox(height: 18),
+              _DetailRow(
+                icon: Icons.schedule_rounded,
+                label: event.isAllDay
+                    ? l10n.allDayLabel(
+                        Formatter.dayLabel(event.startTimeUtc, event.timezone),
+                      )
+                    : '${Formatter.fullLabel(event.startTimeUtc, event.timezone)}\n${Formatter.fullLabel(event.endTimeUtc, event.timezone)}',
+              ),
+              _DetailRow(icon: Icons.public_rounded, label: event.timezone),
+              if (event.location != null && event.location!.isNotEmpty)
+                _DetailRow(icon: Icons.place_outlined, label: event.location!),
+              if (event.recurrence != RecurrenceType.none)
                 _DetailRow(
-                  icon: Icons.schedule_rounded,
-                  label: event.isAllDay
-                      ? l10n.allDayLabel(
+                  icon: Icons.repeat_rounded,
+                  label: event.recurrenceEnd == null
+                      ? Formatter.recurrenceLabel(l10n, event.recurrence)
+                      : l10n.recurrenceUntilLabel(
+                          Formatter.recurrenceLabel(l10n, event.recurrence),
                           Formatter.dayLabel(
-                            event.startTimeUtc,
+                            event.recurrenceEnd!,
                             event.timezone,
                           ),
-                        )
-                      : '${Formatter.fullLabel(event.startTimeUtc, event.timezone)}\n${Formatter.fullLabel(event.endTimeUtc, event.timezone)}',
+                        ),
                 ),
-                _DetailRow(icon: Icons.public_rounded, label: event.timezone),
-                if (event.location != null && event.location!.isNotEmpty)
-                  _DetailRow(
-                    icon: Icons.place_outlined,
-                    label: event.location!,
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 14),
-          AstraeaGlassSurface(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-            shadow: false,
-            child: Column(
-              children: [
-                if (event.recurrence != RecurrenceType.none)
-                  _DetailRow(
-                    icon: Icons.repeat_rounded,
-                    label: event.recurrenceEnd == null
-                        ? Formatter.recurrenceLabel(l10n, event.recurrence)
-                        : l10n.recurrenceUntilLabel(
-                            Formatter.recurrenceLabel(l10n, event.recurrence),
-                            Formatter.dayLabel(
-                              event.recurrenceEnd!,
-                              event.timezone,
-                            ),
-                          ),
-                  ),
-                if (event.reminders.isNotEmpty)
-                  _DetailRow(
-                    icon: Icons.notifications_outlined,
-                    label: event.reminders
-                        .map(
-                          (r) => Formatter.reminderLabel(l10n, r.minutesBefore),
-                        )
-                        .join(', '),
-                  ),
-              ],
-            ),
-          ),
-          if (event.description.isNotEmpty) ...[
-            const SizedBox(height: 14),
-            AstraeaGlassSurface(
-              padding: const EdgeInsets.all(18),
-              shadow: false,
-              child: Text(
-                event.description,
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
-            ),
-          ],
-          const SizedBox(height: 18),
-          Row(
-            children: [
-              Icon(
-                event.synced
-                    ? Icons.cloud_done_outlined
-                    : Icons.cloud_off_outlined,
-                size: 18,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                event.synced ? l10n.syncedToRelays : l10n.notYetSynced,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+              if (event.reminders.isNotEmpty)
+                _DetailRow(
+                  icon: Icons.notifications_outlined,
+                  label: event.reminders
+                      .map(
+                        (r) => Formatter.reminderLabel(l10n, r.minutesBefore),
+                      )
+                      .join(', '),
                 ),
+              if (event.description.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(
+                  event.description,
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Icon(
+                    event.synced
+                        ? Icons.cloud_done_outlined
+                        : Icons.cloud_off_outlined,
+                    size: 18,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    event.synced ? l10n.syncedToRelays : l10n.notYetSynced,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -215,7 +185,12 @@ class _DetailRow extends StatelessWidget {
           ),
           const SizedBox(width: 16),
           Expanded(
-            child: Text(label, style: Theme.of(context).textTheme.bodyLarge),
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
           ),
         ],
       ),

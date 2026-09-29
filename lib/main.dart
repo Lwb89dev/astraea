@@ -180,6 +180,12 @@ class AstraeaApp extends ConsumerWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: AppLocalizations.supportedLocales,
+      builder: (context, child) {
+        return Stack(
+          fit: StackFit.expand,
+          children: [const AstraeaBackdrop(), ?child],
+        );
+      },
       home: desktop.isLinuxDesktop
           // Desktop: astraea:// deep links + desktop chrome. The Android
           // home-widget launch handler stays out of this path entirely.

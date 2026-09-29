@@ -71,7 +71,7 @@ enum class WidgetAccent(val prefsValue: String, val labelRes: Int) {
 
     companion object {
         fun fromPrefsValue(value: String?): WidgetAccent =
-            entries.firstOrNull { it.prefsValue == value } ?: NAVY
+            entries.firstOrNull { it.prefsValue == value } ?: BITCOIN
     }
 }
 
@@ -153,7 +153,7 @@ object AstraeaWidgetData {
         prefs.edit().putInt("offset_$widgetId", (current + delta).coerceIn(minOffset, maxOffset)).apply()
     }
 
-    /** This widget instance's theme (see [WidgetAccent]); NAVY until chosen. */
+    /** This widget instance's theme (see [WidgetAccent]); BITCOIN until chosen. */
     fun widgetAccent(context: Context, widgetId: Int): WidgetAccent =
         WidgetAccent.fromPrefsValue(
             context.getSharedPreferences(STATE_PREFS, Context.MODE_PRIVATE)
@@ -162,7 +162,7 @@ object AstraeaWidgetData {
 
     /**
      * Whether a theme has ever actually been chosen for this widget, as
-     * opposed to [widgetAccent] merely falling back to NAVY. Distinguishes
+     * opposed to [widgetAccent] merely falling back to BITCOIN. Distinguishes
      * "this is the first-placement configure launch" from "some launcher
      * re-launched the configure activity to reconfigure an existing widget"
      * — see [AstraeaWidgetConfigActivity].
