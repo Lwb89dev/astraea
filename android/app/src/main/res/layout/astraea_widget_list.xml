@@ -49,7 +49,7 @@
             android:id="@+id/widget_add"
             android:layout_width="28dp"
             android:layout_height="28dp"
-            android:background="@drawable/astraea_widget_add_background"
+            android:background="@drawable/astraea_widget_add_background_bitcoin"
             android:contentDescription="@string/astraea_widget_add"
             android:padding="6dp"
             android:src="@drawable/astraea_widget_plus" />

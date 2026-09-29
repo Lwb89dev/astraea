@@ -15,7 +15,7 @@
 #
 # Requires ImageMagick (`convert`). The geometry mirrors the real layouts —
 # same scrim, corner radius, paddings, text sizes and accent tones as
-# astraea_widget_background.xml / astraea_widget_item.xml / the navy drawables
+# astraea_widget_background.xml / astraea_widget_item.xml / the bitcoin drawables
 # — so the raster preview and the API 31+ layout preview agree.
 set -euo pipefail
 
@@ -32,8 +32,8 @@ command -v convert >/dev/null || {
 # for a picker thumbnail and keeps the PNGs small. Every constant below is
 # therefore "dp * 2".
 SCRIM='#161A2ECC'      # astraea_widget_background.xml, 90% of #E6161A2E
-ACCENT_DARK='#3F51B5'  # astraea_widget_dot.xml   (navy, saturated)
-ACCENT_LIGHT='#9FA8DA' # astraea_widget_today.xml (navy, light)
+ACCENT_DARK='#F7931A'  # astraea_widget_dot_bitcoin.xml   (bitcoin, saturated)
+ACCENT_LIGHT='#FBC287' # astraea_widget_today_bitcoin.xml (bitcoin, light)
 WHITE='#FFFFFF'
 MUTED='#B3FFFFFF'
 RADIUS=40

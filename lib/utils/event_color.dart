@@ -11,11 +11,11 @@ Color parseEventColor(String value) {
 
 /// The preset palette offered in the event editor.
 const List<int> kEventColorPalette = [
+  0xFF6A35F0, // iris
+  0xFFFF4F78, // coral
   0xFF2196F3, // blue
   0xFF4CAF50, // green
   0xFFF44336, // red
   0xFFFF9800, // orange
-  0xFF9C27B0, // purple
-  0xFF009688, // teal
   0xFF607D8B, // blue grey
 ];

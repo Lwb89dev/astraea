@@ -58,42 +58,30 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final settings = ref.watch(settingsProvider);
 
     return Scaffold(
-      body: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Theme.of(context).colorScheme.surface,
-              Theme.of(context).colorScheme.primary.withValues(alpha: 0.09),
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              Expanded(
-                child: PageView(
-                  controller: _controller,
-                  onPageChanged: (page) => setState(() => _page = page),
-                  children: [
-                    const _IntroPage(),
-                    _LoginPage(onLoggedIn: () => _goToPage(2)),
-                    const _RelaySetupPage(),
-                  ],
-                ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: PageView(
+                controller: _controller,
+                onPageChanged: (page) => setState(() => _page = page),
+                children: [
+                  const _IntroPage(),
+                  _LoginPage(onLoggedIn: () => _goToPage(2)),
+                  const _RelaySetupPage(),
+                ],
               ),
-              _BottomBar(
-                page: _page,
-                accountConnected: auth.value != null,
-                canFinish: settings.hasValue,
-                onBack: () => _goToPage(_page - 1),
-                onNext: () => _goToPage(_page + 1),
-                onSkip: _finish,
-                onFinish: _finish,
-              ),
-            ],
-          ),
+            ),
+            _BottomBar(
+              page: _page,
+              accountConnected: auth.value != null,
+              canFinish: settings.hasValue,
+              onBack: () => _goToPage(_page - 1),
+              onNext: () => _goToPage(_page + 1),
+              onSkip: _finish,
+              onFinish: _finish,
+            ),
+          ],
         ),
       ),
     );

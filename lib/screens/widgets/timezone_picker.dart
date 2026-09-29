@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 import '../../l10n/app_localizations.dart';
+import '../../widgets/astraea_ui.dart';
 
 /// A scrollable, searchable list of IANA timezones, sourced from the timezone
 /// package's own database — the user picks one, they never type it. A typo in a
@@ -19,13 +20,21 @@ Future<String?> showTimezonePicker(
   String? current,
   bool allowFollowDevice = true,
 }) {
+  final paper = Theme.of(context).colorScheme.surfaceContainerLowest;
   return showModalBottomSheet<String>(
     context: context,
     isScrollControlled: true,
-    showDragHandle: true,
-    builder: (_) => _TimezonePickerSheet(
-      current: current,
-      allowFollowDevice: allowFollowDevice,
+    backgroundColor: Colors.transparent,
+    elevation: 0,
+    builder: (_) => AstraeaSheet(
+      tint: paper,
+      radius: const BorderRadius.vertical(
+        top: Radius.circular(AstraeaTokens.radiusLg),
+      ),
+      child: _TimezonePickerSheet(
+        current: current,
+        allowFollowDevice: allowFollowDevice,
+      ),
     ),
   );
 }
@@ -110,15 +119,34 @@ class _TimezonePickerSheetState extends State<_TimezonePickerSheet> {
         height: mediaQuery.size.height * 0.75,
         child: Column(
           children: [
+            const SizedBox(height: 10),
+            Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.28),
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: TextField(
-                controller: _searchController,
-                autofocus: false,
-                decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.search),
-                  hintText: l10n.searchCityRegion,
-                  border: const OutlineInputBorder(),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: AstraeaGlassSurface(
+                frosted: true,
+                radius: AstraeaTokens.radiusLg,
+                shadow: false,
+                child: TextField(
+                  controller: _searchController,
+                  autofocus: false,
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.search),
+                    hintText: l10n.searchCityRegion,
+                    filled: false,
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                  ),
                 ),
               ),
             ),

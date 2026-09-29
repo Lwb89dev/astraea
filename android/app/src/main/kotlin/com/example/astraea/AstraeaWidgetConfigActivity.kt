@@ -45,7 +45,7 @@ class AstraeaWidgetConfigActivity : Activity() {
 
         AlertDialog.Builder(this)
             .setTitle(R.string.astraea_widget_choose_theme)
-            .setSingleChoiceItems(labels, accents.indexOf(WidgetAccent.NAVY)) { dialog, which ->
+            .setSingleChoiceItems(labels, accents.indexOf(WidgetAccent.BITCOIN)) { dialog, which ->
                 chooseTheme(widgetId, accents[which])
                 dialog.dismiss()
             }

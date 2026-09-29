@@ -162,7 +162,7 @@ private class MonthGridFactory(
     private var cells: List<Cell> = emptyList()
     private var scale = 1f
     private var offset = 0
-    private var accent = WidgetAccent.NAVY
+    private var accent = WidgetAccent.BITCOIN
 
     /** [day] is null for the blank cells before the 1st. */
     private data class Cell(val day: Int?, val isToday: Boolean, val firstEventId: String?)

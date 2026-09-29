@@ -51,6 +51,17 @@
     <control>touch</control>
   </supports>
   <releases>
+    <release version="1.1.0" date="2026-09-29">
+      <description>
+        <p>The interface follows the Echoes desk: iris and coral replace teal,
+        an aurora sits behind frosted navigation, and event cards and an
+        opened event share one gloss. The default accent is Bitcoin orange;
+        an accent already saved on the device is left as it is. In the dark
+        theme the month title, weekday names, neighbouring-month days and
+        an event's description stay on light ink, including on a navy
+        aurora and on a bright event colour.</p>
+      </description>
+    </release>
     <release version="1.0.0" date="2026-08-10">
       <description>
         <p>First stable release. The interface has been rebuilt across every
