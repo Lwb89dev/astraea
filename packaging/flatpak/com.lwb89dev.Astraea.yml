@@ -1,0 +1,57 @@
+# Flatpak manifest for the Astraea DESKTOP APP ONLY.
+#
+# Architectural decision (trade-offs in docs/packaging.md): the background
+# service is NOT shipped inside the sandbox. A Flatpak cannot own a session
+# D-Bus activation name for other clients (GNOME extension, CLI) without
+# --own-name plus a host-visible activation file, and Secret Service +
+# systemd integration degrade badly. The service comes from the native
+# packages; this Flatpak is the GUI talking to it over the session bus.
+# On systems where native packages are unavailable, the GUI shows its
+# "service unreachable" recovery screen with instructions.
+#
+# Build: flatpak-builder against a prebuilt bundle staged by
+# scripts/build-linux.sh (Flutter has no SDK extension in the freedesktop
+# runtime; building Flutter in-sandbox is not honest today).
+#   ./scripts/build-linux.sh
+#   flatpak-builder --user --install dist/flatpak-build packaging/flatpak/com.lwb89dev.Astraea.yml
+
+app-id: com.lwb89dev.Astraea
+runtime: org.freedesktop.Platform
+runtime-version: '24.08'
+sdk: org.freedesktop.Sdk
+command: astraea
+
+finish-args:
+  # Display + input.
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --share=ipc
+  - --device=dri
+  # The whole point: the session bus name of the native service. This is
+  # the ONLY bus access; no --socket=session-bus catch-all.
+  - --talk-name=com.lwb89dev.Astraea.Service
+  # astraea:// deep links arrive through the portal-exported handler; the
+  # GUI itself needs no network (the service does the syncing) and no
+  # filesystem access beyond its own app data.
+
+modules:
+  - name: astraea
+    buildsystem: simple
+    build-commands:
+      - mkdir -p /app/lib/astraea
+      - cp -a bundle/. /app/lib/astraea/
+      - ln -s /app/lib/astraea/astraea /app/bin/astraea
+      - install -Dm0644 com.lwb89dev.Astraea.desktop /app/share/applications/com.lwb89dev.Astraea.desktop
+      - install -Dm0644 com.lwb89dev.Astraea.metainfo.xml /app/share/metainfo/com.lwb89dev.Astraea.metainfo.xml
+      - install -Dm0644 icon-512.png /app/share/icons/hicolor/512x512/apps/com.lwb89dev.Astraea.png
+    sources:
+      - type: dir
+        path: ../../dist/stage/usr/lib/astraea
+        dest: bundle
+      - type: file
+        path: ../../assets/desktop/com.lwb89dev.Astraea.desktop
+      - type: file
+        path: ../../assets/appstream/com.lwb89dev.Astraea.metainfo.xml
+      - type: file
+        path: ../../dist/stage/usr/share/icons/hicolor/512x512/apps/com.lwb89dev.Astraea.png
+        dest-filename: icon-512.png

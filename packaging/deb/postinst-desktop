@@ -1,0 +1,18 @@
+#!/bin/sh
+# astraea-desktop postinst: refresh caches only, never touch user homes,
+# never enable services, keep working on headless installs.
+set -e
+
+case "$1" in
+    configure)
+        if command -v update-desktop-database >/dev/null 2>&1; then
+            update-desktop-database -q /usr/share/applications || true
+        fi
+        if command -v gtk-update-icon-cache >/dev/null 2>&1 \
+            && [ -d /usr/share/icons/hicolor ]; then
+            gtk-update-icon-cache -q /usr/share/icons/hicolor || true
+        fi
+        ;;
+esac
+
+exit 0

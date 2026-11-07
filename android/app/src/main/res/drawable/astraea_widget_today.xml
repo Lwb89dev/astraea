@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Highlight behind today's number in the month grid. -->
+<!-- Navy theme: highlight behind today's number in the month grid — the
+     lighter tone of the pair (astraea_widget_dot.xml is the darker,
+     saturated event-indicator tone). -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="oval">
     <solid android:color="#FF9FA8DA" />

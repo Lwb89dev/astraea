@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bitcoin theme: pill behind the "+" (see astraea_widget_add_background.xml).
+     astraea_widget_plus.xml's dark icon tint already reads fine against this
+     light tone, same as every other accent's day-background shade. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <solid android:color="#FFFBC287" />
+</shape>

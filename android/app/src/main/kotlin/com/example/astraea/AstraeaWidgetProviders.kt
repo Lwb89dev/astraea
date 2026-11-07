@@ -9,6 +9,8 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.TypedValue
 import android.widget.RemoteViews
 import es.antonborri.home_widget.HomeWidgetLaunchIntent
@@ -39,6 +41,19 @@ abstract class AstraeaWidgetProvider : AppWidgetProvider() {
     companion object {
         private const val ACTION_PREVIOUS = "com.example.astraea.widget.PREVIOUS"
         private const val ACTION_NEXT = "com.example.astraea.widget.NEXT"
+
+        /**
+         * Some third-party AppWidgetHost implementations (observed on
+         * Lawnchair beta) briefly restore a stale cached RemoteViews
+         * snapshot right after a click-triggered update — the header
+         * flashes the correct new text, then reverts to the old one for a
+         * moment, even though the grid (bound separately through
+         * notifyAppWidgetViewDataChanged) already shows the new period.
+         * Nothing in this file ever writes the offset backwards, so a
+         * second, identical update shortly after wins that race on hosts
+         * that do this; it's a harmless no-op everywhere else.
+         */
+        private const val STUBBORN_REAPPLY_DELAY_MS = 400L
     }
 
     /** Which list/grid this widget shows — see [AstraeaWidgetService]. */
@@ -55,6 +70,17 @@ abstract class AstraeaWidgetProvider : AppWidgetProvider() {
      *  minWidth/minHeight in the appwidget-info XML. */
     abstract val baseWidthDp: Float
     abstract val baseHeightDp: Float
+
+    /**
+     * How far PREVIOUS/NEXT may move, in this widget's own offset unit
+     * (days/weeks/months). Must track HomeWidgetService's cache window
+     * (currently 92 days back, 185 days forward) converted to that unit —
+     * past that, the Flutter side never published data for the period at
+     * all, so the widget would keep "navigating" into a permanently empty
+     * view instead of the empty state actually meaning "no events".
+     */
+    abstract val maxPastOffset: Int
+    abstract val maxFutureOffset: Int
 
     /** Header text, recomputed at every draw (never baked in by the app). */
     abstract fun headerText(offset: Int): String
@@ -85,6 +111,8 @@ abstract class AstraeaWidgetProvider : AppWidgetProvider() {
 
             val views = RemoteViews(context.packageName, layoutId)
             val offset = AstraeaWidgetData.periodOffset(context, widgetId)
+            val accent = AstraeaWidgetData.widgetAccent(context, widgetId)
+            views.setInt(R.id.widget_add, "setBackgroundResource", accent.addBackground)
             views.setTextViewText(R.id.widget_header, headerText(offset))
             views.setTextViewTextSize(R.id.widget_header, TypedValue.COMPLEX_UNIT_SP, 13f * scale)
             views.setTextViewTextSize(R.id.widget_empty, TypedValue.COMPLEX_UNIT_SP, 12f * scale)
@@ -198,8 +226,22 @@ abstract class AstraeaWidgetProvider : AppWidgetProvider() {
                         context,
                         widgetId,
                         if (intent.action == ACTION_PREVIOUS) -1 else 1,
+                        minOffset = -maxPastOffset,
+                        maxOffset = maxFutureOffset,
                     )
                     onUpdate(context, manager, intArrayOf(widgetId))
+
+                    // See STUBBORN_REAPPLY_DELAY_MS. goAsync() keeps this
+                    // receiver (and the process) alive long enough for the
+                    // delayed re-update to actually run.
+                    val pending = goAsync()
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        try {
+                            onUpdate(context, manager, intArrayOf(widgetId))
+                        } finally {
+                            pending.finish()
+                        }
+                    }, STUBBORN_REAPPLY_DELAY_MS)
                 }
             }
             Intent.ACTION_DATE_CHANGED,
@@ -238,6 +280,10 @@ class AstraeaDayWidgetProvider : AstraeaWidgetProvider() {
     override val collectionViewId = R.id.widget_list
     override val baseWidthDp = 250f
     override val baseHeightDp = 110f
+    // Matches HomeWidgetService's cache window exactly: this offset is
+    // already in days.
+    override val maxPastOffset = 92
+    override val maxFutureOffset = 185
 
     override fun headerText(offset: Int): String =
         SimpleDateFormat("EEEE d MMMM", Locale.getDefault())
@@ -250,6 +296,9 @@ class AstraeaWeekWidgetProvider : AstraeaWidgetProvider() {
     override val collectionViewId = R.id.widget_list
     override val baseWidthDp = 250f
     override val baseHeightDp = 150f
+    // 92/185 days, in weeks.
+    override val maxPastOffset = 13
+    override val maxFutureOffset = 26
 
     override fun headerText(offset: Int): String {
         val start = AstraeaWidgetData.startOfWeek(offset)
@@ -266,6 +315,9 @@ class AstraeaMonthWidgetProvider : AstraeaWidgetProvider() {
     override val collectionViewId = R.id.widget_grid
     override val baseWidthDp = 250f
     override val baseHeightDp = 180f
+    // 92/185 days, in months.
+    override val maxPastOffset = 3
+    override val maxFutureOffset = 6
 
     override fun headerText(offset: Int): String =
         SimpleDateFormat("MMMM y", Locale.getDefault())

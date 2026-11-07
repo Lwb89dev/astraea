@@ -15,6 +15,11 @@ class EventOccurrence {
     required this.endUtc,
   });
 
+  /// Kairos mirrors a task due instant as a zero-length occurrence. Such an
+  /// occurrence belongs to exactly the local day containing [startUtc], not
+  /// to the day before it after subtracting one millisecond from [endUtc].
+  bool get isPoint => startUtc == endUtc;
+
   bool get isRecurringInstance => event.recurrence != RecurrenceType.none;
 }
 
@@ -45,8 +50,18 @@ class RecurrenceExpander {
 
     void addIfOverlaps(DateTime startUtc) {
       final endUtc = startUtc.add(duration);
-      // Overlap test for a half-open query window.
-      if (endUtc.isAfter(rangeStartUtc) && startUtc.isBefore(rangeEndUtc)) {
+      // A genuine (positive-width) interval overlaps the half-open query
+      // window [rangeStartUtc, rangeEndUtc) with the standard test below.
+      // A zero-duration occurrence — a point in time, not an interval; the
+      // Astraea/Kairos integration mirrors a task's due instant this way,
+      // startTimeUtc == endTimeUtc — needs point-in-range containment
+      // instead: a zero-width "interval" satisfies neither half of the
+      // interval test when it lands exactly on a boundary (e.g. local
+      // midnight), which would make it belong to *no* day at all.
+      final overlaps = duration == Duration.zero
+          ? !startUtc.isBefore(rangeStartUtc) && startUtc.isBefore(rangeEndUtc)
+          : endUtc.isAfter(rangeStartUtc) && startUtc.isBefore(rangeEndUtc);
+      if (overlaps) {
         occurrences.add(
           EventOccurrence(event: event, startUtc: startUtc, endUtc: endUtc),
         );

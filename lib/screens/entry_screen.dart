@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
 import 'widgets/nostr_login_form.dart';
 
 /// Adds a Nostr identity to an existing local-only session.
@@ -11,8 +12,9 @@ class EntryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Add a Nostr account')),
+      appBar: AppBar(title: Text(l10n.addNostrAccountTitle)),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(

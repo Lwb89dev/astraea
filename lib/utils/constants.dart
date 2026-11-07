@@ -32,12 +32,27 @@ class AppConstants {
   // Default relays
   // ---------------------------------------------------------------------
 
-  /// Public relays suggested during onboarding. They are deliberately not
-  /// selected on the user's behalf: choosing a relay reveals the user's IP
-  /// address and Nostr public key to its operator.
+  /// The implicit relay set for installations that chose relays before this
+  /// list existed (see [LocalStorageService.loadSettings]) — must stay
+  /// exactly what it always was, or an in-place app update would silently
+  /// start talking to relay operators the user never actually chose.
   static const List<String> defaultRelays = [
     'wss://nos.lol',
     'wss://relay.damus.io',
+  ];
+
+  /// Public relays suggested during onboarding and in Settings. They are
+  /// deliberately not selected on the user's behalf — each is only added if
+  /// the user taps it — since choosing a relay reveals the user's IP address
+  /// and Nostr public key to its operator. A longer list than
+  /// [defaultRelays] on purpose: redundancy against any one of them being
+  /// slow or temporarily unreachable.
+  static const List<String> suggestedRelays = [
+    ...defaultRelays,
+    'wss://relay.primal.net',
+    'wss://relay.nostr.band',
+    'wss://nostr.mom',
+    'wss://relay.snort.social',
   ];
 
   /// Well-known metadata-oriented relays always queried (in addition to the
@@ -54,6 +69,15 @@ class AppConstants {
   /// The developer's Lightning address, offered in Settings > Support.
   static const String lightningAddress = 'lwb89@blink.sv';
 
+  /// Public Nominatim search endpoint. The geocoding service takes this as
+  /// its default and accepts another HTTPS URI in its constructor.
+  static const String nominatimSearchUrl =
+      'https://nominatim.openstreetmap.org/search';
+
+  /// Identifying agent required by the public Nominatim usage policy.
+  static const String geocoderUserAgent =
+      'Astraea/1.1.0 (+https://github.com/Lwb89dev/astraea)';
+
   // ---------------------------------------------------------------------
   // SharedPreferences keys (non-sensitive settings)
   // ---------------------------------------------------------------------
@@ -68,6 +92,14 @@ class AppConstants {
   static const String prefsTimezoneKey = 'epochs.timezone';
   static const String prefsNotificationsEnabledKey =
       'epochs.notifications_enabled';
+
+  /// IETF BCP-47 tag ("it", "pt-BR" is not used here — the supported set is
+  /// flat language codes, see AppLocalizations.supportedLocales). Null/absent
+  /// means "follow the system language".
+  static const String prefsLocaleKey = 'astraea.locale';
+
+  /// [AppAccent.prefsValue]. Null/absent means the default (Bitcoin orange).
+  static const String prefsAccentKey = 'astraea.accent';
 
   /// Last-fetched profile metadata (name/avatar URL) for the signed-in
   /// account, so Settings shows something immediately on launch instead of a
@@ -92,6 +124,13 @@ class AppConstants {
   /// The legacy value is part of the on-device data migration contract.
   static const String secureStoragePrivateKeyKey = 'epochs.privkey';
 
+  /// flutter_secure_storage key for the NIP-46 remote-signer session JSON
+  /// (ephemeral client key + bunker secret + signer/relay coordinates). It is
+  /// secret material — the client key authorizes this device against the
+  /// user's signer — so it lives beside the private key, never in
+  /// SharedPreferences.
+  static const String secureStorageRemoteSignerKey = 'astraea.nip46_session';
+
   /// Name of the Hive box that holds the calendar events. Kept stable across
   /// the Astraea rename so existing calendars remain available.
   static const String eventsBoxName = 'epochs_events';
@@ -115,6 +154,12 @@ class AppConstants {
   /// relay's EOSE ("end of stored events"), after which we treat the
   /// initial fetch as complete even if a slow relay never sent EOSE.
   static const Duration syncEoseTimeout = Duration(seconds: 10);
+
+  /// Upper bound on how long we wait for a NIP-46 remote signer to answer one
+  /// request. Generous on purpose: a bunker typically has to wake the user's
+  /// phone and show an approval prompt. Without it a silent signer would hang
+  /// the calling screen indefinitely.
+  static const Duration remoteSignerRequestTimeout = Duration(seconds: 90);
 
   /// Upper bound on how long we wait for Amber to respond to a request
   /// (get_public_key, sign_event, nip44_*). `amberflutter`'s Android side

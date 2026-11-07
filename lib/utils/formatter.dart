@@ -1,6 +1,7 @@
 import 'package:intl/intl.dart';
 import 'package:timezone/timezone.dart' as tz;
 
+import '../l10n/app_localizations.dart';
 import '../models/event_model.dart';
 
 /// Display helpers that convert the always-UTC event instants into the
@@ -54,33 +55,31 @@ class Formatter {
   }
 
   /// Human label for a recurrence preset.
-  static String recurrenceLabel(RecurrenceType type) {
+  static String recurrenceLabel(AppLocalizations l10n, RecurrenceType type) {
     switch (type) {
       case RecurrenceType.none:
-        return 'Does not repeat';
+        return l10n.recurrenceNone;
       case RecurrenceType.daily:
-        return 'Daily';
+        return l10n.recurrenceDaily;
       case RecurrenceType.weekly:
-        return 'Weekly';
+        return l10n.recurrenceWeekly;
       case RecurrenceType.monthly:
-        return 'Monthly';
+        return l10n.recurrenceMonthly;
       case RecurrenceType.yearly:
-        return 'Yearly';
+        return l10n.recurrenceYearly;
     }
   }
 
   /// Human label for a reminder offset in minutes.
-  static String reminderLabel(int minutesBefore) {
-    if (minutesBefore == 0) return 'At start';
-    if (minutesBefore < 60) return '$minutesBefore min before';
+  static String reminderLabel(AppLocalizations l10n, int minutesBefore) {
+    if (minutesBefore == 0) return l10n.reminderAtStart;
+    if (minutesBefore < 60) return l10n.reminderMinutesBefore(minutesBefore);
     if (minutesBefore % 1440 == 0) {
-      final days = minutesBefore ~/ 1440;
-      return days == 1 ? '1 day before' : '$days days before';
+      return l10n.reminderDaysBefore(minutesBefore ~/ 1440);
     }
     if (minutesBefore % 60 == 0) {
-      final hours = minutesBefore ~/ 60;
-      return hours == 1 ? '1 hour before' : '$hours hours before';
+      return l10n.reminderHoursBefore(minutesBefore ~/ 60);
     }
-    return '$minutesBefore min before';
+    return l10n.reminderMinutesBefore(minutesBefore);
   }
 }

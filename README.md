@@ -10,7 +10,7 @@
 
 <p align="center">
   <img alt="Flutter" src="https://img.shields.io/badge/Flutter-stable-02569B?logo=flutter&logoColor=white">
-  <img alt="Nostr" src="https://img.shields.io/badge/Nostr-NIP--44-8A2BE2">
+  <img alt="Nostr" src="https://img.shields.io/badge/Nostr-NIP--44%20%C2%B7%20NIP--46-8A2BE2">
   <img alt="License" src="https://img.shields.io/badge/license-GPL--3.0--or--later-blue">
 </p>
 
@@ -34,8 +34,12 @@ details.
   occurrences and reboot restoration on Android.
 - **Optional Nostr sync** using encrypted kind `30078` parameterized-replaceable
   events and NIP-09 deletion requests.
-- **Flexible identity** through an imported key, a locally generated account or
-  the Amber NIP-55 external signer on Android.
+- **Flexible identity** through an imported key, a locally generated account,
+  the Amber NIP-55 external signer on Android, or a **NIP-46 remote signer
+  ("bunker") on both Android and Linux** — the account private key never
+  reaches the device at all.
+- **Sync on launch**: every start reconciles with the relays before you touch
+  anything, on mobile and on the Linux service alike.
 - **Explicit relay choice** during onboarding and in Settings. `nos.lol` and
   `relay.damus.io` are suggestions, not mandatory infrastructure.
 - **Personal relay support** as an additional backup destination.
@@ -61,14 +65,47 @@ details.
 
 No Astraea server, account service or analytics backend sits in this path.
 
+## Signing without holding a key (NIP-46)
+
+A remote signer keeps the account private key on hardware you control and
+answers signing requests over a relay. Astraea stores only a throwaway client
+key, which the signer authorizes by public key and can revoke at any time.
+
+```bash
+# Linux: connect a bunker (this also logs you in, and enables background
+# signing without any key material on the machine).
+astraea-service auth connect-bunker      # paste bunker://… on stdin
+astraea-service auth status              # signer: remote_nip46, state: ready
+```
+
+On Android, and in the Linux app's Settings, the same flow is a
+"Sign in with a remote signer" field that takes the `bunker://` string.
+Every reply from the signer is checked before it is trusted: kind, author,
+NIP-01 event id and Schnorr signature, and — for a signed event — that every
+field still matches what Astraea asked to have signed.
+
 ## Platform status
 
 | Platform | Status | Notes |
 | --- | --- | --- |
-| Android | Supported | Primary audited target; Amber and home-screen widgets available. |
+| Android | Supported | Primary audited target; Amber (NIP-55), NIP-46 bunker login and home-screen widgets available. |
+| Linux desktop | Supported | Flutter app + `astraea-service` daemon (D-Bus, encrypted Nostr sync, browser NIP-07 login, NIP-46 bunker login with background signing), GNOME Shell extension, modular packaging (deb/rpm/PKGBUILD/Flatpak/tarball). |
 | Web | Experimental | Builds are scaffolded, but sensitive production use needs a browser/CSP review. |
 | iOS | Not configured | Platform project and release hardening are not included yet. |
-| Desktop | Not configured | No packaged desktop targets yet. |
+
+### Linux in short
+
+```bash
+./scripts/install-dev.sh        # user-session dev install (no root)
+flutter run -d linux            # the desktop UI (talks to the service over D-Bus)
+astraea-service diagnostics     # paths, D-Bus, database, relays — no secrets
+```
+
+The background service owns storage, sync, auth and notifications; the
+Flutter app, the GNOME extension and the COSMIC applet are thin D-Bus
+frontends. Start from [docs/linux-architecture.md](docs/linux-architecture.md),
+[docs/packaging.md](docs/packaging.md) and
+[docs/troubleshooting.md](docs/troubleshooting.md).
 
 ## Getting started
 
@@ -97,8 +134,10 @@ flutter test
 flutter build apk --debug
 ```
 
-The test suite covers NIP-44 official vectors, iCalendar round trips,
-recurrence expansion, relay settings and the first-launch onboarding flow.
+The test suite covers NIP-44 official vectors, NIP-46 connection-string and
+stored-session validation, iCalendar round trips, recurrence expansion, relay
+settings and the first-launch onboarding flow. The Rust service adds its own
+`cargo test --all-targets` suite (sync engine, login bridge, wire compat).
 
 ## Project structure
 
@@ -110,9 +149,14 @@ lib/
   services/     Storage, Nostr, sync, notifications, widgets and exports
   utils/        NIP-44, recurrence, iCalendar, formatting and validation
 android/        Android host app and native home-screen widgets
-test/           Unit, crypto-vector and widget tests
+linux/          Flutter Linux runner (single-instance, astraea:// deep links)
+native/         astraea-service Rust daemon, D-Bus XML, COSMIC applet
+extensions/     GNOME Shell extension (thin D-Bus frontend)
+packaging/      deb, rpm, Arch, Flatpak, tarball definitions
+scripts/        Linux build/install/packaging/version scripts
+test/           Unit, crypto-vector, wire-compat and widget tests
 web/            Experimental Flutter web shell
-docs/           Architecture, release notes and security audit
+docs/           Architecture, wire contract, threat model, packaging, releases
 ```
 
 ## Release builds
@@ -129,6 +173,14 @@ staged change.
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md)
+- [Linux architecture](docs/linux-architecture.md) ·
+  [D-Bus API](docs/dbus-api.md) ·
+  [Authentication](docs/authentication.md) ·
+  [Nostr wire contract](docs/nostr-sync.md)
+- [Packaging](docs/packaging.md) ·
+  [Threat model](docs/threat-model.md) ·
+  [Troubleshooting](docs/troubleshooting.md) ·
+  [Release process](docs/release-process.md)
 - [Privacy policy](PRIVACY.md)
 - [Security policy](SECURITY.md)
 - [Security audit](docs/SECURITY_AUDIT.md)

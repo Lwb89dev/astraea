@@ -1,0 +1,29 @@
+/* Astraea Calendar — panel popup styling. Kept minimal and theme-friendly:
+   colors come from the shell theme; only spacing/emphasis is adjusted. */
+
+.astraea-nav {
+    spacing: 8px;
+}
+
+.astraea-nav-button {
+    padding: 4px 8px;
+    border-radius: 6px;
+}
+
+.astraea-date-label {
+    font-weight: bold;
+}
+
+.astraea-field-label {
+    min-width: 48px;
+    padding-right: 8px;
+}
+
+.astraea-entry {
+    padding: 4px 8px;
+}
+
+.astraea-status {
+    font-size: 90%;
+    color: rgba(255, 255, 255, 0.6);
+}

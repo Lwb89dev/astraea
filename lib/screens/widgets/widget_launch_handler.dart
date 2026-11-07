@@ -70,7 +70,8 @@ class _WidgetLaunchHandlerState extends ConsumerState<WidgetLaunchHandler> {
             uri.scheme != HomeWidgetService.legacyScheme)) {
       return;
     }
-    developer.log('Widget launch: $uri', name: 'WidgetLaunchHandler');
+    // Route only: the URI carries the event id the widget was showing.
+    developer.log('Widget launch: ${uri.host}', name: 'WidgetLaunchHandler');
 
     // Nothing to route to while onboarding is still up — the tap just
     // opens the app, which is the sensible outcome anyway.

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src 'unsafe-inline'; script-src 'self' 'unsafe-inline' chrome-extension: moz-extension:; connect-src 'self'; form-action 'none'; base-uri 'none'">
+<title>Sign in to Astraea</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    font-family: system-ui, sans-serif;
+    display: flex; justify-content: center; align-items: center;
+    min-height: 100vh; margin: 0;
+    background: light-dark(#f5f5f7, #16161c);
+    color: light-dark(#1b1b22, #e8e8ef);
+  }
+  main {
+    max-width: 26rem; padding: 2rem; border-radius: 16px;
+    background: light-dark(#ffffff, #22222c);
+    box-shadow: 0 8px 30px rgba(0,0,0,.25);
+  }
+  h1 { font-size: 1.3rem; margin-top: 0; }
+  .muted { color: light-dark(#5a5a68, #9a9aac); font-size: .92rem; }
+  code { word-break: break-all; font-size: .85rem; }
+  button {
+    font-size: 1rem; padding: .65rem 1.4rem; border-radius: 10px;
+    border: none; background: #3F51B5; color: white; cursor: pointer;
+  }
+  button:disabled { opacity: .5; cursor: default; }
+  #status { margin-top: 1rem; min-height: 1.4em; }
+  .err { color: #d33; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Astraea — Linux desktop</h1>
+  <p class="muted">
+    The <strong>Astraea calendar service on this computer</strong> is asking
+    you to confirm your Nostr identity. Signing this one-time challenge
+    proves you own the key. <strong>Your private key is never requested and
+    never leaves your NIP-07 extension.</strong>
+  </p>
+  <p class="muted">Challenge: <code id="challenge"></code></p>
+  <p id="pubkey" class="muted"></p>
+  <button id="approve">Confirm with NIP-07</button>
+  <p id="status" class="muted" aria-live="polite"></p>
+</main>
+<script>
+(function () {
+  'use strict';
+  var params = new URLSearchParams(window.location.search);
+  var state = params.get('state') || '';
+  var challenge = params.get('challenge') || '';
+  document.getElementById('challenge').textContent = challenge;
+
+  var statusEl = document.getElementById('status');
+  var button = document.getElementById('approve');
+
+  function fail(message) {
+    statusEl.textContent = message;
+    statusEl.className = 'err';
+    button.disabled = false;
+  }
+
+  if (!state || !challenge) {
+    button.disabled = true;
+    fail('Invalid login link: missing state or challenge.');
+    return;
+  }
+
+  // NIP-07 extensions inject `window.nostr` through a content script. The
+  // injection can happen after this page's script (nos2x commonly does this
+  // at document_idle), so a single check — or a short three-second deadline —
+  // produces a false "not found" even when the extension is installed.
+  function nip07() {
+    var candidate = window.nostr;
+    return candidate && typeof candidate.getPublicKey === 'function' &&
+      typeof candidate.signEvent === 'function' ? candidate : null;
+  }
+
+  function waitForNip07(timeoutMs) {
+    return new Promise(function (resolve, reject) {
+      var deadline = Date.now() + timeoutMs;
+      (function poll() {
+        var candidate = nip07();
+        if (candidate) {
+          resolve(candidate);
+          return;
+        }
+        if (Date.now() >= deadline) {
+          reject(new Error('NIP-07 extension not available yet'));
+          return;
+        }
+        setTimeout(poll, 100);
+      })();
+    });
+  }
+
+  // Keep the action available immediately. Discovery continues in the
+  // background and the click path waits longer, instead of locking the user
+  // out after an arbitrary browser-extension startup deadline.
+  statusEl.textContent = 'Looking for a NIP-07 extension…';
+  waitForNip07(15000).then(function () {
+    statusEl.textContent = '';
+  }).catch(function () {
+    statusEl.textContent =
+      'NIP-07 not detected yet. Make sure nos2x is enabled for localhost ' +
+      'and click the button to retry.';
+  });
+
+  button.addEventListener('click', function () {
+    button.disabled = true;
+    statusEl.className = 'muted';
+    statusEl.textContent = 'Waiting for your NIP-07 extension…';
+
+    waitForNip07(30000).then(function (nostr) {
+      return nostr.getPublicKey().then(function (pubkey) {
+        return {nostr: nostr, pubkey: pubkey};
+      });
+    }).then(function (identity) {
+      var pubkey = identity.pubkey;
+      document.getElementById('pubkey').textContent =
+        'Identity: ' + pubkey;
+      var unsigned = {
+        kind: 22242,
+        created_at: Math.floor(Date.now() / 1000),
+        tags: [['challenge', challenge], ['client', 'astraea']],
+        content: 'Astraea Linux desktop login'
+      };
+      return identity.nostr.signEvent(unsigned);
+    }).then(function (signed) {
+      return fetch('/callback', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({state: state, event: signed})
+      });
+    }).then(function (response) {
+      if (!response.ok) {
+        return response.text().then(function (text) {
+          throw new Error(text || ('HTTP ' + response.status));
+        });
+      }
+      statusEl.textContent =
+        'Signed in! You can close this tab and return to Astraea.';
+      button.remove();
+    }).catch(function (error) {
+      fail('Login failed: ' + (error && error.message ? error.message : error));
+    });
+  });
+})();
+</script>
+</body>
+</html>

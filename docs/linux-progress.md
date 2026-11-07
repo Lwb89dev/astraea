@@ -1,0 +1,300 @@
+# Linux desktop integration — progress checklist
+
+Branch: `feature/linux-desktop-integration`.
+This file tracks the phased implementation plan from the Linux integration
+brief. Update it at the end of every phase.
+
+## Phase 0 — Repository audit ✅
+
+Findings (2026-07-19):
+
+- Single Flutter package `astraea` (version `0.1.1+2`, Dart SDK `^3.12.2`),
+  Android is the primary target; `web/` experimental; **no `linux/` runner**.
+- State management: Riverpod 3 (`AsyncNotifier`). Nostr: `dart_nostr` 10.
+- Persistence: Hive box `epochs_events` (events as JSON maps),
+  SharedPreferences (settings, legacy `epochs.*` keys), and
+  `flutter_secure_storage` for the private key (`epochs.privkey`).
+- Wire format: kind **30078** parameterized-replaceable events, `d` tag
+  `epochs:<uuid>`, content = `Event.toJson()` JSON **NIP-44 self-encrypted**
+  (own implementation over pointycastle, official test vectors in
+  `test/nip44_test.dart`). Deletion = encrypted tombstone (same `d` tag)
+  + NIP-09 kind-5 for the previous concrete event id. Merge: last-write-wins
+  on `updatedAt`; `created_at` of the 30078 event is `updatedAt`.
+- Identity: local key (imported/generated) or Amber (NIP-55, Android only).
+- Event model has **no calendarId** today (single implicit calendar) and no
+  attendees/status/visibility. Recurrence: presets daily/weekly/monthly/
+  yearly + optional end (no full RRULE).
+- CI: one workflow (format, hygiene script, analyze, test). No packaging.
+- License GPL-3.0-or-later. Namespace for D-Bus/AppStream:
+  `com.lwb89dev.Astraea` (developer: Lwb89dev).
+
+Risks identified:
+
+1. Duplicating Nostr logic (Dart ↔ Rust) can fork the wire format —
+   mitigated by a written wire contract (docs/nostr-sync.md) plus
+   cross-implementation compatibility tests (NIP-44 vectors + payload
+   round-trip fixtures shared between `test/` and the Rust crate).
+2. `calendarId` does not exist on the wire; adding it naively would be
+   erased by older Android clients on their next LWW write. Kept
+   local-first with a documented forward-compat rule (ADR-005).
+3. GNOME Shell is not installed on the dev machine (COSMIC): the extension
+   is validated by lint + mock D-Bus tests + documented manual test plan,
+   not by a local nested shell.
+4. Flatpak sandbox vs. session D-Bus service ownership — documented
+   trade-off in docs/packaging.md.
+
+## Phase 1 — Architecture ✅
+
+- [x] docs/linux-architecture.md (components, diagrams, ADRs)
+- [x] docs/dbus-api.md + introspection XML (native/dbus/)
+- [x] Model boundaries + shared-identity extraction strategy (ADR-004)
+
+## Phase 3 — Minimal service (Rust) ✅
+
+- [x] native/service crate: `com.lwb89dev.Astraea.Service`, Calendar1 +
+      NostrAccount1 interfaces (account iface stubbed until phase 6)
+- [x] SQLite (XDG paths, WAL, versioned migrations, backup-before-migrate,
+      corruption quarantine)
+- [x] CRUD events/calendars via D-Bus + EventsChanged/CalendarsChanged
+- [x] systemd user unit (hardened) + D-Bus activation file (+ documented
+      non-systemd fallback: dbus-daemon spawns Exec directly)
+- [x] CLI: status / sync / diagnostics / doctor / db migrate / auth
+- [x] 20 unit tests (model, recurrence parity with Dart, store, migrations)
+- Verified live: busctl create→GetDay→signals, activation via systemd user
+  manager, SIGTERM graceful shutdown, idle-exit policy.
+
+## Phase 4 — Flutter Linux ✅
+
+- [x] `flutter create --platforms=linux` runner; app id
+      `com.lwb89dev.Astraea`; single-instance GTK runner forwarding
+      astraea:// deep links over a method channel
+- [x] lib/desktop: DbusCalendarClient (+ListEvents on the service),
+      ServiceEventCodec, DesktopEventsNotifier override, status/calendar
+      providers — web/Android untouched via conditional import
+- [x] Desktop shell: calendars sidebar (wide windows), service/sync/auth
+      status tile, Sync-now action; full-screen recovery UI when the
+      service is unreachable
+- [x] Deep links: astraea://calendar/{day,week,month,agenda}/DATE,
+      astraea://event/ID, astraea://new-event?date=…
+- Verified: flutter analyze clean, 78 tests green, Linux release build,
+  Android debug APK still builds, single-instance forwarding tested.
+- Note: the mobile onboarding is skipped on desktop (service owns
+  relays/identity from phase 6 on).
+
+### Addendum (2026-07-21) — Settings actually wired to the service
+
+Phase 4 originally shipped a read-only status tile; the mobile
+`SettingsScreen`'s Account/Sync/Relay sections were still the *local*
+Hive/secure-storage/dart_nostr ones — reachable on desktop but pointed at
+nothing (no relay UI existed to make `SyncNow` do anything, and "sign in"
+there would have run mobile's local-key/Amber flow instead of the service's
+browser bridge). Fixed:
+
+- `lib/desktop/desktop_settings_sections.dart` (+ `_stub.dart`, same
+  `dart.library.io`/`Platform.isLinux` seam as `desktop_bootstrap.dart`):
+  desktop-only Account/Sync/Relay widgets spliced into the shared
+  `SettingsScreen` in place of the mobile ones, wired to
+  `com.lwb89dev.NostrAccount1`/`Calendar1` — sign-in opens a "waiting for
+  your browser" dialog (`BeginBrowserLogin`/`CancelBrowserLogin`, closes
+  itself on the `AuthenticationChanged` signal), relay add/remove goes
+  through `GetSettings`/`UpdateSettings`, sync shows live per-relay status.
+- `DbusCalendarClient` gained `getSettings`/`updateSettings`/
+  `cancelBrowserLogin` + `settingsChanged`/`syncStatusChanged` signal
+  streams; `desktop_providers.dart` gained
+  `desktopAuthStatusProvider`/`desktopSyncStatusProvider`/
+  `desktopRelaysProvider`, all signal-driven (no polling), plus the
+  existing `serviceStatusProvider` now also refreshes on those signals
+  instead of only its 60 s timer.
+- `lib/utils/relay_url.dart`: `normalizeSecureRelayUrl` → `normalizeRelayUrl`,
+  now accepting `ws://` (not just `wss://`) for personal/self-hosted relays
+  without a certificate — flagged inline in the UI, never silently
+  upgraded; mirrored in the Rust validator
+  (`sync::transport::validate_relay_url`) and documented in
+  docs/nostr-sync.md and docs/threat-model.md.
+- Verified: flutter analyze clean, 84 tests green, Linux release build,
+  Android debug APK still builds, live smoke test against the running
+  service (GetSettings/UpdateSettings incl. a `ws://` relay, rejection of
+  `https://`, `GetSyncStatus` reflecting the change).
+
+## Phase 5 — GNOME Shell extension ✅
+
+- [x] extensions/gnome/astraea@lwb89dev — ESM extension, GNOME 45–48
+- [x] Indicator + day agenda popup (‹/today/›), quick-add form
+      (title/start/end/all-day), open-event / open-app via OpenDesktop
+- [x] Async D-Bus client with 10 s timeouts, EventsChanged signal updates
+      (no polling; refresh-on-open only), service-absent status line
+- [x] gettext (en template + it), keyboard focus for the quick form
+- [x] Clock-menu integration decision recorded in docs/gnome-extension.md
+      (standalone indicator now; optional guarded DateMenu adapter later)
+- Note: dev machine runs COSMIC → runtime validation happens on GNOME
+  VMs per the manual test plan in docs/gnome-extension.md; CI lints JS.
+
+## Phase 6 — Browser auth ✅
+
+- [x] Login session (state + signed challenge as nonce, 5-min expiry) with a
+      single-use 127.0.0.1 listener on a kernel-chosen port
+- [x] Local login page (NIP-07, strict CSP, names the requesting app),
+      kind-22242 verification: state, challenge tag, created_at freshness,
+      NIP-01 id + Schnorr signature
+- [x] Secret Service storage (delegated key only; SQLite holds pubkeys);
+      signer abstraction (read-only/browser/remote-NIP-46/local-delegated),
+      `SetSigner` on NostrAccount1, `auth provision-key` via stdin
+- [x] AuthenticationChanged emitted from async completions; accounts CRUD
+      wired to the existing `accounts` table
+- Verified: cargo check clean, 26 tests green (3 integration tests in
+  tests/login_bridge.rs: round trip, bad signature rejected, cancellation).
+- Notes: login sessions are in-memory by design (the `auth_sessions` table
+  stays reserved for future remote-signer sessions); a hardware signer is a
+  documented future backend, not a stub enum variant.
+
+## Phase 7 — Nostr sync in the service ✅
+
+- [x] `sync/` module: wire codec for the kind-30078 contract, relay
+      transport trait over the `nostr-sdk` pool, engine with pull → LWW
+      merge → push (tombstone + NIP-09 double deletion, all-relays
+      acceptance rule, exponential backoff capped at 1 h, parked
+      `pending_signature` ops that never burn attempts)
+- [x] Incremental pull cursor (`sync.cursor_s`, 1 h skew overlap);
+      SignerBackend extended with NIP-44 self-encrypt/decrypt (the engine
+      never touches key material)
+- [x] D-Bus: real `SyncNow` (operation id), live `GetSyncStatus` +
+      `SyncStatusChanged`, relay validation in `UpdateSettings`
+      (wss:// or ws://, no credentials/fragment, persisted to
+      `nostr_relays`; ws:// allowed for personal relays without TLS, see
+      the 2026-07-21 addendum below), `GetServiceStatus` reports
+      network/auth; mutations nudge the engine
+- [x] Wire-compat fixtures shared with Dart
+      (`test/fixtures/wire_payloads.json` asserted by BOTH
+      `test/wire_compat_test.dart` and
+      `native/service/tests/wire_compat.rs`); Rust now also passes the
+      official NIP-44 vectors used by `test/nip44_test.dart`
+- Verified: 46 Rust tests green (9 engine integration tests over a fake
+  relay: publish, tombstone+NIP-09, partial acceptance, offline recovery,
+  LWW pull, junk/foreign-event screening), flutter analyze clean,
+  84 Dart tests green.
+
+## Phase 8 — Packaging ✅
+
+- [x] One staged `/usr` tree (`scripts/build-linux.sh`) feeding every
+      format; desktop entry (validated), AppStream metainfo (validated,
+      screenshot placeholder documented), hicolor icons generated from
+      assets/icon at build time, `x-scheme-handler/astraea` MIME
+- [x] Modular DEBs (`scripts/build-deb.sh` → astraea-service /
+      astraea-desktop / astraea-gnome-shell-extension with proper
+      Depends/Recommends); maintainer scripts cache-refresh only,
+      headless-safe — built and validated locally
+- [x] RPM spec with the same three subpackages (Fedora + openSUSE macro
+      notes, rpmlint hook, builds from the staged tree — rationale in the
+      spec header) + `scripts/build-rpm.sh`
+- [x] Arch PKGBUILD (source build, `--locked` cargo, no /usr/libexec)
+- [x] Flatpak manifest (GUI only, single `--talk-name` grant; the
+      in-sandbox-service trade-off is documented and rejected)
+- [x] Relocatable tarball + `install.sh` (`--prefix`/`--user`/`--dry-run`/
+      `--uninstall` with recorded manifest; user data never deleted) —
+      dry-run exercised locally; optional AppImage script with its
+      documented integration limits
+- [x] `scripts/test-packages.sh` + docs/packaging.md (incl. distro test
+      matrix); `dist/` gitignored
+- Verified: full release staging (flutter + cargo), three .deb built,
+  desktop-file-validate + appstreamcli + structural deb checks green.
+- Note: rpmbuild/makepkg/flatpak-builder are absent on this machine —
+  those artifacts are validated by their scripts on the matching distros
+  (docs/packaging.md matrix) and in CI.
+
+### Addendum (2026-07-21) — one-command install, ordered by Depends
+
+Added `astraea-all`, an empty metapackage (`Depends: astraea-service,
+astraea-desktop`, `Recommends: astraea-gnome-shell-extension`) and
+`scripts/install-debs.sh`, which builds (or reuses, `--no-build`) and
+installs all four `.deb` with a **single** `apt install` call —
+`--no-extension` drops the GNOME extension package for KDE/COSMIC installs.
+Modern APT resolves `Depends` across a batch of local `.deb` files and
+installs them in dependency order regardless of argument order, so
+"service, then app, then extension" is enforced by the packages' own
+metadata rather than by manually sequencing three installs. Verified: all
+four packages build, `test-packages.sh` green, `install-debs.sh` correctly
+refuses to run without root and prints the exact `sudo apt install …`
+command instead (this script never escalates privileges itself).
+
+## Phase 9 — COSMIC applet ✅ (scaffold; panel UI blocked on libcosmic)
+
+- [x] `native/cosmic-applet` crate: zbus Calendar1 client (methods +
+      EventsChanged/SyncStatusChanged signal streams), toolkit-independent
+      `AppletState` view model (agenda rows, indicator label, degraded
+      states) with unit tests
+- [x] Working terminal frontend over the same modules
+      (`astraea-cosmic-applet [DATE] [--open]`) — verified live against the
+      running service via D-Bus activation on this COSMIC machine
+- [x] docs/cosmic-applet.md: what exists, what is deliberately absent
+      (libcosmic is git-only/API-unstable — the documented blocked part),
+      and the 5-step panel integration plan
+- Note: no fake widget code; the panel plugs into `AppletState` when
+  libcosmic is packaged.
+
+## Phase 10 — Hardening ✅
+
+- [x] docs/threat-model.md (auth bridge, keys, D-Bus surface — session bus
+      explicitly NOT a security boundary, relays, storage, supply chain,
+      downgrade; assets ranked, non-goals stated, review cadence)
+- [x] docs/troubleshooting.md and docs/release-process.md (single version
+      number owned by pubspec; manual-only publication)
+- [x] CI: new `rust` job (fmt --check, clippy -D warnings, tests for both
+      crates, --locked), `lint-meta` job (version coherence, extension ES
+      syntax lint, desktop/AppStream/package validation), `linux-packages`
+      dry-run job (DEBs + tarball + SHA256SUMS + SPDX SBOM as artifacts,
+      publishes nothing)
+- [x] scripts/check-versions.sh (pubspec ↔ both Cargo.toml ↔ AppStream ↔
+      spec ↔ PKGBUILD; extension deliberately unversioned)
+- [x] Whole Rust tree normalized with rustfmt (both crates check clean)
+- [x] `diagnostics` now also reports relay health (no secrets) and GNOME
+      extension presence; README gained the Linux sections
+- Verified: 46 + 3 Rust tests green after reformat, live diagnostics run,
+  check-versions green, test-packages green.
+
+All ten phases of the Linux integration brief are complete. Remaining
+follow-ups live in their docs: NIP-46 signer (authentication.md), libcosmic
+panel UI (cosmic-applet.md), real AppStream screenshots (packaging.md),
+distro-matrix runs on real VMs (packaging.md).
+
+## Phase 11 — Attendee invites (ADR-007) ✅ (Linux desktop; Android follow-up)
+
+- [x] `native/service/src/sync/invite.rs`: wire codec for the invite/response
+      message family (kind 30078, `_astraeaInvite` sentinel, deterministic
+      `d` tags distinct from calendar sync's)
+- [x] `native/service/src/account/person.rs`: npub/hex/NIP-05 person
+      resolution, ported from Echoes' lookup triad (SSRF-hardened HTTPS
+      client: no redirects, bounded timeout/size, shape-validated before any
+      network call)
+- [x] `native/service/src/account/signer.rs`: new
+      `nip44_encrypt_to`/`nip44_decrypt_from` — invites are encrypted to a
+      *different* account, unlike calendar sync's self-encryption; every
+      `SignerBackend` implementation updated, including test doubles
+- [x] `native/service/src/store.rs`: `attendees`, `invitations`,
+      `invite_outbox` tables and their CRUD (migration `002_invites.sql`)
+- [x] `native/service/src/sync/engine.rs`: `pull_invites`/`push_invites`
+      wired into the same `run_once` cycle as calendar sync, own incremental
+      cursor, desktop notifications on new invite / on response
+- [x] `native/service/src/bus.rs` +
+      `native/dbus/com.lwb89dev.Astraea.Calendar1.xml`: `ResolvePerson`,
+      `InviteAttendee`, `GetAttendees`, `GetPendingInvitations`,
+      `RespondToInvitation`, `InvitationsChanged` signal
+- [x] Flutter desktop UI: attendee list + invite dialog (with NIP-05
+      confirmation step) in the event editor, pending-invitations button +
+      accept/decline dialog in the sidebar — both Linux-only via the
+      established conditional-import seam
+- [x] Full localization of the new UI strings into all 27 languages
+      (English template + 26 translations, `flutter gen-l10n` verified,
+      `test/locale_smoke_test.dart` exercises every locale)
+- [x] docs/nostr-sync.md "Attendee invites" (normative wire contract) and
+      docs/dbus-api.md updated
+- Verified: `two_party_invite_is_encrypted_end_to_end_and_reaches_acceptance`
+  (native/service/tests/sync_engine.rs) proves the full loop across two
+  independent in-memory accounts sharing one fake relay — invite sent,
+  decrypted and stored by the invitee (who never sees the organizer's
+  internal event), accepted, and the acceptance observed by the organizer —
+  with an explicit assertion that no plaintext title ever appears in
+  anything published to the relay.
+- **Scope note**: this phase is Rust/Linux-desktop only. The Dart/Android
+  implementation of the same wire contract is a documented follow-up
+  (docs/nostr-sync.md) — until it lands, invites are only actionable between
+  two Linux desktop installs.

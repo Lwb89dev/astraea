@@ -10,6 +10,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:url_launcher/url_launcher.dart';
 
+import '../desktop/desktop_settings_sections_stub.dart'
+    if (dart.library.io) '../desktop/desktop_settings_sections.dart'
+    as desktop_settings;
+import '../l10n/app_localizations.dart';
 import '../models/app_settings.dart';
 import '../models/user_model.dart';
 import '../providers/auth_provider.dart';
@@ -20,13 +24,49 @@ import '../providers/settings_provider.dart';
 import '../providers/sync_provider.dart';
 import '../providers/theme_provider.dart';
 import '../services/local_storage_service.dart';
+import '../utils/app_accent.dart';
 import '../utils/constants.dart';
 import '../utils/formatter.dart';
 import '../utils/relay_url.dart';
 import 'entry_screen.dart';
 import 'widgets/timezone_picker.dart';
+import '../widgets/astraea_ui.dart';
 
 const _privacyChannel = MethodChannel('com.example.astraea/privacy');
+
+/// Native display name for each supported UI language, keyed by IETF tag —
+/// shown in its own language (so a user finds their language regardless of
+/// what the app is currently displaying), sourced from
+/// AppLocalizations.supportedLocales (generated from lib/l10n/*.arb).
+const Map<String, String> _languageNativeNames = {
+  'bg': 'Български',
+  'cs': 'Čeština',
+  'da': 'Dansk',
+  'de': 'Deutsch',
+  'el': 'Ελληνικά',
+  'en': 'English',
+  'es': 'Español',
+  'et': 'Eesti',
+  'fi': 'Suomi',
+  'fr': 'Français',
+  'ga': 'Gaeilge',
+  'hr': 'Hrvatski',
+  'hu': 'Magyar',
+  'it': 'Italiano',
+  'ja': '日本語',
+  'lt': 'Lietuvių',
+  'lv': 'Latviešu',
+  'mt': 'Malti',
+  'nl': 'Nederlands',
+  'pl': 'Polski',
+  'pt': 'Português',
+  'ro': 'Română',
+  'ru': 'Русский',
+  'sk': 'Slovenčina',
+  'sl': 'Slovenščina',
+  'sv': 'Svenska',
+  'zh': '中文',
+};
 
 /// App-wide settings: Nostr account, sync + relays (including the personal/
 /// home backup relay), appearance, data export/import, notifications/timezone,
@@ -41,35 +81,48 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final settingsAsync = ref.watch(settingsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: AppBar(title: Text(l10n.settingsTitle)),
       body: settingsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(
           child: Text(
-            'Could not load settings:\n$e',
+            l10n.couldNotLoadSettings(e.toString()),
             textAlign: TextAlign.center,
           ),
         ),
         data: (settings) => ListView(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
           children: [
-            const _SectionHeader('Account'),
-            const _AccountSection(),
-            const _SectionHeader('Sync'),
-            _SyncSection(settings: settings),
-            const _SectionHeader('Relays'),
-            _RelaySection(settings: settings),
-            const _SectionHeader('Appearance'),
-            const _AppearanceSection(),
-            const _SectionHeader('Data'),
-            const _DataSection(),
-            const _SectionHeader('Reminders & timezone'),
-            _RemindersSection(settings: settings),
-            const _SectionHeader('Support'),
-            const _DonationTile(),
-            const SizedBox(height: 24),
+            _SectionHeader(l10n.sectionAccount),
+            _SettingsSurface(
+              child:
+                  desktop_settings.desktopAccountSection() ??
+                  const _AccountSection(),
+            ),
+            _SectionHeader(l10n.sectionSync),
+            _SettingsSurface(
+              child:
+                  desktop_settings.desktopSyncSection() ??
+                  _SyncSection(settings: settings),
+            ),
+            _SectionHeader(l10n.sectionRelays),
+            _SettingsSurface(
+              child:
+                  desktop_settings.desktopRelaySection() ??
+                  _RelaySection(settings: settings),
+            ),
+            _SectionHeader(l10n.sectionAppearance),
+            _SettingsSurface(child: _AppearanceSection(settings: settings)),
+            _SectionHeader(l10n.sectionData),
+            const _SettingsSurface(child: _DataSection()),
+            _SectionHeader(l10n.sectionRemindersTimezone),
+            _SettingsSurface(child: _RemindersSection(settings: settings)),
+            _SectionHeader(l10n.sectionSupport),
+            const _SettingsSurface(child: _DonationTile()),
           ],
         ),
       ),
@@ -85,13 +138,32 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      padding: const EdgeInsets.fromLTRB(4, 22, 4, 10),
       child: Text(
         title,
         style: Theme.of(context).textTheme.labelLarge?.copyWith(
           color: Theme.of(context).colorScheme.primary,
+          letterSpacing: 1.2,
+          fontWeight: FontWeight.w700,
         ),
       ),
+    );
+  }
+}
+
+class _SettingsSurface extends StatelessWidget {
+  const _SettingsSurface({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return AstraeaGlassSurface(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      radius: AstraeaTokens.radiusMd,
+      blur: 5,
+      shadow: false,
+      child: child,
     );
   }
 }
@@ -103,31 +175,30 @@ class _AccountSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final authState = ref.watch(authProvider);
 
     return authState.when(
-      loading: () => const ListTile(
-        leading: CircularProgressIndicator(strokeWidth: 2),
-        title: Text('Loading…'),
+      loading: () => ListTile(
+        leading: const CircularProgressIndicator(strokeWidth: 2),
+        title: Text(l10n.loading),
       ),
       error: (error, _) => ListTile(
         leading: const Icon(Icons.error_outline),
-        title: Text('Something went wrong: $error'),
+        title: Text(l10n.somethingWentWrong(error.toString())),
       ),
       data: (user) {
         if (user == null) {
           // Offline, local-only session: offer to add an account to sync.
           return ListTile(
             leading: const Icon(Icons.person_outline),
-            title: const Text('Offline — no account'),
-            subtitle: const Text(
-              'Sign in to sync your encrypted calendar across devices.',
-            ),
+            title: Text(l10n.offlineNoAccount),
+            subtitle: Text(l10n.signInToSyncAcrossDevices),
             trailing: FilledButton(
               onPressed: () => Navigator.of(
                 context,
               ).push(MaterialPageRoute(builder: (_) => const EntryScreen())),
-              child: const Text('Sign in'),
+              child: Text(l10n.signIn),
             ),
           );
         }
@@ -151,33 +222,23 @@ class _AccountSection extends ConsumerWidget {
                     ? FileImage(avatarFile)
                     : null,
                 child: avatarFile == null
-                    ? Icon(
-                        user.loginMethod == LoginMethod.amber
-                            ? Icons.shield_outlined
-                            : Icons.verified_user_outlined,
-                      )
+                    ? Icon(_accountIcon(user.loginMethod))
                     : null,
               ),
               title: Text(displayName),
-              subtitle: Text(
-                user.loginMethod == LoginMethod.amber
-                    ? 'Signed in with Amber'
-                    : 'Signed in',
-              ),
+              subtitle: Text(_accountSubtitle(l10n, user.loginMethod)),
               trailing: TextButton(
                 onPressed: () => _confirmSignOut(context, ref),
-                child: const Text('Sign out'),
+                child: Text(l10n.signOut),
               ),
             ),
-            // Backing up the key only applies when Astraea holds it — with
-            // Amber the key lives in the signer, not here.
+            // Backing up the key only applies when Astraea holds it — with an
+            // external signer (Amber or NIP-46) the key lives there, not here.
             if (user.loginMethod.isLocalKey)
               ListTile(
                 leading: const Icon(Icons.vpn_key_outlined),
-                title: const Text('Back up private key'),
-                subtitle: const Text(
-                  'Reveal your nsec to save it somewhere safe',
-                ),
+                title: Text(l10n.backUpPrivateKey),
+                subtitle: Text(l10n.revealNsecSubtitle),
                 onTap: () => _backupPrivateKey(context, ref),
               ),
           ],
@@ -186,23 +247,39 @@ class _AccountSection extends ConsumerWidget {
     );
   }
 
+  /// Icon that tells the user, at a glance, where their key actually lives.
+  IconData _accountIcon(LoginMethod method) {
+    return switch (method) {
+      LoginMethod.amber => Icons.shield_outlined,
+      LoginMethod.remoteSigner => Icons.cloud_outlined,
+      LoginMethod.importedKey ||
+      LoginMethod.generatedKey => Icons.verified_user_outlined,
+    };
+  }
+
+  String _accountSubtitle(AppLocalizations l10n, LoginMethod method) {
+    return switch (method) {
+      LoginMethod.amber => l10n.signedInWithAmber,
+      LoginMethod.remoteSigner => l10n.signedInRemoteSigner,
+      LoginMethod.importedKey || LoginMethod.generatedKey => l10n.signedIn,
+    };
+  }
+
   Future<void> _confirmSignOut(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Sign out?'),
-        content: const Text(
-          'Your events stay on this device and on the relays. Make sure you have backed up '
-          'your private key — without it a generated account cannot be recovered.',
-        ),
+        title: Text(l10n.signOutTitle),
+        content: Text(l10n.signOutBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Sign out'),
+            child: Text(l10n.signOut),
           ),
         ],
       ),
@@ -216,16 +293,15 @@ class _AccountSection extends ConsumerWidget {
   /// up — the only way to recover a generated account. Read on demand from
   /// secure storage; never held in provider state.
   Future<void> _backupPrivateKey(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
     final privateKeyHex = await ref
         .read(localStorageServiceProvider)
         .loadPrivateKey();
     if (privateKeyHex == null) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('No private key stored for this session.'),
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.noPrivateKeyStored)));
       }
       return;
     }
@@ -241,14 +317,12 @@ class _AccountSection extends ConsumerWidget {
       await showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Your private key (nsec)'),
+          title: Text(l10n.yourPrivateKeyTitle),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Anyone with this key controls your account. Never share it; store it in a password manager.',
-              ),
+              Text(l10n.nsecWarning),
               const SizedBox(height: 16),
               SelectableText(
                 nsec,
@@ -269,11 +343,11 @@ class _AccountSection extends ConsumerWidget {
                 }
                 if (ctx.mounted) Navigator.of(ctx).pop();
               },
-              child: const Text('Copy'),
+              child: Text(l10n.copy),
             ),
             FilledButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Done'),
+              child: Text(l10n.done),
             ),
           ],
         ),
@@ -297,19 +371,20 @@ class _SyncSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final sync = ref.watch(syncProvider);
     final signedIn = ref.watch(authProvider).value != null;
     final hasRelays = settings.allSyncRelays.isNotEmpty;
 
     return ListTile(
       leading: const Icon(Icons.sync),
-      title: const Text('Sync now'),
+      title: Text(l10n.syncNowTitle),
       subtitle: Text(
         !signedIn
-            ? 'Sign in to sync your encrypted calendar.'
+            ? l10n.signInToSyncSubtitle
             : !hasRelays
-            ? 'Add at least one relay to synchronize.'
-            : _syncSubtitle(sync),
+            ? l10n.addRelayToSyncSubtitle
+            : _syncSubtitle(l10n, sync),
       ),
       trailing: sync.status == SyncStatus.syncing
           ? const SizedBox(
@@ -323,19 +398,21 @@ class _SyncSection extends ConsumerWidget {
     );
   }
 
-  String _syncSubtitle(SyncState sync) {
+  String _syncSubtitle(AppLocalizations l10n, SyncState sync) {
     switch (sync.status) {
       case SyncStatus.syncing:
-        return 'Syncing…';
+        return l10n.syncingEllipsis;
       case SyncStatus.success:
         final at = sync.lastSyncedAt;
         return at == null
-            ? 'Synced'
-            : 'Last synced ${Formatter.fullLabel(at.toUtc(), tz.local.name)}';
+            ? l10n.synced
+            : l10n.lastSyncedLabel(
+                Formatter.fullLabel(at.toUtc(), tz.local.name),
+              );
       case SyncStatus.error:
-        return 'Last sync failed: ${sync.errorMessage}';
+        return l10n.lastSyncFailedLabel(sync.errorMessage ?? '');
       case SyncStatus.idle:
-        return 'Pull, merge and publish your events';
+        return l10n.pullMergePublish;
     }
   }
 }
@@ -349,6 +426,7 @@ class _RelaySection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final colorScheme = Theme.of(context).colorScheme;
 
     return Column(
@@ -359,8 +437,8 @@ class _RelaySection extends ConsumerWidget {
           backgroundColor: colorScheme.surfaceContainerHigh,
           collapsedBackgroundColor: Colors.transparent,
           leading: const Icon(Icons.dns_outlined),
-          title: const Text('Public relays'),
-          subtitle: Text('${settings.relays.length} configured'),
+          title: Text(l10n.publicRelays),
+          subtitle: Text(l10n.relaysConfiguredCount(settings.relays.length)),
           children: [
             ...settings.relays.map(
               (url) => ListTile(
@@ -379,12 +457,12 @@ class _RelaySection extends ConsumerWidget {
             ),
             ListTile(
               leading: const Icon(Icons.add),
-              title: const Text('Add relay'),
+              title: Text(l10n.addRelay),
               onTap: () async {
                 final input = await _promptForText(
                   context,
-                  title: 'Add relay',
-                  hint: 'wss://relay.example.com',
+                  title: l10n.addRelay,
+                  hint: l10n.customRelayHint,
                 );
                 if (input == null || input.isEmpty) return;
                 final url = _validRelayUrl(input);
@@ -392,6 +470,7 @@ class _RelaySection extends ConsumerWidget {
                   if (context.mounted) _showInvalidRelay(context);
                   return;
                 }
+                if (context.mounted) _warnIfInsecure(context, url);
                 if (settings.relays.contains(url)) return;
                 await _save(
                   ref,
@@ -399,23 +478,23 @@ class _RelaySection extends ConsumerWidget {
                 );
               },
             ),
-            if (AppConstants.defaultRelays.any(
+            if (AppConstants.suggestedRelays.any(
               (relay) => !settings.relays.contains(relay),
             )) ...[
               const Divider(),
-              const ListTile(
+              ListTile(
                 dense: true,
-                title: Text('Suggested relays'),
-                subtitle: Text('Add only the relays you want to use.'),
+                title: Text(l10n.suggestedRelaysTitle),
+                subtitle: Text(l10n.addOnlyRelaysYouWant),
               ),
-              for (final url in AppConstants.defaultRelays)
+              for (final url in AppConstants.suggestedRelays)
                 if (!settings.relays.contains(url))
                   ListTile(
                     leading: const Icon(Icons.dns_outlined),
                     title: Text(Uri.parse(url).host),
                     subtitle: Text(url),
                     trailing: IconButton(
-                      tooltip: 'Add relay',
+                      tooltip: l10n.addRelayTooltip,
                       icon: const Icon(Icons.add_circle_outline),
                       onPressed: () => _save(
                         ref,
@@ -428,17 +507,17 @@ class _RelaySection extends ConsumerWidget {
         ),
         ListTile(
           leading: const Icon(Icons.home_outlined),
-          title: const Text('Home relay (backup)'),
+          title: Text(l10n.homeRelayBackup),
           subtitle: Text(
             settings.homeRelayUrl?.isNotEmpty == true
                 ? settings.homeRelayUrl!
-                : 'Not configured — an additional personal relay to back up your events',
+                : l10n.homeRelayNotConfigured,
           ),
           trailing: const Icon(Icons.edit_outlined),
           onTap: () async {
             final input = await _promptForText(
               context,
-              title: 'Home relay',
+              title: l10n.homeRelayDialogTitle,
               hint: 'wss://relay.myhome.net',
               initial: settings.homeRelayUrl,
             );
@@ -452,6 +531,7 @@ class _RelaySection extends ConsumerWidget {
               if (context.mounted) _showInvalidRelay(context);
               return;
             }
+            if (context.mounted) _warnIfInsecure(context, url);
             await _save(ref, settings.copyWith(homeRelayUrl: url));
           },
         ),
@@ -462,45 +542,162 @@ class _RelaySection extends ConsumerWidget {
   Future<void> _save(WidgetRef ref, AppSettings updated) =>
       ref.read(settingsProvider.notifier).save(updated);
 
-  /// Accepts only `wss://` URLs (returned normalized), null otherwise.
-  ///
-  /// Plain `ws://` is rejected outright rather than warned about: Dart's
-  /// sockets are not governed by Android's cleartext-traffic policy, so a
-  /// typo'd `ws://` relay would silently move the (encrypted) events and the
-  /// user's IP/pubkey metadata over cleartext with no system pushback.
-  String? _validRelayUrl(String input) => normalizeSecureRelayUrl(input);
+  /// Accepts `wss://` (recommended) or `ws://` URLs (returned normalized),
+  /// null otherwise. `ws://` is allowed — self-hosted/personal relays often
+  /// have no TLS certificate — but flagged via [_warnIfInsecure]; event
+  /// content stays end-to-end encrypted regardless of transport.
+  String? _validRelayUrl(String input) => normalizeRelayUrl(input);
 
   void _showInvalidRelay(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Only encrypted wss:// relay URLs are supported.'),
-      ),
-    );
+    final l10n = AppLocalizations.of(context);
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l10n.invalidRelayUrl)));
+  }
+
+  void _warnIfInsecure(BuildContext context, String url) {
+    if (!isInsecureRelayUrl(url)) return;
+    final l10n = AppLocalizations.of(context);
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l10n.insecureRelayWarning)));
   }
 }
 
 // ── Appearance ───────────────────────────────────────────────────────────
 
 class _AppearanceSection extends ConsumerWidget {
-  const _AppearanceSection();
+  const _AppearanceSection({required this.settings});
+
+  final AppSettings settings;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final themeMode = ref.watch(themeModeProvider);
 
-    return SwitchListTile(
-      secondary: Icon(
-        themeMode == ThemeMode.light
-            ? Icons.light_mode_outlined
-            : Icons.dark_mode_outlined,
-      ),
-      title: const Text('Light theme'),
-      subtitle: const Text('Astraea uses the dark theme by default'),
-      value: themeMode == ThemeMode.light,
-      onChanged: (value) => ref
-          .read(themeModeProvider.notifier)
-          .setThemeMode(value ? ThemeMode.light : ThemeMode.dark),
+    return Column(
+      children: [
+        SwitchListTile(
+          secondary: Icon(
+            themeMode == ThemeMode.light
+                ? Icons.light_mode_outlined
+                : Icons.dark_mode_outlined,
+          ),
+          title: Text(l10n.lightTheme),
+          subtitle: Text(l10n.darkThemeDefault),
+          value: themeMode == ThemeMode.light,
+          onChanged: (value) => ref
+              .read(themeModeProvider.notifier)
+              .setThemeMode(value ? ThemeMode.light : ThemeMode.dark),
+        ),
+        ListTile(
+          leading: const Icon(Icons.language_outlined),
+          title: Text(l10n.languageLabel),
+          subtitle: Text(
+            settings.locale == null
+                ? l10n.systemLanguage
+                : (_languageNativeNames[settings.locale] ?? settings.locale!),
+          ),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => _pickLanguage(context, ref, settings),
+        ),
+        ListTile(
+          leading: CircleAvatar(
+            radius: 12,
+            backgroundColor: AppAccent.fromPrefsValue(settings.accent).seed,
+          ),
+          title: Text(l10n.accentColorLabel),
+          subtitle: Text(AppAccent.fromPrefsValue(settings.accent).label(l10n)),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => _pickAccent(context, ref, settings),
+        ),
+      ],
     );
+  }
+
+  Future<void> _pickAccent(
+    BuildContext context,
+    WidgetRef ref,
+    AppSettings settings,
+  ) async {
+    final l10n = AppLocalizations.of(context);
+    final current = AppAccent.fromPrefsValue(settings.accent);
+    final chosen = await showModalBottomSheet<AppAccent>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final accent in AppAccent.values)
+              ListTile(
+                leading: CircleAvatar(radius: 12, backgroundColor: accent.seed),
+                title: Text(accent.label(l10n)),
+                selected: accent == current,
+                trailing: accent == current ? const Icon(Icons.check) : null,
+                onTap: () => Navigator.of(ctx).pop(accent),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (chosen == null || chosen == current) return;
+    await ref
+        .read(settingsProvider.notifier)
+        .save(settings.copyWith(accent: chosen.prefsValue));
+  }
+
+  Future<void> _pickLanguage(
+    BuildContext context,
+    WidgetRef ref,
+    AppSettings settings,
+  ) async {
+    final l10n = AppLocalizations.of(context);
+    final codes =
+        AppLocalizations.supportedLocales.map((l) => l.languageCode).toList()
+          ..sort(
+            (a, b) => (_languageNativeNames[a] ?? a).compareTo(
+              _languageNativeNames[b] ?? b,
+            ),
+          );
+
+    final chosen = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (ctx) => SizedBox(
+        height: MediaQuery.of(ctx).size.height * 0.75,
+        child: ListView(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.phone_android),
+              title: Text(l10n.systemLanguage),
+              selected: settings.locale == null,
+              onTap: () => Navigator.of(ctx).pop(''),
+            ),
+            const Divider(height: 1),
+            for (final code in codes)
+              ListTile(
+                title: Text(_languageNativeNames[code] ?? code),
+                selected: settings.locale == code,
+                trailing: settings.locale == code
+                    ? const Icon(Icons.check)
+                    : null,
+                onTap: () => Navigator.of(ctx).pop(code),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (chosen == null) return;
+    await ref
+        .read(settingsProvider.notifier)
+        .save(
+          chosen.isEmpty
+              ? settings.copyWith(clearLocale: true)
+              : settings.copyWith(locale: chosen),
+        );
   }
 }
 
@@ -513,22 +710,19 @@ class _DataSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       children: [
         ListTile(
           leading: const Icon(Icons.upload_outlined),
-          title: const Text('Export events'),
-          subtitle: const Text(
-            'Save a .ics file — optionally password-encrypted',
-          ),
+          title: Text(l10n.exportEvents),
+          subtitle: Text(l10n.exportEventsSubtitle),
           onTap: () => _export(context, ref),
         ),
         ListTile(
           leading: const Icon(Icons.download_outlined),
-          title: const Text('Import events'),
-          subtitle: const Text(
-            'From a .ics file or an encrypted Astraea export',
-          ),
+          title: Text(l10n.importEvents),
+          subtitle: Text(l10n.importEventsSubtitle),
           onTap: () => _import(context, ref),
         ),
       ],
@@ -536,6 +730,7 @@ class _DataSection extends ConsumerWidget {
   }
 
   Future<void> _export(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
     final password = await _askExportPassword(context);
     if (password == null) return; // Cancelled.
 
@@ -548,7 +743,7 @@ class _DataSection extends ConsumerWidget {
       final bytes = utf8.encode(content);
 
       final path = await FilePicker.platform.saveFile(
-        dialogTitle: 'Save your calendar export',
+        dialogTitle: l10n.exportEvents,
         fileName: encrypted ? 'astraea-$stamp.ics.json' : 'astraea-$stamp.ics',
         bytes: bytes,
       );
@@ -557,43 +752,41 @@ class _DataSection extends ConsumerWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              encrypted ? 'Encrypted export saved.' : 'Export saved.',
+              encrypted ? l10n.encryptedExportSaved : l10n.exportSaved,
             ),
           ),
         );
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Export failed: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.exportFailed(e.toString()))),
+        );
       }
     }
   }
 
   /// Empty string = export unencrypted; null = the user cancelled.
   Future<String?> _askExportPassword(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     final controller = TextEditingController();
     final result = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Encrypt this export?'),
+        title: Text(l10n.encryptExportTitle),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'A plain .ics can be opened by any calendar app — and by anyone who gets the file. '
-              'Set a password to encrypt it (only Astraea will be able to import it back).',
-            ),
+            Text(l10n.encryptExportBody),
             const SizedBox(height: 16),
             TextField(
               controller: controller,
               obscureText: true,
               autofocus: true,
-              decoration: const InputDecoration(
-                labelText: 'Password (leave empty for a plain .ics)',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.exportPasswordLabel,
+                border: const OutlineInputBorder(),
               ),
             ),
           ],
@@ -601,11 +794,11 @@ class _DataSection extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(controller.text),
-            child: const Text('Export'),
+            child: Text(l10n.export),
           ),
         ],
       ),
@@ -615,6 +808,7 @@ class _DataSection extends ConsumerWidget {
   }
 
   Future<void> _import(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
@@ -625,10 +819,10 @@ class _DataSection extends ConsumerWidget {
       if (picked == null) return;
       final fileBytes = picked.bytes;
       if (fileBytes == null) {
-        throw StateError('Could not read the selected file.');
+        throw StateError(l10n.couldNotReadSelectedFile);
       }
       if (fileBytes.length > _maxImportBytes) {
-        throw StateError('The selected file is larger than 10 MB.');
+        throw StateError(l10n.selectedFileTooLarge);
       }
       final raw = utf8.decode(fileBytes);
       final defaultTimezone =
@@ -648,13 +842,13 @@ class _DataSection extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Imported $count event(s).')));
+        ).showSnackBar(SnackBar(content: Text(l10n.importedEventCount(count))));
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Import failed: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.importFailed(e.toString()))),
+        );
       }
     }
   }
@@ -669,61 +863,72 @@ class _DataSection extends ConsumerWidget {
     String raw,
     String defaultTimezone,
   ) async {
+    final l10n = AppLocalizations.of(context);
     final controller = TextEditingController();
     var submitting = false;
     String? errorText;
+
+    // One attempt, lifted out of the widget tree. Inline it and the actual
+    // logic — try, decrypt, classify the failure — sits eight levels deep
+    // inside builders, where it is nearly unreadable and easy to get wrong.
+    // Here it is a flat sequence: mark busy, import, close or explain.
+    Future<void> attempt(
+      BuildContext ctx,
+      void Function(void Function()) setState,
+    ) async {
+      setState(() {
+        submitting = true;
+        errorText = null;
+      });
+      String? failure;
+      try {
+        final imported = await ref
+            .read(eventsProvider.notifier)
+            .importFromIcs(
+              raw,
+              password: controller.text,
+              defaultTimezone: defaultTimezone,
+            );
+        if (ctx.mounted) Navigator.of(ctx).pop(imported);
+        return;
+      } on SecretBoxAuthenticationError {
+        // The one failure the user can act on: the password was wrong.
+        failure = l10n.wrongPassword;
+      } catch (_) {
+        // Anything else means the file is not a readable Astraea export. The
+        // exception is deliberately not shown: a decode failure can quote the
+        // bytes it choked on, which are the user's calendar.
+        failure = l10n.invalidEncryptedExport;
+      }
+      if (!ctx.mounted) return;
+      setState(() {
+        submitting = false;
+        errorText = failure;
+      });
+    }
 
     final count = await showDialog<int>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setState) => AlertDialog(
-          title: const Text('This export is encrypted'),
+          title: Text(l10n.thisExportIsEncrypted),
           content: TextField(
             controller: controller,
             obscureText: true,
             autofocus: true,
             decoration: InputDecoration(
-              labelText: 'Password',
+              labelText: l10n.passwordLabel,
               errorText: errorText,
             ),
           ),
           actions: [
             TextButton(
               onPressed: submitting ? null : () => Navigator.of(ctx).pop(),
-              child: const Text('Cancel'),
+              child: Text(l10n.cancel),
             ),
             FilledButton(
-              onPressed: submitting
-                  ? null
-                  : () async {
-                      setState(() {
-                        submitting = true;
-                        errorText = null;
-                      });
-                      try {
-                        final imported = await ref
-                            .read(eventsProvider.notifier)
-                            .importFromIcs(
-                              raw,
-                              password: controller.text,
-                              defaultTimezone: defaultTimezone,
-                            );
-                        if (ctx.mounted) Navigator.of(ctx).pop(imported);
-                      } on SecretBoxAuthenticationError {
-                        if (!ctx.mounted) return;
-                        setState(() {
-                          submitting = false;
-                          errorText = 'Wrong password.';
-                        });
-                      } catch (_) {
-                        if (!ctx.mounted) return;
-                        setState(() {
-                          submitting = false;
-                          errorText = 'This encrypted export is not valid.';
-                        });
-                      }
-                    },
-              child: const Text('Import'),
+              onPressed: submitting ? null : () => attempt(ctx, setState),
+              child: Text(l10n.importButton),
             ),
           ],
         ),
@@ -743,14 +948,13 @@ class _RemindersSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     return Column(
       children: [
         SwitchListTile(
           secondary: const Icon(Icons.notifications_outlined),
-          title: const Text('Reminders'),
-          subtitle: const Text(
-            'Schedule local notifications for event reminders',
-          ),
+          title: Text(l10n.reminders),
+          subtitle: Text(l10n.scheduleLocalNotifications),
           value: settings.notificationsEnabled,
           onChanged: (v) => ref
               .read(settingsProvider.notifier)
@@ -758,9 +962,10 @@ class _RemindersSection extends ConsumerWidget {
         ),
         ListTile(
           leading: const Icon(Icons.public),
-          title: const Text('Timezone'),
+          title: Text(l10n.timezone),
           subtitle: Text(
-            settings.timezone ?? 'Follow device timezone (${tz.local.name})',
+            settings.timezone ??
+                l10n.followDeviceTimezoneWithName(tz.local.name),
           ),
           trailing: const Icon(Icons.chevron_right),
           onTap: () async {
@@ -793,6 +998,7 @@ class _DonationTile extends StatelessWidget {
   const _DonationTile();
 
   Future<void> _donate(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     final uri = Uri.parse('lightning:${AppConstants.lightningAddress}');
     var launched = false;
     try {
@@ -807,11 +1013,11 @@ class _DonationTile extends StatelessWidget {
     );
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'No Lightning wallet found — address copied: ${AppConstants.lightningAddress}',
+            l10n.noLightningWalletFound(AppConstants.lightningAddress),
           ),
-          duration: Duration(seconds: 3),
+          duration: const Duration(seconds: 3),
         ),
       );
     }
@@ -819,6 +1025,7 @@ class _DonationTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final colorScheme = Theme.of(context).colorScheme;
 
     return InkWell(
@@ -840,7 +1047,7 @@ class _DonationTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Support Astraea',
+                    l10n.supportAstraea,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
@@ -873,6 +1080,7 @@ Future<String?> _promptForText(
   required String hint,
   String? initial,
 }) async {
+  final l10n = AppLocalizations.of(context);
   final controller = TextEditingController(text: initial ?? '');
   final result = await showDialog<String>(
     context: context,
@@ -889,11 +1097,11 @@ Future<String?> _promptForText(
       actions: [
         TextButton(
           onPressed: () => Navigator.of(ctx).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
           onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
-          child: const Text('Save'),
+          child: Text(l10n.save),
         ),
       ],
     ),

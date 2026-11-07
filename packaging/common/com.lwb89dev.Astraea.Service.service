@@ -1,0 +1,11 @@
+# D-Bus activation for the Astraea service (session bus).
+# Installed to /usr/share/dbus-1/services/ by packages, or to
+# ~/.local/share/dbus-1/services/ by scripts/install-dev.sh.
+# On systemd systems the SystemdService line hands supervision to the user
+# manager; on non-systemd systems dbus-daemon spawns Exec directly (this is
+# the documented fallback — no systemd required).
+
+[D-BUS Service]
+Name=com.lwb89dev.Astraea.Service
+Exec=@LIBEXECDIR@/astraea/astraea-service run
+SystemdService=astraea.service

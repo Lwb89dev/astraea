@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Nostr theme: highlight behind today's number — pairs with
+     astraea_widget_dot_nostr.xml (see astraea_widget_today.xml). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <solid android:color="#FFD5AEF2" />
+</shape>

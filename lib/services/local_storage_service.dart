@@ -12,6 +12,7 @@ import '../utils/constants.dart';
 import '../utils/ics.dart';
 import '../utils/relay_url.dart';
 import 'export_encryption_service.dart';
+import 'nip46_client.dart';
 
 /// Single facade for all local persistence: events (Hive), settings and the
 /// relay/home-relay config (SharedPreferences), and the account private key
@@ -235,16 +236,59 @@ class LocalStorageService {
     await _secureStorage.delete(key: AppConstants.secureStoragePrivateKeyKey);
   }
 
-  /// Clears the whole local session (private key + pubkey + login method).
+  // ---------------------------------------------------------------------
+  // NIP-46 remote-signer session (flutter_secure_storage — it contains the
+  // ephemeral client key and the bunker secret, both of which authorize this
+  // device against the user's signer).
+  // ---------------------------------------------------------------------
+
+  Future<void> saveRemoteSignerSession(Nip46Session session) async {
+    developer.log(
+      'LocalStorageService.saveRemoteSignerSession called',
+      name: 'LocalStorageService',
+    );
+    await _secureStorage.write(
+      key: AppConstants.secureStorageRemoteSignerKey,
+      value: jsonEncode(session.toJson()),
+    );
+  }
+
+  /// Returns the stored remote-signer session, or `null` if there is none or
+  /// the stored blob no longer validates ([Nip46Session.fromJson] re-checks
+  /// every field). A half-readable session is treated as absent so a corrupted
+  /// value degrades to "signed out" instead of to undefined behaviour.
+  Future<Nip46Session?> loadRemoteSignerSession() async {
+    final raw = await _secureStorage.read(
+      key: AppConstants.secureStorageRemoteSignerKey,
+    );
+    if (raw == null || raw.isEmpty) return null;
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map<String, dynamic>) return null;
+      return Nip46Session.fromJson(decoded);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> clearRemoteSignerSession() async {
+    await _secureStorage.delete(key: AppConstants.secureStorageRemoteSignerKey);
+  }
+
+  /// Clears the whole local session: account private key, remote-signer
+  /// session, public key and login method. Every secret the account owns has
+  /// to be listed here — anything forgotten survives a sign-out.
   Future<void> clearSession() async {
     developer.log(
       'LocalStorageService.clearSession called',
       name: 'LocalStorageService',
     );
     await clearPrivateKey();
+    await clearRemoteSignerSession();
     final prefs = await _prefs;
     await prefs.remove(AppConstants.prefsPublicKeyKey);
     await prefs.remove(AppConstants.prefsLoginMethodKey);
+    await prefs.remove(AppConstants.prefsProfileCacheKey);
   }
 
   /// One-time forward migration for events written before sync ownership was
@@ -332,8 +376,18 @@ class LocalStorageService {
       timezone: prefs.getString(AppConstants.prefsTimezoneKey),
       notificationsEnabled:
           prefs.getBool(AppConstants.prefsNotificationsEnabledKey) ?? true,
+      locale: prefs.getString(AppConstants.prefsLocaleKey),
+      accent: prefs.getString(AppConstants.prefsAccentKey),
     );
   }
+
+  /// Upper bound on the relay list. Redundancy across a handful of relays is
+  /// the point; dozens is not redundancy, it is an amplifier — every publish
+  /// fans out to all of them, and every one learns the account's pubkey and
+  /// the device's IP address. The cap is enforced on *read* as well as write
+  /// because SharedPreferences is a plain file: a backup/restore tool, or
+  /// anything with access to app storage, can put whatever it likes in there.
+  static const int maxRelays = 16;
 
   /// Preferences can outlive several app versions and may be edited by
   /// backup/restore tools. Treat a malformed relay value as an empty choice
@@ -346,8 +400,9 @@ class LocalStorageService {
       final relays = <String>{};
       for (final value in decoded) {
         if (value is! String) continue;
-        final normalized = normalizeSecureRelayUrl(value);
+        final normalized = normalizeRelayUrl(value);
         if (normalized != null) relays.add(normalized);
+        if (relays.length >= maxRelays) break;
       }
       return relays.toList(growable: false);
     } catch (_) {
@@ -363,7 +418,7 @@ class LocalStorageService {
     final prefs = await _prefs;
     await prefs.setString(
       AppConstants.prefsRelaysKey,
-      jsonEncode(settings.relays),
+      jsonEncode(settings.relays.take(maxRelays).toList(growable: false)),
     );
     final home = settings.homeRelayUrl;
     if (home == null || home.isEmpty) {
@@ -381,6 +436,18 @@ class LocalStorageService {
       AppConstants.prefsNotificationsEnabledKey,
       settings.notificationsEnabled,
     );
+    final locale = settings.locale;
+    if (locale == null || locale.isEmpty) {
+      await prefs.remove(AppConstants.prefsLocaleKey);
+    } else {
+      await prefs.setString(AppConstants.prefsLocaleKey, locale);
+    }
+    final accent = settings.accent;
+    if (accent == null || accent.isEmpty) {
+      await prefs.remove(AppConstants.prefsAccentKey);
+    } else {
+      await prefs.setString(AppConstants.prefsAccentKey, accent);
+    }
   }
 
   // ---------------------------------------------------------------------

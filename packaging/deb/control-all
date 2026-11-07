@@ -1,0 +1,17 @@
+Package: astraea-all
+Version: @VERSION@
+Architecture: all
+Maintainer: Lwb89dev <lwb89dev@users.noreply.github.com>
+Section: metapackages
+Priority: optional
+Depends: astraea-service (= @VERSION@), astraea-desktop (= @VERSION@)
+Recommends: astraea-gnome-shell-extension (= @VERSION@)
+Homepage: https://github.com/Lwb89dev/astraea
+Description: Astraea — full desktop install (metapackage)
+ Convenience metapackage: pulls in the background service and the desktop
+ app, and recommends the GNOME Shell extension. Carries no files of its
+ own — apt/dpkg installs the three real packages in dependency order from
+ a single command (scripts/install-debs.sh).
+ .
+ KDE/COSMIC users who don't want the GNOME extension should install
+ astraea-service and astraea-desktop directly instead of astraea-all.
