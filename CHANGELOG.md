@@ -6,6 +6,13 @@ All notable changes to Astraea are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- A location can be resolved to an OpenStreetMap place when the event is
+  saved. Only that location text is sent to the geocoder. The coordinates
+  stay inside the encrypted event, and on Android Navigate opens Roadstr
+  when that app is installed.
+
 ### Planned
 
 - Final Android application ID and production signing setup.

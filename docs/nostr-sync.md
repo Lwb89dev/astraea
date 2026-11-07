@@ -87,6 +87,9 @@ Rules every implementation must follow:
 - `recurrence`: `null` | `"daily"` | `"weekly"` | `"monthly"` | `"yearly"`.
   Unknown values degrade to `null` (non-recurring), never to an error.
 - `color`: legacy Flutter ARGB literal string `0xAARRGGBB`.
+- `place` (optional object, schema `lwb.place/1`): resolved coordinates.
+  Absent when the event has no map position. It stays inside this encrypted
+  payload and is never copied into Nostr tags. See `docs/PLACE_INTEGRATION.md`.
 - `deleted: true` payloads are tombstones; readers keep them (LWW applies)
   and hide them from views.
 - **Unknown fields are ignored, and writers are not required to preserve

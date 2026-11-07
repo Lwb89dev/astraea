@@ -1,3 +1,4 @@
+import 'event_place.dart';
 import 'reminder_model.dart';
 
 /// Preset recurrence rules for the MVP. Full custom RRULE support is a
@@ -63,7 +64,12 @@ class Event {
   /// ARGB color as a hex string, e.g. "0xFF2196F3".
   final String color;
 
+  /// Text the user wrote. Distinct from [place], which is resolved metadata.
   final String? location;
+
+  /// Resolved geographic metadata. Null on events that were never geocoded,
+  /// and on events whose location text changed after a previous resolution.
+  final EventPlace? place;
 
   /// Whether the latest local version has been published to the relays.
   final bool synced;
@@ -98,6 +104,7 @@ class Event {
     this.reminders = const [],
     this.color = '0xFF2196F3',
     this.location,
+    this.place,
     this.synced = false,
     this.nostrEventId,
     this.syncOwnerPubkey,
@@ -121,6 +128,8 @@ class Event {
     String? color,
     String? location,
     bool clearLocation = false,
+    EventPlace? place,
+    bool clearPlace = false,
     bool? synced,
     String? nostrEventId,
     String? syncOwnerPubkey,
@@ -142,6 +151,7 @@ class Event {
       reminders: reminders ?? this.reminders,
       color: color ?? this.color,
       location: clearLocation ? null : (location ?? this.location),
+      place: clearPlace ? null : (place ?? this.place),
       synced: synced ?? this.synced,
       nostrEventId: nostrEventId ?? this.nostrEventId,
       syncOwnerPubkey: syncOwnerPubkey ?? this.syncOwnerPubkey,
@@ -171,6 +181,7 @@ class Event {
     'reminders': reminders.map((r) => r.toJson()).toList(),
     'color': color,
     'location': location,
+    if (place != null) 'place': place!.toJson(),
     'synced': synced,
     'nostrEventId': nostrEventId,
     'syncOwnerPubkey': syncOwnerPubkey,
@@ -202,6 +213,7 @@ class Event {
           .toList(),
       color: json['color'] as String? ?? '0xFF2196F3',
       location: json['location'] as String?,
+      place: EventPlace.tryParse(json['place']),
       synced: json['synced'] as bool? ?? false,
       nostrEventId: json['nostrEventId'] as String?,
       syncOwnerPubkey: json['syncOwnerPubkey'] as String?,

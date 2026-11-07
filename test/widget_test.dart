@@ -66,6 +66,8 @@ void main() {
       expect(restored.reminders.single.minutesBefore, 15);
       expect(restored.dTag, 'epochs:evt-1');
       expect(restored.syncOwnerPubkey, 'owner-pubkey');
+      expect(restored.place, isNull);
+      expect(event.toJson().containsKey('place'), isFalse);
     });
 
     test('serializes a non-recurring event with a null recurrence', () {

@@ -1,4 +1,5 @@
 import 'package:astraea/models/event_model.dart';
+import 'package:astraea/models/event_place.dart';
 import 'package:astraea/models/reminder_model.dart';
 import 'package:astraea/utils/ics.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,6 +12,7 @@ Event _event({
   List<Reminder> reminders = const [Reminder(minutesBefore: 15)],
   bool isAllDay = false,
   String? location,
+  EventPlace? place,
 }) {
   final start = DateTime.utc(2026, 7, 15, 13, 0);
   return Event(
@@ -25,8 +27,23 @@ Event _event({
     recurrenceEnd: recurrenceEnd,
     reminders: reminders,
     location: location,
+    place: place,
     createdAt: DateTime.utc(2026, 7, 1),
     updatedAt: DateTime.utc(2026, 7, 1),
+  );
+}
+
+EventPlace _mappedPlace() {
+  return EventPlace(
+    latitude: 45.0703,
+    longitude: 7.6869,
+    source: EventPlace.osmSource,
+    name: 'Bianchini SRL',
+    displayName: 'Bianchini SRL, Via Roma 1, Torino',
+    osmType: 'node',
+    osmId: 123456789,
+    osmCategory: 'amenity',
+    osmSubtype: 'dentist',
   );
 }
 
@@ -92,7 +109,26 @@ void main() {
       expect(restored.recurrenceEnd, original.recurrenceEnd);
       expect(restored.reminders.single.minutesBefore, 15);
       expect(restored.location, 'Office');
+      expect(restored.place, isNull);
       expect(restored.synced, isFalse);
+      expect(IcsCodec.encode([original]), isNot(contains('GEO:')));
+    });
+
+    test('round-trips LOCATION and GEO, and an import has no OSM id', () {
+      const address = 'Bianchini SRL, Via Roma 1, Torino';
+      final original = _event(location: address, place: _mappedPlace());
+      final ics = IcsCodec.encode([original]);
+      expect(ics, contains(r'LOCATION:Bianchini SRL\, Via Roma 1\, Torino'));
+      expect(ics, contains('GEO:45.070300;7.686900'));
+
+      final restored = IcsCodec.decode(ics, defaultTimezone: 'UTC').single;
+      expect(restored.location, address);
+      expect(restored.place, isNotNull);
+      expect(restored.place!.source, EventPlace.icsSource);
+      expect(restored.place!.osmType, isNull);
+      expect(restored.place!.osmId, isNull);
+      expect(restored.place!.latitude, closeTo(45.0703, 1e-6));
+      expect(restored.place!.longitude, closeTo(7.6869, 1e-6));
     });
 
     test('round-trips an all-day event', () {
@@ -233,6 +269,44 @@ END:VCALENDAR
           remindersFor('PT30M'),
           isEmpty,
         ); // After the start: not a reminder.
+      },
+    );
+
+    test(
+      'keeps the first GEO and still imports the event when GEO is junk',
+      () {
+        const firstWins = '''
+BEGIN:VCALENDAR
+BEGIN:VEVENT
+DTSTART:20260715T130000Z
+SUMMARY:Dentist
+LOCATION:Office
+GEO:45.070300;7.686900
+GEO:1.000000;2.000000
+END:VEVENT
+END:VCALENDAR
+''';
+        final event = IcsCodec.decode(firstWins, defaultTimezone: 'UTC').single;
+        expect(event.location, 'Office');
+        expect(event.place!.source, EventPlace.icsSource);
+        expect(event.place!.latitude, closeTo(45.0703, 1e-6));
+        expect(event.place!.longitude, closeTo(7.6869, 1e-6));
+        expect(event.place!.osmId, isNull);
+
+        const junk = '''
+BEGIN:VCALENDAR
+BEGIN:VEVENT
+DTSTART:20260715T130000Z
+SUMMARY:Dentist
+LOCATION:Office
+GEO:not-coordinates
+END:VEVENT
+END:VCALENDAR
+''';
+        final plain = IcsCodec.decode(junk, defaultTimezone: 'UTC').single;
+        expect(plain.title, 'Dentist');
+        expect(plain.location, 'Office');
+        expect(plain.place, isNull);
       },
     );
 

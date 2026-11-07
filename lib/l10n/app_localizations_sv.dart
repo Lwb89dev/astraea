@@ -156,6 +156,39 @@ class AppLocalizationsSv extends AppLocalizations {
   String get locationLabel => 'Plats';
 
   @override
+  String get placePrivacyNotice =>
+      'Resolving a location sends only that text to OpenStreetMap Nominatim. The rest of the event stays on this device.';
+
+  @override
+  String get placeChooseTitle => 'Which place is this?';
+
+  @override
+  String get placeKeepTextOnly => 'Keep location without map position';
+
+  @override
+  String get placeResolveAgain => 'Resolve again';
+
+  @override
+  String get placeClearPosition => 'Clear map position';
+
+  @override
+  String get placeNavigate => 'Navigate';
+
+  @override
+  String get placeOsmCredit => '© OpenStreetMap contributors';
+
+  @override
+  String get placeNoNavigationApp =>
+      'No compatible navigation application is installed.';
+
+  @override
+  String get placeCouldNotNavigate => 'Could not open navigation.';
+
+  @override
+  String get placeSavedWithoutPosition =>
+      'Event saved. The location stays as text, without a map position.';
+
+  @override
   String get descriptionLabel => 'Beskrivning';
 
   @override

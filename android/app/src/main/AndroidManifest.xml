@@ -163,5 +163,9 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+        <!-- Roadstr is optional. This is the only package Astraea asks to
+             see, so Navigate can target it explicitly. Other map apps are
+             reached with an implicit geo: intent and are not enumerated. -->
+        <package android:name="app.roadstr" />
     </queries>
 </manifest>

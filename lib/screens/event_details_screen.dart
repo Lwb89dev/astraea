@@ -7,6 +7,7 @@ import '../providers/events_provider.dart';
 import '../utils/event_color.dart';
 import '../utils/formatter.dart';
 import 'event_editor_screen.dart';
+import 'widgets/place_location.dart';
 import '../widgets/astraea_ui.dart';
 
 /// Read-only details of a single event, with edit/delete actions. Looks the
@@ -77,7 +78,9 @@ class EventDetailsScreen extends ConsumerWidget {
                     : '${Formatter.fullLabel(event.startTimeUtc, event.timezone)}\n${Formatter.fullLabel(event.endTimeUtc, event.timezone)}',
               ),
               _DetailRow(icon: Icons.public_rounded, label: event.timezone),
-              if (event.location != null && event.location!.isNotEmpty)
+              if (event.place != null)
+                PlaceDetailBlock(place: event.place!)
+              else if (event.location != null && event.location!.isNotEmpty)
                 _DetailRow(icon: Icons.place_outlined, label: event.location!),
               if (event.recurrence != RecurrenceType.none)
                 _DetailRow(

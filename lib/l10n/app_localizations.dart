@@ -424,6 +424,66 @@ abstract class AppLocalizations {
   /// **'Location'**
   String get locationLabel;
 
+  /// No description provided for @placePrivacyNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolving a location sends only that text to OpenStreetMap Nominatim. The rest of the event stays on this device.'**
+  String get placePrivacyNotice;
+
+  /// No description provided for @placeChooseTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Which place is this?'**
+  String get placeChooseTitle;
+
+  /// No description provided for @placeKeepTextOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep location without map position'**
+  String get placeKeepTextOnly;
+
+  /// No description provided for @placeResolveAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolve again'**
+  String get placeResolveAgain;
+
+  /// No description provided for @placeClearPosition.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear map position'**
+  String get placeClearPosition;
+
+  /// No description provided for @placeNavigate.
+  ///
+  /// In en, this message translates to:
+  /// **'Navigate'**
+  String get placeNavigate;
+
+  /// No description provided for @placeOsmCredit.
+  ///
+  /// In en, this message translates to:
+  /// **'© OpenStreetMap contributors'**
+  String get placeOsmCredit;
+
+  /// No description provided for @placeNoNavigationApp.
+  ///
+  /// In en, this message translates to:
+  /// **'No compatible navigation application is installed.'**
+  String get placeNoNavigationApp;
+
+  /// No description provided for @placeCouldNotNavigate.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open navigation.'**
+  String get placeCouldNotNavigate;
+
+  /// No description provided for @placeSavedWithoutPosition.
+  ///
+  /// In en, this message translates to:
+  /// **'Event saved. The location stays as text, without a map position.'**
+  String get placeSavedWithoutPosition;
+
   /// No description provided for @descriptionLabel.
   ///
   /// In en, this message translates to:

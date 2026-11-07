@@ -69,6 +69,15 @@ class AppConstants {
   /// The developer's Lightning address, offered in Settings > Support.
   static const String lightningAddress = 'lwb89@blink.sv';
 
+  /// Public Nominatim search endpoint. The geocoding service takes this as
+  /// its default and accepts another HTTPS URI in its constructor.
+  static const String nominatimSearchUrl =
+      'https://nominatim.openstreetmap.org/search';
+
+  /// Identifying agent required by the public Nominatim usage policy.
+  static const String geocoderUserAgent =
+      'Astraea/1.1.0 (+https://github.com/Lwb89dev/astraea)';
+
   // ---------------------------------------------------------------------
   // SharedPreferences keys (non-sensitive settings)
   // ---------------------------------------------------------------------

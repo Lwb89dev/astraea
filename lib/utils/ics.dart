@@ -1,6 +1,7 @@
 import 'package:uuid/uuid.dart';
 
 import '../models/event_model.dart';
+import '../models/event_place.dart';
 import '../models/reminder_model.dart';
 
 /// Encodes/decodes Astraea events as iCalendar (RFC 5545) — the interchange
@@ -75,6 +76,12 @@ class IcsCodec {
     final location = event.location;
     if (location != null && location.isNotEmpty) {
       buffer.writeln('LOCATION:${_escape(location)}');
+    }
+    final place = event.place;
+    if (place != null) {
+      buffer.writeln(
+        'GEO:${formatCoordinate(place.latitude)};${formatCoordinate(place.longitude)}',
+      );
     }
     final rrule = _formatRecurrence(event);
     if (rrule != null) buffer.writeln('RRULE:$rrule');
@@ -223,6 +230,7 @@ class IcsCodec {
     String? summary;
     String? description;
     String? location;
+    String? geo;
     String? timezone;
     String? color;
     DateTime? start;
@@ -248,6 +256,8 @@ class IcsCodec {
           description ??= _unescape(value);
         case 'LOCATION':
           location = _unescape(value);
+        case 'GEO':
+          geo ??= value;
         case _tzProperty || _legacyTzProperty:
           timezone = value.trim();
         case _colorProperty || _legacyColorProperty:
@@ -294,6 +304,10 @@ class IcsCodec {
       reminders: reminders,
       color: color ?? '0xFF2196F3',
       location: (location != null && location.isNotEmpty) ? location : null,
+      place: EventPlace.fromIcsGeo(
+        geo,
+        label: (location != null && location.isNotEmpty) ? location : null,
+      ),
       synced: false,
       createdAt: now,
       updatedAt: now,

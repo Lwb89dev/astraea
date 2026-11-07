@@ -13,6 +13,10 @@ pub const MAX_JSON_ARG_BYTES: usize = 1024 * 1024;
 pub const MAX_TITLE_CHARS: usize = 2048;
 pub const MAX_TEXT_CHARS: usize = 65536;
 
+/// `lwb.place/1` inside an event's metadata map and the Nostr payload.
+pub const PLACE_SCHEMA: &str = "lwb.place/1";
+pub const PLACE_METADATA_KEY: &str = "place";
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SyncState {
@@ -201,6 +205,106 @@ pub struct RemotePayload {
     /// Linux-side optional extensions (ADR-005); Android drops them.
     pub calendar_id: Option<String>,
     pub url: Option<String>,
+    /// Cleaned `lwb.place/1` object, or `None` when the payload omitted it
+    /// or the object failed validation. Coordinates never become Nostr tags.
+    pub place: Option<serde_json::Value>,
+}
+
+/// Drops anything that is not a bounded `lwb.place/1` object. Nominatim
+/// `place_id` and unknown keys are removed. A bad place is `None`, not an
+/// error: the calendar event around it still loads.
+pub fn clean_place(value: &serde_json::Value) -> Option<serde_json::Value> {
+    let obj = value.as_object()?;
+    if obj.get("schema")?.as_str()? != PLACE_SCHEMA {
+        return None;
+    }
+    let lat = json_f64(obj.get("latitude")?)?;
+    let lon = json_f64(obj.get("longitude")?)?;
+    if !(-90.0..=90.0).contains(&lat) || !(-180.0..=180.0).contains(&lon) {
+        return None;
+    }
+    let source = required_source(obj.get("source"))?;
+    let mut clean = serde_json::Map::new();
+    clean.insert("schema".into(), serde_json::json!(PLACE_SCHEMA));
+    clean.insert("latitude".into(), serde_json::json!(lat));
+    clean.insert("longitude".into(), serde_json::json!(lon));
+    clean.insert("source".into(), serde_json::json!(source));
+    if let Some(name) = optional_text(obj.get("name"), 500) {
+        clean.insert("name".into(), serde_json::json!(name));
+    }
+    if let Some(display) = optional_text(obj.get("displayName"), 500) {
+        clean.insert("displayName".into(), serde_json::json!(display));
+    }
+    if let Some((kind, id)) = optional_osm(obj) {
+        clean.insert("osmType".into(), serde_json::json!(kind));
+        clean.insert("osmId".into(), serde_json::json!(id));
+    }
+    if let Some(category) = optional_token(obj.get("osmCategory")) {
+        clean.insert("osmCategory".into(), serde_json::json!(category));
+    }
+    if let Some(subtype) = optional_token(obj.get("osmSubtype")) {
+        clean.insert("osmSubtype".into(), serde_json::json!(subtype));
+    }
+    Some(serde_json::Value::Object(clean))
+}
+
+pub fn metadata_with_place(
+    place: Option<&serde_json::Value>,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut metadata = serde_json::Map::new();
+    set_metadata_place(&mut metadata, place);
+    metadata
+}
+
+pub fn set_metadata_place(
+    metadata: &mut serde_json::Map<String, serde_json::Value>,
+    place: Option<&serde_json::Value>,
+) {
+    match place.and_then(clean_place) {
+        Some(value) => {
+            metadata.insert(PLACE_METADATA_KEY.to_owned(), value);
+        }
+        None => {
+            metadata.remove(PLACE_METADATA_KEY);
+        }
+    }
+}
+
+fn json_f64(value: &serde_json::Value) -> Option<f64> {
+    let number = value.as_f64()?;
+    number.is_finite().then_some(number)
+}
+
+fn required_source(value: Option<&serde_json::Value>) -> Option<String> {
+    optional_text(value, 64)
+}
+
+fn optional_text(value: Option<&serde_json::Value>, max: usize) -> Option<String> {
+    let text = value?.as_str()?.trim();
+    if text.is_empty() || text.chars().count() > max || text.chars().any(|c| c.is_control()) {
+        return None;
+    }
+    Some(text.to_owned())
+}
+
+fn optional_token(value: Option<&serde_json::Value>) -> Option<String> {
+    let text = optional_text(value, 64)?;
+    let allowed = text
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | ':' | '-'));
+    allowed.then_some(text)
+}
+
+fn optional_osm(obj: &serde_json::Map<String, serde_json::Value>) -> Option<(String, i64)> {
+    let kind = obj.get("osmType")?.as_str()?;
+    if kind != "node" && kind != "way" && kind != "relation" {
+        return None;
+    }
+    let id = obj.get("osmId")?.as_i64()?;
+    if id <= 0 {
+        return None;
+    }
+    Some((kind.to_owned(), id))
 }
 
 /// Draft accepted by `CreateEvent` (docs/dbus-api.md).
@@ -232,6 +336,8 @@ pub struct EventDraft {
     pub recurrence: Option<RecurrenceDraft>,
     #[serde(default)]
     pub reminders: Vec<Reminder>,
+    #[serde(default)]
+    pub place: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -264,6 +370,8 @@ pub struct EventPatch {
     pub recurrence: Option<Option<RecurrenceDraft>>,
     pub reminders: Option<Vec<Reminder>>,
     pub status: Option<String>,
+    #[serde(default, deserialize_with = "double_option")]
+    pub place: Option<Option<serde_json::Value>>,
 }
 
 /// Distinguishes "field absent" from "field explicitly null".

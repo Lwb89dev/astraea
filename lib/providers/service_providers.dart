@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../services/calendar_sync_service.dart';
+import '../services/geocoding_service.dart';
 import '../services/export_encryption_service.dart';
 import '../services/file_cache_service.dart';
 import '../services/home_widget_service.dart';
@@ -41,6 +42,10 @@ final notificationServiceProvider = Provider<NotificationService>((ref) {
 
 final homeWidgetServiceProvider = Provider<HomeWidgetService>((ref) {
   return HomeWidgetService();
+});
+
+final geocodingServiceProvider = Provider<GeocodingService>((ref) {
+  return NominatimGeocodingService();
 });
 
 final calendarSyncServiceProvider = Provider<CalendarSyncService>((ref) {
