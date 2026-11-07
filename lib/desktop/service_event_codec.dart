@@ -1,4 +1,5 @@
 import '../models/event_model.dart';
+import '../models/event_place.dart';
 import '../models/reminder_model.dart';
 
 /// Maps between the app's [Event] model and the JSON the Astraea Linux
@@ -29,6 +30,7 @@ class ServiceEventCodec {
           .toList(),
       color: json['color'] as String? ?? '0xFF2196F3',
       location: json['location'] as String?,
+      place: _placeOf(json),
       synced: syncState == 'synced' || syncState == 'deleted_synced',
       nostrEventId: json['nostrEventId'] as String?,
       syncOwnerPubkey: json['ownerPubkey'] as String?,
@@ -39,6 +41,14 @@ class ServiceEventCodec {
       createdAt: DateTime.parse(json['createdAt'] as String).toUtc(),
       updatedAt: DateTime.parse(json['updatedAt'] as String).toUtc(),
     );
+  }
+
+  static EventPlace? _placeOf(Map<String, dynamic> json) {
+    final direct = EventPlace.tryParse(json['place']);
+    if (direct != null) return direct;
+    final metadata = json['metadata'];
+    if (metadata is! Map) return null;
+    return EventPlace.tryParse(metadata['place']);
   }
 
   /// The service serializes recurrence as a lowercase string enum; `none`
@@ -56,6 +66,7 @@ class ServiceEventCodec {
     'title': event.title,
     'description': event.description,
     if (event.location != null) 'location': event.location,
+    if (event.place != null) 'place': event.place!.toJson(),
     'start': event.startTimeUtc.toIso8601String(),
     'end': event.endTimeUtc.toIso8601String(),
     'timezone': event.timezone,
@@ -77,6 +88,7 @@ class ServiceEventCodec {
     'title': event.title,
     'description': event.description,
     'location': event.location,
+    'place': event.place?.toJson(),
     'start': event.startTimeUtc.toIso8601String(),
     'end': event.endTimeUtc.toIso8601String(),
     'timezone': event.timezone,

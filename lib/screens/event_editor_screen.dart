@@ -8,11 +8,15 @@ import '../desktop/desktop_invite_section_stub.dart'
     as desktop_invite;
 import '../l10n/app_localizations.dart';
 import '../models/event_model.dart';
+import '../models/event_place.dart';
 import '../models/reminder_model.dart';
 import '../providers/events_provider.dart';
+import '../providers/service_providers.dart';
 import '../providers/settings_provider.dart';
+import '../services/geocoding_service.dart';
 import '../utils/event_color.dart';
 import '../utils/formatter.dart';
+import 'widgets/place_location.dart';
 import 'widgets/timezone_picker.dart';
 import '../widgets/astraea_ui.dart';
 
@@ -45,6 +49,10 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
   List<Reminder> _reminders = const [Reminder(minutesBefore: 15)];
   int _colorValue = kEventColorPalette.first;
   bool _saving = false;
+  EventPlace? _place;
+  String? _placeAnchor;
+  bool _keepTextOnly = false;
+  int _lookupGeneration = 0;
 
   @override
   void initState() {
@@ -54,6 +62,12 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
       _titleController.text = e.title;
       _descriptionController.text = e.description;
       _locationController.text = e.location ?? '';
+      _place = placeForLocation(
+        location: e.location,
+        resolvedAgainst: e.location,
+        place: e.place,
+      );
+      _placeAnchor = _place == null ? null : e.location?.trim();
       _timezone = e.timezone;
       _start = Formatter.toZoned(e.startTimeUtc, e.timezone);
       _end = Formatter.toZoned(e.endTimeUtc, e.timezone);
@@ -71,12 +85,34 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
       _end = _start.add(const Duration(hours: 1));
       _timezone = ref.read(settingsProvider).value?.timezone ?? tz.local.name;
     }
+    _locationController.addListener(_onLocationChanged);
+  }
+
+  void _onLocationChanged() {
+    final text = _locationController.text.trim();
+    if (text.isNotEmpty && text == _placeAnchor) return;
+    if (_place == null && !_keepTextOnly && _placeAnchor == null) return;
+    setState(() {
+      _place = null;
+      _keepTextOnly = false;
+      _placeAnchor = null;
+    });
+  }
+
+  void _bindPlace(EventPlace? place, {required bool keepText}) {
+    final text = _locationController.text.trim();
+    setState(() {
+      _place = place;
+      _keepTextOnly = keepText && place == null;
+      _placeAnchor = text.isEmpty ? null : text;
+    });
   }
 
   @override
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
+    _locationController.removeListener(_onLocationChanged);
     _locationController.dispose();
     super.dispose();
   }
@@ -181,15 +217,40 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
     );
   }
 
+  String? get _locationText {
+    final text = _locationController.text.trim();
+    return text.isEmpty ? null : text;
+  }
+
   Future<void> _save() async {
     if (_saving) return;
     setState(() => _saving = true);
+    final prepared = await _preparePlace(_locationText);
+    if (!mounted || prepared == null) {
+      if (mounted) setState(() => _saving = false);
+      return;
+    }
+    try {
+      await ref.read(eventsProvider.notifier).upsert(_eventFromForm(prepared));
+      if (!mounted) return;
+      if (prepared.unresolved || prepared.offline) _tellUnresolved();
+      Navigator.of(context).pop();
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      final l10n = AppLocalizations.of(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.couldNotSaveEvent(error.toString()))),
+      );
+    }
+  }
+
+  Event _eventFromForm(_PreparedPlace prepared) {
     final now = DateTime.now().toUtc();
     final existing = widget.existing;
     final startUtc = _toUtc(_start);
     final endUtc = _toUtc(_end);
-
-    final event = Event(
+    return Event(
       id: existing?.id ?? _uuid.v4(),
       title: _titleController.text.trim(),
       description: _descriptionController.text.trim(),
@@ -206,9 +267,8 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
           : _toUtc(_recurrenceEnd!),
       reminders: _reminders,
       color: '0x${_colorValue.toRadixString(16).padLeft(8, '0').toUpperCase()}',
-      location: _locationController.text.trim().isEmpty
-          ? null
-          : _locationController.text.trim(),
+      location: _locationText,
+      place: prepared.place,
       synced: false,
       nostrEventId: existing?.nostrEventId,
       syncOwnerPubkey: existing?.syncOwnerPubkey,
@@ -218,18 +278,83 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
       // +1 second has elapsed can never move the replaceable event backwards.
       updatedAt: existing?.updatedAt ?? now,
     );
+  }
 
-    try {
-      await ref.read(eventsProvider.notifier).upsert(event);
-      if (mounted) Navigator.of(context).pop();
-    } catch (error) {
-      if (!mounted) return;
-      setState(() => _saving = false);
-      final l10n = AppLocalizations.of(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.couldNotSaveEvent(error.toString()))),
-      );
+  /// Null means the user dismissed the candidate sheet and the save stops.
+  Future<_PreparedPlace?> _preparePlace(String? location) async {
+    if (location == null) return const _PreparedPlace(null, unresolved: false);
+    final anchored = placeForLocation(
+      location: location,
+      resolvedAgainst: _placeAnchor,
+      place: _place,
+    );
+    if (anchored != null) return _PreparedPlace(anchored, unresolved: false);
+    if (_keepTextOnly && location == _placeAnchor) {
+      return const _PreparedPlace(null, unresolved: false);
     }
+    final query = geocodingQuery(location);
+    if (query == null) return const _PreparedPlace(null, unresolved: false);
+    return _lookup(query);
+  }
+
+  Future<_PreparedPlace?> _lookup(String query) async {
+    final generation = ++_lookupGeneration;
+    final status = await ref.read(geocodingServiceProvider).search(query);
+    if (!mounted || generation != _lookupGeneration) return null;
+    return switch (status) {
+      GeocodeUnavailable() => const _PreparedPlace(null, offline: true),
+      GeocodeResults(:final results) => _fromDecision(
+        query,
+        results,
+        generation,
+      ),
+    };
+  }
+
+  Future<_PreparedPlace?> _fromDecision(
+    String query,
+    List<PlaceSearchResult> results,
+    int generation,
+  ) async {
+    final decision = decidePlaceMatch(query, results);
+    if (decision.kind == PlaceDecisionKind.attach) {
+      return _PreparedPlace(decision.place, unresolved: false);
+    }
+    if (decision.kind == PlaceDecisionKind.skip) {
+      return const _PreparedPlace(null, unresolved: true);
+    }
+    final picked = await showPlacePicker(
+      context: context,
+      candidates: decision.candidates,
+    );
+    if (!mounted || generation != _lookupGeneration || picked == null) {
+      return null;
+    }
+    if (picked.keepText) return const _PreparedPlace(null, unresolved: false);
+    return _PreparedPlace(picked.place, unresolved: false);
+  }
+
+  Future<void> _resolveAgain() async {
+    if (_saving) return;
+    final query = geocodingQuery(_locationText);
+    if (query == null) return;
+    setState(() => _saving = true);
+    final prepared = await _lookup(query);
+    if (!mounted) return;
+    setState(() => _saving = false);
+    if (prepared == null || prepared.offline) return;
+    if (prepared.unresolved) {
+      _bindPlace(null, keepText: false);
+      return;
+    }
+    _bindPlace(prepared.place, keepText: prepared.place == null);
+  }
+
+  void _tellUnresolved() {
+    final l10n = AppLocalizations.of(context);
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l10n.placeSavedWithoutPosition)));
   }
 
   @override
@@ -466,6 +591,7 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
               AstraeaSection(
                 title: l10n.locationLabel,
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     TextField(
                       controller: _locationController,
@@ -474,6 +600,21 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
                         prefixIcon: const Icon(Icons.place_outlined),
                       ),
                     ),
+                    const SizedBox(height: 8),
+                    Text(
+                      l10n.placePrivacyNotice,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                    if (_anchoredPlace case final place?)
+                      ResolvedPlaceSummary(
+                        place: place,
+                        onResolveAgain: _saving ? () {} : _resolveAgain,
+                        onClear: _saving
+                            ? () {}
+                            : () => _bindPlace(null, keepText: true),
+                      ),
                     const SizedBox(height: 12),
                     TextField(
                       controller: _descriptionController,
@@ -513,6 +654,26 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
 
   String _stampLocal(DateTime wall) =>
       Formatter.fullLabel(_toUtc(wall), _timezone);
+
+  EventPlace? get _anchoredPlace {
+    return placeForLocation(
+      location: _locationText,
+      resolvedAgainst: _placeAnchor,
+      place: _place,
+    );
+  }
+}
+
+class _PreparedPlace {
+  const _PreparedPlace(
+    this.place, {
+    this.unresolved = false,
+    this.offline = false,
+  });
+
+  final EventPlace? place;
+  final bool unresolved;
+  final bool offline;
 }
 
 class _DateTimeRow extends StatelessWidget {

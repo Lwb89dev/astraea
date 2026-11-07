@@ -9,6 +9,7 @@ import 'package:flutter/services.dart' show MissingPluginException;
 import '../models/event_model.dart';
 import '../models/profile.dart';
 import '../models/user_model.dart';
+import '../utils/calendar_tags.dart';
 import '../utils/constants.dart';
 import '../utils/crypto.dart';
 import '../utils/nostr_event_check.dart';
@@ -414,9 +415,7 @@ class NostrService {
     final signed = await _signEvent(
       author: author,
       kind: AppConstants.calendarEventKind,
-      tags: [
-        ['d', event.dTag],
-      ],
+      tags: publicCalendarTags(event),
       content: content,
       createdAt: event.updatedAt,
     );

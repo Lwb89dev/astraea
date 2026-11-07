@@ -156,6 +156,39 @@ class AppLocalizationsIt extends AppLocalizations {
   String get locationLabel => 'Luogo';
 
   @override
+  String get placePrivacyNotice =>
+      'Risolvere un luogo invia solo quel testo a OpenStreetMap Nominatim. Il resto dell\'evento resta su questo dispositivo.';
+
+  @override
+  String get placeChooseTitle => 'Quale posto è questo?';
+
+  @override
+  String get placeKeepTextOnly => 'Tieni il luogo senza posizione sulla mappa';
+
+  @override
+  String get placeResolveAgain => 'Risolvi di nuovo';
+
+  @override
+  String get placeClearPosition => 'Rimuovi la posizione sulla mappa';
+
+  @override
+  String get placeNavigate => 'Naviga';
+
+  @override
+  String get placeOsmCredit => '© OpenStreetMap contributors';
+
+  @override
+  String get placeNoNavigationApp =>
+      'Nessuna applicazione di navigazione compatibile è installata.';
+
+  @override
+  String get placeCouldNotNavigate => 'Impossibile aprire la navigazione.';
+
+  @override
+  String get placeSavedWithoutPosition =>
+      'Evento salvato. Il luogo resta come testo, senza posizione sulla mappa.';
+
+  @override
   String get descriptionLabel => 'Descrizione';
 
   @override

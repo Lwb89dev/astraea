@@ -13,7 +13,7 @@ use chrono::{DateTime, SecondsFormat, TimeZone, Utc};
 use nostr::{Event as NostrEvent, EventBuilder, Kind, Tag, Timestamp, UnsignedEvent};
 use serde_json::{json, Map, Value};
 
-use crate::model::{Event, Recurrence, Reminder, RemotePayload};
+use crate::model::{clean_place, Event, Recurrence, Reminder, RemotePayload, PLACE_METADATA_KEY};
 
 /// NIP-78 application-specific data, parameterized replaceable.
 pub const CALENDAR_KIND: u16 = 30078;
@@ -59,6 +59,9 @@ pub fn payload_json(event: &Event, owner_pubkey: &str, deleted: bool) -> Value {
         }
         if let Some(url) = &event.url {
             obj.insert("url".into(), json!(url));
+        }
+        if let Some(place) = event.metadata.get(PLACE_METADATA_KEY).and_then(clean_place) {
+            obj.insert("place".into(), place);
         }
     }
     payload
@@ -162,6 +165,7 @@ pub fn parse_payload(plaintext: &str) -> Option<RemotePayload> {
             .unwrap_or(start),
         calendar_id: opt_str("calendarId").filter(|s| !s.is_empty()),
         url: opt_str("url").filter(|s| !s.is_empty()),
+        place: value.get("place").and_then(clean_place),
     })
 }
 
@@ -262,6 +266,61 @@ mod tests {
         assert!(parse_payload("not json").is_none());
         assert!(parse_payload("{}").is_none());
         assert!(parse_payload(r#"{"id":"a"}"#).is_none());
+    }
+
+    #[test]
+    fn place_stays_inside_the_payload_and_out_of_the_tags() {
+        let mut event = sample_event();
+        event.metadata.insert(
+            "place".into(),
+            json!({
+                "schema": "lwb.place/1",
+                "name": "Bianchini SRL",
+                "displayName": "Bianchini SRL, Via Roma 1, Torino",
+                "latitude": 45.0,
+                "longitude": 7.0,
+                "osmType": "node",
+                "osmId": 123456789,
+                "osmCategory": "amenity",
+                "osmSubtype": "dentist",
+                "source": "osm-nominatim",
+                "place_id": 999
+            }),
+        );
+        let payload = payload_json(&event, &"ab".repeat(32), false);
+        assert_eq!(payload["place"]["latitude"], 45.0);
+        assert_eq!(payload["place"]["osmId"], 123456789);
+        assert!(payload["place"].get("place_id").is_none());
+        assert!(payload.get("latitude").is_none());
+
+        let keys = nostr::Keys::generate();
+        let unsigned = build_unsigned(keys.public_key(), &event, "cipher".into());
+        assert_eq!(unsigned.content, "cipher");
+        assert_eq!(unsigned.tags.iter().count(), 1);
+        assert_eq!(
+            unsigned.tags.identifier(),
+            Some("epochs:5f0e8f7a-1111-4222-8333-944444444444")
+        );
+
+        let parsed = parse_payload(&payload.to_string()).expect("parses");
+        let place = parsed.place.expect("place");
+        assert_eq!(place["source"], "osm-nominatim");
+        assert_eq!(place["osmType"], "node");
+
+        let bad = json!({
+            "id": "x-1",
+            "startTimeUtc": "2026-07-19T09:00:00Z",
+            "endTimeUtc": "2026-07-19T10:00:00Z",
+            "place": {
+                "schema": "lwb.place/1",
+                "latitude": 120.0,
+                "longitude": 0.0,
+                "source": "osm-nominatim"
+            }
+        })
+        .to_string();
+        let parsed_bad = parse_payload(&bad).expect("event still parses");
+        assert!(parsed_bad.place.is_none());
     }
 
     #[test]

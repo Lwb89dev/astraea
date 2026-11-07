@@ -10,8 +10,8 @@ use uuid::Uuid;
 
 use crate::db::{self, DbError};
 use crate::model::{
-    validate_event_fields, Calendar, CalendarDraft, CalendarPatch, Event, EventDraft, EventPatch,
-    Recurrence, Reminder, RemotePayload, SyncState,
+    metadata_with_place, set_metadata_place, validate_event_fields, Calendar, CalendarDraft,
+    CalendarPatch, Event, EventDraft, EventPatch, Recurrence, Reminder, RemotePayload, SyncState,
 };
 
 /// One pending sync operation (a `sync_queue` row).
@@ -231,7 +231,7 @@ impl Store {
             remote_revision: None,
             sync_state: SyncState::LocalOnly,
             source_device: Some(source_device.to_owned()),
-            metadata: serde_json::Map::new(),
+            metadata: metadata_with_place(draft.place.as_ref()),
         };
 
         self.with_conn(|conn| {
@@ -317,6 +317,9 @@ impl Store {
         }
         if let Some(v) = patch.reminders {
             event.reminders = v;
+        }
+        if let Some(v) = patch.place {
+            set_metadata_place(&mut event.metadata, v.as_ref());
         }
         if let Some(v) = patch.recurrence {
             match v {
@@ -1334,7 +1337,7 @@ fn adopt_remote_event(
         remote_revision: Some(remote_concrete_id.to_owned()),
         sync_state: remote_sync_state(payload.deleted),
         source_device: None,
-        metadata: serde_json::Map::new(),
+        metadata: metadata_with_place(payload.place.as_ref()),
     };
     insert_event_row(conn, &event)?;
     Ok(Some(event.id))
@@ -1386,6 +1389,10 @@ fn apply_remote_update(
     event.nostr_event_id = Some(remote_concrete_id.to_owned());
     event.owner_pubkey = Some(owner_pubkey.to_owned());
     event.sync_state = remote_sync_state(payload.deleted);
+    // A newer payload that omits `place` clears it. An older client that
+    // does not know the field drops it on republish; keeping stale
+    // coordinates for an address that client may have edited would be worse.
+    set_metadata_place(&mut event.metadata, payload.place.as_ref());
     update_event_row(conn, &event)?;
     Ok(Some(event.id))
 }
