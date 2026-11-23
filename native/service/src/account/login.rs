@@ -388,7 +388,8 @@ mod tests {
             .sign_with_keys(&keys)
             .expect("sign");
         let body = format!(r#"{{"state":"{state}","event":{}}}"#, event.as_json());
-        let err = verify_callback(&body, &state, &challenge).unwrap_err();
+        let err = verify_callback(&body, &state, &challenge)
+            .expect_err("a stale callback must be rejected");
         assert!(err.contains("fresh"));
     }
 }

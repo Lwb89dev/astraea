@@ -557,7 +557,9 @@ async fn two_party_invite_is_encrypted_end_to_end_and_reaches_acceptance() {
     let relay = "wss://relay.example".to_string();
 
     let alice_store = Arc::new(Store::open_in_memory().expect("store"));
-    alice_store.set_relays(&[relay.clone()]).expect("relays");
+    alice_store
+        .set_relays(std::slice::from_ref(&relay))
+        .expect("relays");
     let bob_store = Arc::new(Store::open_in_memory().expect("store"));
     bob_store.set_relays(&[relay]).expect("relays");
 

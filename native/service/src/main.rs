@@ -336,7 +336,7 @@ async fn cli_diagnostics() -> anyhow::Result<()> {
                 } else {
                     for (url, state, last_ok) in relays {
                         let last = last_ok
-                            .and_then(|ms| chrono::DateTime::from_timestamp_millis(ms))
+                            .and_then(chrono::DateTime::from_timestamp_millis)
                             .map(|t| t.to_rfc3339())
                             .unwrap_or_else(|| "never".into());
                         println!("relay: {url} ({state}, last ok: {last})");
